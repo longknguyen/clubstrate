@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% load static %}
+
+{% block content %}
+<div class="container" style="max-width: 400px; margin-top: 100px; text-align: center;">
+    <h2>Login</h2>
+
+    <!-- Google login button -->
+    <button class="gsi-material-button"
+            onclick="window.location.href='{% provider_login_url 'google' %}'">
+      <div class="gsi-material-button-state"></div>
+      <div class="gsi-material-button-content-wrapper">
+        <div class="gsi-material-button-icon">
+          <img src="{% static 'users/google_logo.png' %}" alt="Google logo" style="height:20px; width:20px;">
+        </div>
+        <span class="gsi-material-button-contents">Sign in with Google</span>
+      </div>
+    </button>
+</div>
+{% endblock %}

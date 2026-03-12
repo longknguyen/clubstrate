@@ -9,11 +9,18 @@
 # Notes: Modified to fit this project's users app and file organization.
 
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.contrib.auth.models import AbstractUser
 
+class CustomUser(AbstractUser):
+    def __str__(self):
+        return self.username
+
+    def get_full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
     def __str__(self):

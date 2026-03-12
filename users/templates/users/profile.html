@@ -2,12 +2,16 @@
 {% block content %}
     <div class="content-section">
       <div class="media">
-        <img class="rounded-circle account-img" src="{{ user.profile.image.url }}">
+        <img class="rounded-circle account-img" src="{{ profile_image }}">
         <div class="media-body">
-          <h2 class="account-heading">{{ user.username }}</h2>
-          <p class="text-secondary">{{ user.email }}</p>
+          <h2 class="account-heading">{{ username }}</h2>
+          <p class="text-secondary">{{ email }}</p>
+          <p>{{ first_name }} {{ last_name }}</p>
         </div>
-      </div>
-      <!-- FORM HERE -->
+    </div>
+    <form method="post" action="/logout/">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
     </div>
 {% endblock content %}
