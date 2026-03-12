@@ -1,23 +1,27 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
+
+from .models import Profile
 
 
 class LoginView(View):
     def get(self, request):
         return render(request, 'users/login.html')
 
-class ProfileView(View):
-    @login_required
+class ProfileView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
     def get(self, request):
-        user = request.user
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        # user = request.user
         context = {
-            "profile_image": user.profile.image.url,
-            "username": user.username,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
+            "profile_image": profile.image.url,
+            "username": request.user.username,
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
         }
         return render(request, 'users/profile.html', context)
 
