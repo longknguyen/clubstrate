@@ -5,7 +5,7 @@ from django.views import View
 
 from .models import Profile
 
-
+# See https://docs.djangoproject.com/en/6.0/ref/class-based-views/base/ to grab request/return http responses using Django abstractions
 class LoginView(View):
     def get(self, request):
         return render(request, 'users/login.html')
