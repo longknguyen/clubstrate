@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block content %}
-    <div class="content-section">
-      <div class="media">
-        <img class="rounded-circle account-img" src="{{ user.profile.image.url }}">
-        <div class="media-body">
-          <h2 class="account-heading">{{ user.username }}</h2>
-          <p class="text-secondary">{{ user.email }}</p>
 
-            {% if is_officer %}
-              <h2>You are an Officer.</h2>
-          {% else %}
-              <h2>You are a Member.</h2>
-          {% endif %}
+{% block content %}
+<div class="content-section">
+    <div class="media">
+        <img class="rounded-circle account-img" src="{{ profile_image }}" alt="Profile Image">
+        <div class="media-body">
+            <h2 class="account-heading">{{ username }}</h2>
+            <p class="text-secondary">{{ email }}</p>
+            <p>{{ first_name }} {{ last_name }}</p>
         </div>
-      </div>
-      <!-- FORM HERE -->
     </div>
-{% endblock content %}
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger mt-3">Logout</button>
+    </form>
+</div>
+{% endblock %}

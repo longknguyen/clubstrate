@@ -1,14 +1,35 @@
-from django.shortcuts import render
-from django.contrib.auth.models import User
+from django.shortcuts import render, redirect
+from django.contrib.auth import logout
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
 
-from django.contrib.auth.decorators import login_required
+from .models import Profile
 
-# @login_required
-# def dashboard(request):
-#     is_officer = request.user.groups.filter(name='Club Officer').exists()
-#     return render(request, 'dashboard.html', {'is_officer': is_officer})
+# See https://docs.djangoproject.com/en/6.0/ref/class-based-views/base/ to grab request/return http responses using Django abstractions
+class LoginView(View):
+    def get(self, request):
+        return render(request, 'users/login.html')
 
-def profile(request):
-    is_officer = request.user.groups.filter(name='Club Officer').exists()
-    # user = User.objects.get(username="Any")  # This user for now, until login is implemented
-    return render(request, "users/profile.html", {'is_officer': is_officer})
+class ProfileView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        # user = request.user
+        context = {
+            "profile_image": profile.image.url,
+            "username": request.user.username,
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+        }
+        return render(request, 'users/profile.html', context)
+
+class LogoutView(View):
+    def post(self, request):
+        logout(request)
+        return redirect('/')
+
+"""def profile(request):
+    user = User.objects.get(username="Any")  # This user for now, until login is implemented
+    return render(request, "users/profile.html", {"user": user})"""
