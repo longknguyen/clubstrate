@@ -22,8 +22,8 @@ class CustomUser(AbstractUser):
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
 
-    role_choices = [ ('member', 'Club Member'), ('officer', 'Club Officer')]
-    role = models.CharField(max_length=20, choices=role_choices, default='member')
+    # role_choices = [ ('member', 'Club Member'), ('officer', 'Club Officer')]
+    # role = models.CharField(max_length=20, choices=role_choices, default='member')
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
+from django.contrib.auth.models import Group
+
 
 from .models import Profile
 
@@ -22,7 +24,7 @@ class ProfileView(LoginRequiredMixin, View):
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
-            "role": request.user.role,
+            "role": "officer" if request.user.groups.filter(name='Officer').exists() else "member",
         }
         return render(request, 'users/profile.html', context)
 
@@ -35,10 +37,14 @@ class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
     def post(self, request):
         user = request.user
-        if user.role == 'member':
-            user.role = "officer"
+        officer_group = Group.objects.get(name='Officer')
+        member_group = Group.objects.get(name='Member')
+        if user.groups.filter(name='Officer').exists():
+            user.groups.remove(officer_group)
+            user.groups.add(member_group)
         else:
-            user.role = 'member'
+            user.groups.remove(member_group)
+            user.groups.add(officer_group)
         user.save()
         return redirect('/users/profile/')
 
