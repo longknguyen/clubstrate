@@ -6,6 +6,12 @@
         <div class="media-body">
           <h2 class="account-heading">{{ user.username }}</h2>
           <p class="text-secondary">{{ user.email }}</p>
+
+            {% if is_officer %}
+              <h2>You are an Officer.</h2>
+          {% else %}
+              <h2>You are a Member.</h2>
+          {% endif %}
         </div>
       </div>
       <!-- FORM HERE -->
