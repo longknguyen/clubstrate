@@ -22,6 +22,7 @@ class ProfileView(LoginRequiredMixin, View):
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
+            "role": request.user.role,
         }
         return render(request, 'users/profile.html', context)
 
@@ -29,6 +30,18 @@ class LogoutView(View):
     def post(self, request):
         logout(request)
         return redirect('/')
+
+class ChangeRoleView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+    def post(self, request):
+        user = request.user
+        if user.role == 'member':
+            user.role = "officer"
+        else:
+            user.role = 'member'
+        user.save()
+        return redirect('/users/profile/')
+
 
 """def profile(request):
     user = User.objects.get(username="Any")  # This user for now, until login is implemented

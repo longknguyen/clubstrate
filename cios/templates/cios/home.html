@@ -3,5 +3,14 @@
 {% block content %}
 <h1>CIO Home Page</h1>
 <p>This is where the CIO Cards will appear.</p>
+
+{% if user.is_authenticated %}
+    {% if role == 'officer' %}
+        <h3>You are an Officer.</h3>
+    {% else %}
+        <h3>You are a Member.</h3>
+    {% endif %}
+{% endif %}
+
 {% endblock %}
 
