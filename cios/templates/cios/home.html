@@ -7,6 +7,7 @@
 {% if user.is_authenticated %}
     {% if role == 'officer' %}
         <h3>You are an Officer.</h3>
+        <a href="#" class="btn btn-primary">Create a CIO</a>
     {% else %}
         <h3>You are a Member.</h3>
     {% endif %}
