@@ -30,6 +30,10 @@ class LogoutView(View):
         logout(request)
         return redirect('/')
 
+class RegisterView(View):
+    def get(self, request):
+        return render(request, 'users/register.html')
+
 """def profile(request):
     user = User.objects.get(username="Any")  # This user for now, until login is implemented
     return render(request, "users/profile.html", {"user": user})"""
