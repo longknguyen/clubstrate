@@ -33,6 +33,10 @@ class LogoutView(View):
         logout(request)
         return redirect('/')
 
+class RegisterView(View):
+    def get(self, request):
+        return render(request, 'users/register.html')
+
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
     def post(self, request):
