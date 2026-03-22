@@ -2,15 +2,18 @@
 
 {% block content %}
 <h1>CIO Home Page</h1>
-<p>This is where the CIO Cards will appear.</p>
+<p>Select a CIO below to view its page.</p>
 
-{% if user.is_authenticated %}
-    {% if role == 'officer' %}
-        <h3>You are an Officer.</h3>
-        <a href="#" class="btn btn-primary">Create a CIO</a>
-    {% else %}
-        <h3>You are a Member.</h3>
-    {% endif %}
+{% if cios %}
+    <ul>
+        {% for cio in cios %}
+            <li>
+                <a href='{% url 'cio_detail' cio.id %}'>{{ cio.name }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No CIOs have been created yet.</p>
 {% endif %}
 
 {% endblock %}
