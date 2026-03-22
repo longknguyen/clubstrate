@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Create a CIO</h1>
+<p>Enter the name of the CIO you want to create.</p>
+
+<form method='POST'>
+    {% csrf_token %}
+    <div class='form-group'>
+        <label for='name'>CIO Name</label>
+        <input type='text' class='form-control' id='name' name='name' required>
+    </div>
+    <button type='submit' class='btn btn-primary'>Create CIO</button>
+</form>
+{% endblock %}

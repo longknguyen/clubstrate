@@ -48,6 +48,9 @@
             <!-- Left side -->
             <div class="navbar-nav mr-auto">
               <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                  {% if user.is_authenticated %}
+                      <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
+                  {% endif %}
             </div>
 
             <!-- Right side -->
