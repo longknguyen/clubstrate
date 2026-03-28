@@ -2,7 +2,7 @@
 
     <div class="article-metadata">
         <strong>{{ comment.author.username }}</strong>
-        <small> • {{ comment.created_at }}</small>
+        <small> • <span class="comment-timestamp" data-datetime="{{ comment.created_at|date:'c' }}"></span></small>
     </div>
 
     <p>{{ comment.content }}</p>
@@ -32,10 +32,22 @@
         </form>
     {% endif %}
     {% for reply in comment.replies.all %}
-        {% include "comment.html" with comment=reply level=level|add:25 %}
+        {% include "discussions/comment.html" with comment=reply level=level|add:25 %}
     {% endfor %}
 
     <script>
+        document.querySelectorAll('.comment-timestamp').forEach(el => {
+            const dt = new Date(el.dataset.datetime);
+            el.textContent = dt.toLocaleString(undefined, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        });
+
         function validateReplyForm(form) {
             const text = form.querySelector('textarea[name="content"]').value.trim();
             const file = form.querySelector('input[name="image"]').files.length;

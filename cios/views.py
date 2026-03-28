@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
 from django.shortcuts import render, get_object_or_404, redirect
 
-from discussions.models import Comment
+from discussions.models import Comment, Post
 from .models import CIO, Membership
 def home(request):
     cios = CIO.objects.all().order_by('name')
