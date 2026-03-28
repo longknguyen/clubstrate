@@ -18,8 +18,12 @@ class ProfileView(LoginRequiredMixin, View):
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
         # user = request.user
+        
+        # Get the image URL - ensures S3 URL is properly generated
+        profile_image_url = profile.image.url if profile.image else '/media/default.jpg'
+        
         context = {
-            "profile_image": profile.image.url,
+            "profile_image": profile_image_url,
             "username": request.user.username,
             "email": request.user.email,
             "first_name": request.user.first_name,
@@ -27,6 +31,13 @@ class ProfileView(LoginRequiredMixin, View):
             "role": "officer" if request.user.groups.filter(name='Officer').exists() else "member",
         }
         return render(request, 'users/profile.html', context)
+    
+    def post(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if 'image' in request.FILES:
+            profile.image = request.FILES['image']
+            profile.save()
+        return redirect('/users/profile/')
 
 class LogoutView(View):
     def post(self, request):
