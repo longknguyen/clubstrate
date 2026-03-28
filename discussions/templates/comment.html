@@ -1,0 +1,36 @@
+<div style="margin-left: {{ level }}px; border-left: 2px solid #eee; padding-left: 10px; margin-top: 10px;">
+
+  <div class="article-metadata">
+    <strong>{{ comment.author.username }}</strong>
+    <small> • {{ comment.created_at }}</small>
+  </div>
+
+  <p>{{ comment.content }}</p>
+
+  {% if comment.image %}
+    <img src="{{ comment.image.url }}" style="max-width: 200px;">
+  {% endif %}
+
+  <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
+    {% csrf_token %}
+    <button class="btn btn-sm btn-outline-secondary">
+      👍 {{ comment.likes.count }}
+    </button>
+  </form>
+
+  <form method="POST" enctype="multipart/form-data"
+        action="{% url 'discussions:create_comment' comment.post.id %}">
+    {% csrf_token %}
+    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+
+    <textarea name="content" placeholder="Reply..." class="form-control mb-1"></textarea>
+    <input type="file" name="image" class="form-control mb-1">
+
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
+  </form>
+
+  {% for reply in comment.replies.all %}
+    {% include "comment.html" with comment=reply level=level|add:25 %}
+  {% endfor %}
+
+</div>

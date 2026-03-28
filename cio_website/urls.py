@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('cios.urls')),
     path('users/', include('users.urls')),
     path('accounts/', include('allauth.urls')),
+    path('discussions/', include('discussions.urls')),
 ]
 
 if settings.DEBUG:

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Create Post for {{ cio.name }}</h2>
+
+<form method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <input type="text" name="title" placeholder="Title" class="form-control mb-2">
+
+  <textarea name="content" class="form-control mb-2"></textarea>
+
+  <input type="file" name="image" class="form-control mb-2">
+
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>
+
+{% endblock %}
