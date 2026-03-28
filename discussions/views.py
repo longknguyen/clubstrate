@@ -37,6 +37,9 @@ def create_comment(request, post_id):
         image = request.FILES.get('image')
         parent_id = request.POST.get('parent_id')
 
+        if not content or image:
+            return redirect('cio_detail', cio_id=post.cio.id)
+
         parent = None
         if parent_id:
             parent = Comment.objects.get(id=parent_id)

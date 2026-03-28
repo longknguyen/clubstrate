@@ -61,13 +61,14 @@
             <h5>Comments</h5>
 
             {% for comment in post.comments.all %}
-                {% include "comment.html" with comment=comment level=level|add:25 %}
+                {% include "comment.html" with comment=comment level=level|add:25 role=role%}
             {% empty %}
                 <p>No comments yet</p>
             {% endfor %}
 
             {% if role != "viewer" %}
-                <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_comment' post.id %}">
+                <form method="POST" enctype="multipart/form-data"
+                      action="{% url 'discussions:create_comment' post.id %}">
                     {% csrf_token %}
                     <textarea name="content" placeholder="Add a comment..." class="form-control mb-2"></textarea>
                     <input type="file" name="image" class="form-control mb-2">

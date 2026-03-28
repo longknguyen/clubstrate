@@ -1,36 +1,51 @@
 <div style="margin-left: {{ level }}px; border-left: 2px solid #eee; padding-left: 10px; margin-top: 10px;">
 
-  <div class="article-metadata">
-    <strong>{{ comment.author.username }}</strong>
-    <small> • {{ comment.created_at }}</small>
-  </div>
+    <div class="article-metadata">
+        <strong>{{ comment.author.username }}</strong>
+        <small> • {{ comment.created_at }}</small>
+    </div>
 
-  <p>{{ comment.content }}</p>
+    <p>{{ comment.content }}</p>
 
-  {% if comment.image %}
-    <img src="{{ comment.image.url }}" style="max-width: 200px;">
-  {% endif %}
+    {% if comment.image %}
+        <img src="{{ comment.image.url }}" style="max-width: 200px;">
+    {% endif %}
 
-  <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
-    {% csrf_token %}
-    <button class="btn btn-sm btn-outline-secondary">
-      👍 {{ comment.likes.count }}
-    </button>
-  </form>
+    <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-outline-secondary">
+            👍 {{ comment.likes.count }}
+        </button>
+    </form>
+    {% if role != "viewer" %}
+        <form method="POST" enctype="multipart/form-data"
+              action="{% url 'discussions:create_comment' comment.post.id %}"
+              onsubmit="return validateReplyForm(this);">
 
-  <form method="POST" enctype="multipart/form-data"
-        action="{% url 'discussions:create_comment' comment.post.id %}">
-    {% csrf_token %}
-    <input type="hidden" name="parent_id" value="{{ comment.id }}">
+            {% csrf_token %}
+            <input type="hidden" name="parent_id" value="{{ comment.id }}">
 
-    <textarea name="content" placeholder="Reply..." class="form-control mb-1"></textarea>
-    <input type="file" name="image" class="form-control mb-1">
+            <textarea name="content" placeholder="Reply..." class="form-control mb-1"></textarea>
+            <input type="file" name="image" class="form-control mb-1" accept="image/*">
 
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
-  </form>
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
+        </form>
+    {% endif %}
+    {% for reply in comment.replies.all %}
+        {% include "comment.html" with comment=reply level=level|add:25 %}
+    {% endfor %}
 
-  {% for reply in comment.replies.all %}
-    {% include "comment.html" with comment=reply level=level|add:25 %}
-  {% endfor %}
+    <script>
+        function validateReplyForm(form) {
+            const text = form.querySelector('textarea[name="content"]').value.trim();
+            const file = form.querySelector('input[name="image"]').files.length;
+
+            if (!text && !file) {
+                alert("Please enter a reply or select an image.");
+                return false;
+            }
+            return true;
+        }
+    </script>
 
 </div>
