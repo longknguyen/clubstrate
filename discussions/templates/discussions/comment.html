@@ -1,0 +1,63 @@
+<div style="margin-left: {{ level }}px; border-left: 2px solid #eee; padding-left: 10px; margin-top: 10px;">
+
+    <div class="article-metadata">
+        <strong>{{ comment.author.username }}</strong>
+        <small> • <span class="comment-timestamp" data-datetime="{{ comment.created_at|date:'c' }}"></span></small>
+    </div>
+
+    <p>{{ comment.content }}</p>
+
+    {% if comment.image %}
+        <img src="{{ comment.image.url }}" style="max-width: 200px;">
+    {% endif %}
+
+    <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-outline-secondary">
+            👍 {{ comment.likes.count }}
+        </button>
+    </form>
+    {% if role != "viewer" %}
+        <form method="POST" enctype="multipart/form-data"
+              action="{% url 'discussions:create_comment' comment.post.id %}"
+              onsubmit="return validateReplyForm(this);">
+
+            {% csrf_token %}
+            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+
+            <textarea name="content" placeholder="Reply..." class="form-control mb-1"></textarea>
+            <input type="file" name="image" class="form-control mb-1" accept="image/*">
+
+            <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
+        </form>
+    {% endif %}
+    {% for reply in comment.replies.all %}
+        {% include "discussions/comment.html" with comment=reply level=level|add:25 %}
+    {% endfor %}
+
+    <script>
+        document.querySelectorAll('.comment-timestamp').forEach(el => {
+            const dt = new Date(el.dataset.datetime);
+            el.textContent = dt.toLocaleString(undefined, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        });
+
+        function validateReplyForm(form) {
+            const text = form.querySelector('textarea[name="content"]').value.trim();
+            const file = form.querySelector('input[name="image"]').files.length;
+
+            if (!text && !file) {
+                alert("Please enter a reply or select an image.");
+                return false;
+            }
+            return true;
+        }
+    </script>
+
+</div>

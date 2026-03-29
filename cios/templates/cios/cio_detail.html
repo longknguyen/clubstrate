@@ -1,18 +1,28 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>{{ cio.name }}</h1>
+    <h1>{{ cio.name }}</h1>
 
-<p><strong>Your role:</strong> {{ role|title }}</p>
+    <p><strong>Your role:</strong> {{ role|title }}</p>
 
-{% if role == 'officer' %}
-    <p>You are an officer of this CIO.</p>
-{% elif role == 'member' %}
-    <p>You are a member of this CIO.</p>
-{% else %}
-    <p>You are currently a viewer of this CIO.</p>
-    {% if user.is_authenticated %}
-        <button class='btn btn-primary'>Request to Join</button>
+    {% if role == 'officer' %}
+        <p>You are an officer of this CIO.</p>
+    {% elif role == 'member' %}
+        <p>You are a member of this CIO.</p>
+    {% else %}
+        <p>You are currently a viewer of this CIO.</p>
+        {% if user.is_authenticated %}
+            <button class='btn btn-primary'>Request to Join</button>
+        {% endif %}
     {% endif %}
-{% endif %}
+
+    <h2>Explore {{ cio.name }}</h2>
+<ul>
+    <li><a href="{% url 'discussions:list' cio.id %}">Discussions</a></li>
+    <!-- Future links -->
+    {% comment %}<li><a href="{% url 'cio:events' cio.id %}">Events</a></li>
+    <li><a href="{% url 'cio:members' cio.id %}">Members</a></li>{% endcomment %}
+</ul>
+
+
 {% endblock %}

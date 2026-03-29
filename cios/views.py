@@ -1,6 +1,8 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Prefetch
 from django.shortcuts import render, get_object_or_404, redirect
 
+from discussions.models import Comment, Post
 from .models import CIO, Membership
 def home(request):
     cios = CIO.objects.all().order_by('name')
@@ -35,7 +37,21 @@ def cio_detail(request, cio_id):
         if membership is not None:
             role = membership.role
 
+    posts = cio.posts.prefetch_related(
+        'likes',
+        Prefetch(
+            'comments',
+            queryset=Comment.objects.filter(parent__isnull=True)
+            .select_related('author')
+            .prefetch_related('likes', 'replies')
+        )
+    ).order_by('-created_at')
+
     return render(request,
         'cios/cio_detail.html',
-        {'cio': cio, 'role': role},
+        {
+                      'cio': cio,
+                      'role': role,
+                      'posts': posts
+                  },
     )
