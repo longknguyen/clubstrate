@@ -4,6 +4,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 
 from discussions.models import Comment, Post
 from .models import CIO, Membership
+
+def landing(request):
+    return render(request, 'cios/landing.html')
+
 def home(request):
     cios = CIO.objects.all().order_by('name')
     return render(request, 'cios/home.html', {'cios': cios})
