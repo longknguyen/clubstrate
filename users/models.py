@@ -16,6 +16,7 @@ from django.dispatch import receiver
 
 # Used https://docs.djangoproject.com/en/6.0/topics/auth/customizing/#django.contrib.auth.models.AbstractUser to subclass Django's abstractions
 class CustomUser(AbstractUser):
+    email = models.EmailField(unique=True)
     def __str__(self):
         return self.username
 
