@@ -23,3 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('sidebar-search');
+    const links = document.querySelectorAll('.sidebar-link');
+
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+
+        links.forEach(link => {
+            const text = link.textContent.toLowerCase();
+            link.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+});
