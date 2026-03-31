@@ -25,7 +25,7 @@
     <!-- Your project CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'users/main.css' %}">
 
-{% comment %}<p>User authenticated? {{ user.is_authenticated }}</p>
+    {% comment %}<p>User authenticated? {{ user.is_authenticated }}</p>
 <p>User: {{ user }}</p>
     {% if title %}
         <title> CIO Website Name - {{ title }}</title>
@@ -34,62 +34,65 @@
     {% endif %}{% endcomment %}
 </head>
 <body>
-    <header class="site-header">
-      <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+<header class="site-header">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
         <div class="container">
-          <a class="navbar-brand mr-4" href="{% url 'home' %}"> CIO Website Name </a>
-          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
-                  aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
+            <a class="navbar-brand mr-4" href="{% url 'home' %}"> CIO Website Name </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
+                    aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-          <div class="collapse navbar-collapse" id="navbarToggle">
+            <div class="collapse navbar-collapse" id="navbarToggle">
 
-            <!-- Left side -->
-            <div class="navbar-nav mr-auto">
-              <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
-                  {% if user.is_authenticated %}
-                      <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
-                  {% endif %}
+                <!-- Left side -->
+                <div class="navbar-nav mr-auto">
+                    <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                    {% if user.is_authenticated %}
+                        <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
+                    {% endif %}
+                </div>
+
+                <!-- Right side -->
+                <div class="navbar-nav">
+                    {% if user.is_authenticated %} <!-- To edit once login page made -->
+                        <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
+                        <form method="post" action="{% url 'logout' %}" class="logout-form">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-item nav-link logout-btn">Logout</button>
+                        </form>
+                    {% else %}
+                        <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
+                    {% endif %}
+                </div>
+
             </div>
-
-            <!-- Right side -->
-            <div class="navbar-nav">
-              {% if user.is_authenticated %} <!-- To edit once login page made -->
-                <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
-                <a class="nav-item nav-link" href="{% url 'landing' %}">Logout</a>
-              {% else %}
-                <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
-                <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
-              {% endif %}
-            </div>
-
-          </div>
         </div>
-      </nav>
-    </header>
+    </nav>
+</header>
 
-    <main role="main" class="container" style="padding-top: 90px;">
-      {% if messages %}
+<main role="main" class="container" style="padding-top: 90px;">
+    {% if messages %}
         {% for message in messages %}
-          <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-          </div>
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
         {% endfor %}
-      {% endif %}
+    {% endif %}
 
-      {% block content %}{% endblock %}
-    </main>
+    {% block content %}{% endblock %}
+</main>
 
-    <!-- Optional JavaScript -->
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-            integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-            crossorigin="anonymous"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-            crossorigin="anonymous"></script>
+<!-- Optional JavaScript -->
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
 </body>
 </html>

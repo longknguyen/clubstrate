@@ -83,6 +83,22 @@ a.article-title:hover {
   font-size: 2.5rem;
 }
 
+.logout-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.logout-btn {
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+
 /* See: https://developers.google.com/identity/branding-guidelines
 to get Google .css styling
 */
