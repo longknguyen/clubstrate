@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'users/profile.css' %}">
     <link rel="stylesheet" href="{% static 'users/profile_edit.css' %}">
 
+    <script src="{% static 'users/js/profile_base.js' %}" defer></script>
     <script src="{% static 'users/js/profile.js' %}" defer></script>
 </head>
 <body>
@@ -31,13 +32,13 @@
             <a href="{% url 'profile' %}" class="{% if section == 'account' %}active{% endif %}">
                 My Account
             </a>
-            <a href="#" class="">
+            <a href="#" class="unfinished-link">
                 Content & Social
             </a>
-            <a href="#" class="">
+            <a href="#" class="unfinished-link">
                 Devices
             </a>
-            <a href="#" class="">
+            <a href="#" class="unfinished-link">
                 Notifications
             </a>
         </div>
@@ -46,10 +47,10 @@
 
         <div class="sidebar-section">
             <h4>App Settings</h4>
-            <a href="#">Appearance</a>
-            <a href="#">Accessibility</a>
-            <a href="#">Preferences</a>
-            <a href="#">Language & Time</a>
+            <a href="#" class="unfinished-link">Appearance</a>
+            <a href="#" class="unfinished-link">Accessibility</a>
+            <a href="#" class="unfinished-link">Preferences</a>
+            <a href="#" class="unfinished-link">Language & Time</a>
         </div>
 
         <div class="horizontal-divider-sidebar"></div>
@@ -75,6 +76,15 @@
         {% endblock %}
 
     </main>
+
+    <div class="construction-backdrop" id="construction-backdrop"></div>
+
+    <div class="construction-modal" id="construction-modal">
+        <button type="button" class="construction-close" id="construction-close">×</button>
+        <img src="{% static 'users/construction_art.png' %}" alt="Under construction" class="construction-image">
+        <h2>Uh-oh!</h2>
+        <p>That part of The Clerb is currently under construction. Check back later.</p>
+    </div>
 
 </div>
 
