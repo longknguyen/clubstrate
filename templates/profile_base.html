@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="{% static 'users/profile_base.css' %}">
     <link rel="stylesheet" href="{% static 'users/profile.css' %}">
     <link rel="stylesheet" href="{% static 'users/profile_edit.css' %}">
+
+    <script src="{% static 'users/js/profile.js' %}" defer></script>
 </head>
 <body>
 
@@ -40,6 +42,8 @@
             </a>
         </div>
 
+        <div class="horizontal-divider"></div>
+
         <div class="sidebar-section">
             <h4>App Settings</h4>
             <a href="#">Appearance</a>
@@ -48,6 +52,11 @@
             <a href="#">Language & Time</a>
         </div>
 
+        <div class="horizontal-divider"></div>
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="sidebar-logout-btn">Logout</button>
+        </form>
     </aside>
 
     <div class="vertical-divider"></div>

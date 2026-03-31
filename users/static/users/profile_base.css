@@ -77,6 +77,30 @@ body {
     margin-bottom: 4px;
 }
 
+.sidebar-logout-btn {
+    display: block;
+    width: 100%;
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    text-align: left;
+    text-decoration: none;
+    color: #c52b37;
+    font-size: 14px;
+    transition: 0.2s;
+    cursor: pointer;
+}
+
+.sidebar-logout-btn:hover {
+    background: #f3d0cf
+}
+
+.logout-form {
+    margin: 0;
+    padding: 0;
+}
+
 .sidebar-section a {
     padding: 8px 10px;
     border-radius: 8px;
@@ -87,7 +111,7 @@ body {
 }
 
 .sidebar-section a:hover {
-    background: rgba(188, 186, 186, 0.84);
+    background: #e4e4e5;
 }
 
 .sidebar-section a.active {

@@ -57,6 +57,7 @@ class ProfileView(LoginRequiredMixin, View):
             "profile_image": profile_image_url,
             "username": request.user.username,
             "email_masked": mask_email(request.user.email),
+            "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
             "banner_colour": request.user.banner_colour,

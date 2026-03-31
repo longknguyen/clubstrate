@@ -42,7 +42,12 @@
             <div class="detail-item">
                 <div class="detail-label">Email</div>
                 <div class="detail-value-row">
-                    <span>{{ email_masked }}</span>
+                    <div class="email-display">
+                        <span id="email-text" data-masked="{{ email_masked }}" data-real="{{ email }}">
+                            {{ email_masked }}
+                        </span>
+                        <button type="button" class="reveal-btn" id="reveal-email">Reveal</button>
+                    </div>
                     <a href="{% url 'profile_edit' %}" class="edit-btn">Edit</a>
                 </div>
             </div>
