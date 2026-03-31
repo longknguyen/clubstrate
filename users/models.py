@@ -17,7 +17,7 @@ from django.dispatch import receiver
 # Used https://docs.djangoproject.com/en/6.0/topics/auth/customizing/#django.contrib.auth.models.AbstractUser to subclass Django's abstractions
 class CustomUser(AbstractUser):
     pronouns = models.CharField(max_length=50, blank=True)
-    banner_colour = models.CharField(max_length=7, default='#ffffff')
+    banner_colour = models.CharField(max_length=7, default='#000000')
     email = models.EmailField(unique=True)
     def __str__(self):
         return self.username
