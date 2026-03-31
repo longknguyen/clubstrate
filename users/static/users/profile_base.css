@@ -140,11 +140,12 @@ body {
     font-weight: 500;
 }
 
-.horizontal-divider {
+.horizontal-divider-sidebar {
     height: 1px;
     width: 100%;
     background: #e0e0e0;
-    margin-top: 8px;
+    margin-top: 2px;
+    margin-bottom: 2px;
 }
 
 .close-btn {
