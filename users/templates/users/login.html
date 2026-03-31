@@ -18,6 +18,10 @@
         <img src="{% static 'users/logo_black.png' %}" alt="Logo">
     </div>
 
+    <div class="logo-embellishment">
+        <img src="{% static 'users/logo_embellishments_black.png' %}" alt="Logo Embellishment">
+    </div>
+
     <div class="title">
         Your CIO workspace.
     </div>
@@ -26,7 +30,8 @@
     </div>
     <form method="POST">
         {% csrf_token %}
-        <input type="text" name="email" value ="{{ identifier|default:'' }}" placeholder="Email or username" required class="input-field">
+        <input type="text" name="email" value="{{ identifier|default:'' }}" placeholder="Email or username" required
+               class="input-field">
         <input type="password" name="password" placeholder="Password" required class="input-field">
 
         <button type="submit" class="continue-btn">Continue</button>
@@ -36,14 +41,14 @@
     <!-- Google login button -->
     <div class="google-wrapper">
         <button class="google-icon-btn"
-            onclick="window.location.href='{% provider_login_url 'google' %}'">
+                onclick="window.location.href='{% provider_login_url 'google' %}'">
             <img src="{% static 'users/google_logo.png' %}" alt="Google">
             <div class="icon-text">Google</div>
         </button>
     </div>
 
     {% if error %}
-    <p class="error-message">{{ error }}</p>
+        <p class="error-message">{{ error }}</p>
     {% endif %}
 
     <div class="bottom-text">Don't have an account? <a href="{% url 'register' %}">Sign up</a>
