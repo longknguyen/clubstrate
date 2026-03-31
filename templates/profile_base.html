@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+
+    <link rel="stylesheet" href="{% static 'users/profile_base.css' %}">
+    <link rel="stylesheet" href="{% static 'users/profile.css' %}">
+    <link rel="stylesheet" href="{% static 'users/profile_edit.css' %}">
+</head>
+<body>
+
+<div class="profile-container">
+    <aside class="sidebar">
+
+        <div class="sidebar-top">
+            <img class="sidebar-avatar" src="{{ profile_image }}">
+            <div>
+                <h3>{{ username }}</h3>
+                <a href="{% url 'profile_edit' %}">Edit Profile</a>
+            </div>
+        </div>
+
+        <input type="text" placeholder="Search..." class="sidebar-search">
+
+        <div class="sidebar-section">
+            <h4>User Settings</h4>
+            <a href="{% url 'profile' %}" class="{% if section == 'account' %}active{% endif %}">
+                My Account
+            </a>
+            <a href="#" class="">
+                Content & Social
+            </a>
+            <a href="#" class="">
+                Devices
+            </a>
+            <a href="#" class="">
+                Notifications
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <h4>App Settings</h4>
+            <a href="#">Appearance</a>
+            <a href="#">Accessibility</a>
+            <a href="#">Preferences</a>
+            <a href="#">Language & Time</a>
+        </div>
+
+    </aside>
+
+    <div class="vertical-divider"></div>
+    <a href="{% url 'home' %}" class="close-btn" aria-label="Close">×</a>
+
+
+    <main class="main-content">
+
+        <div class="page-header">
+            <h1>{% block section_title %}{% endblock %}</h1>
+            <div class="horizontal-divider"></div>
+        </div>
+
+        {% block profile_content %}
+        {% endblock %}
+
+    </main>
+
+</div>
+
+</body>
+</html>

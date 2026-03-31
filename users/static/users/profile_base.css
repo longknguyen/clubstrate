@@ -1,0 +1,146 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+.profile-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    background: #ffffff;
+    backdrop-filter: blur(12px);
+    border-right: 1px solid #ecedef;
+}
+
+.sidebar-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.sidebar-top h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.sidebar-top a {
+    font-size: 13px;
+    color: #666666;
+    text-decoration: none;
+}
+
+/* SEARCH */
+.sidebar-search {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.sidebar-search:focus {
+    border-color: black;
+    outline: none;
+}
+
+.sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-section h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+.sidebar-section a {
+    padding: 8px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.sidebar-section a:hover {
+    background: rgba(188, 186, 186, 0.84);
+}
+
+.sidebar-section a.active {
+    background: rgba(188, 186, 186, 0.84);
+    color: #333;
+    font-weight: 500;
+}
+
+.vertical-divider {
+    width: 0.1px;
+    border-left: 0px solid #e0e0e0;
+    background: #e0e0e0;
+    align-self: stretch;
+}
+
+.main-content {
+    flex: 1;
+    padding: 32px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.page-header h1 {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.horizontal-divider {
+    height: 1px;
+    width: 100%;
+    background: #e0e0e0;
+    margin-top: 8px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #333;
+    font-size: 22px;
+    font-weight: 600;
+    background: transparent;
+    transition: 0.2s;
+}
+
+.close-btn:hover {
+    background: rgba(188, 186, 186, 0.84);
+}

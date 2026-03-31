@@ -1,0 +1,149 @@
+{% extends "profile_base.html" %}
+
+{% block section_title %}
+    Edit Profile
+{% endblock %}
+
+{% block profile_content %}
+
+    <div class="edit-container">
+
+        <form method="POST" enctype="multipart/form-data" class="edit-form">
+            {% csrf_token %}
+
+            <div class="edit-section">
+                <label>First Name</label>
+                {{ user_form.first_name }}
+            </div>
+            <div class="horizontal-divider"></div>
+
+            <div class="edit-section">
+                <label>Last Name</label>
+                {{ user_form.last_name }}
+            </div>
+            <div class="horizontal-divider"></div>
+
+            <div class="edit-section">
+                <label>Username</label>
+                {{ user_form.username }}
+            </div>
+            <div class="horizontal-divider"></div>
+
+            <div class="edit-section">
+                <label>Pronouns</label>
+                {{ user_form.pronouns }}
+            </div>
+            <div class="horizontal-divider"></div>
+
+            <div class="edit-section">
+                <label>Profile Picture</label>
+                <div class="avatar-row">
+                    <img src="{{ profile_image }}" class="edit-avatar" id="preview-avatar">
+
+                    <div class="avatar-actions">
+                        <label for="id_image" class="btn-primary">Change Profile</label>
+                        <input type="file" name="image" id="id_image" hidden>
+                    </div>
+
+                    <button type="button" class="btn-secondary" id="remove-avatar">Remove Profile</button>
+                </div>
+            </div>
+            <div class="horizontal-divider"></div>
+
+            <div class="edit-section">
+                <label>Banner Colour</label>
+                {{ user_form.banner_colour }}
+            </div>
+
+            <div class="save-row">
+                <button type="submit" class="save-btn">Save Changes</button>
+            </div>
+        </form>
+
+        <div class="preview-panel" id="preview-panel">
+            <div class="banner-preview-panel" id="preview-banner"
+                 style="background: {{ banner_colour|default:'#6c5ce7' }};">
+                <img src="{{ profile_image }}" class="preview-avatar" id="preview-avatar-right">
+            </div>
+
+            <div class="preview-profile-info">
+                <div class="preview-name" id="preview-name">{{ first_name }} {{ last_name }}</div>
+                <div class="preview-meta" id="preview-meta">
+                    {{ username }} &middot; {{ pronouns }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+            const inputFirstName = document.getElementById('id_first_name');
+            const inputLastName = document.getElementById('id_last_name');
+            const inputUsername = document.getElementById('id_username');
+            const inputPronouns = document.getElementById('id_pronouns');
+            const inputBanner = document.getElementById('id_banner_colour');
+            const inputImage = document.getElementById('id_image');
+
+            const previewName = document.getElementById('preview-name');
+            const previewMeta = document.getElementById('preview-meta');
+            const previewBanner = document.getElementById('preview-banner');
+            const previewAvatarRight = document.getElementById('preview-avatar-right');
+            const previewAvatar = document.getElementById('preview-avatar');
+            const removeAvatarBtn = document.getElementById('remove-avatar');
+
+            function updateName() {
+                previewName.textContent = `${inputFirstName.value} ${inputLastName.value}`.trim();
+            }
+
+            function updateMeta() {
+                const username = inputUsername ? inputUsername.value.trim() : '';
+                const pronouns = inputPronouns ? inputPronouns.value.trim() : '';
+                previewMeta.textContent = `${username}${username && pronouns ? ' · ' : ''}${pronouns}`;
+            }
+
+            if (inputFirstName) {
+                inputFirstName.addEventListener('input', updateName);
+            }
+
+            if (inputLastName) {
+                inputLastName.addEventListener('input', updateName);
+            }
+
+            if (inputUsername) {
+                inputUsername.addEventListener('input', updateMeta);
+            }
+
+            if (inputPronouns) {
+                inputPronouns.addEventListener('input', updateMeta);
+            }
+
+            if (inputBanner) {
+                inputBanner.addEventListener('input', e => {
+                    previewBanner.style.background = e.target.value;
+                });
+            }
+
+            if (inputImage) {
+                inputImage.addEventListener('change', e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        previewAvatar.src = url;
+                        previewAvatarRight.src = url;
+                    }
+                });
+            }
+
+            if (removeAvatarBtn) {
+                removeAvatarBtn.addEventListener('click', () => {
+                    previewAvatar.src = '/media/default.jpg';
+                    previewAvatarRight.src = '/media/default.jpg';
+                    inputImage.value = '';
+                });
+            }
+
+            updateName();
+            updateMeta();
+        </script>
+
+{% endblock %}

@@ -1,0 +1,132 @@
+.account-card {
+    width: 90%;
+    position: relative;
+    margin: 20px auto 18px;
+    margin-top: 10px;
+    background: #fafafa;
+    border: 1px solid #ecedef;
+    border-radius: 16px;
+    overflow: hidden;
+    /*box-shadow: 0 10px 30px rgba(0,0,0,0.05);*/
+}
+
+.banner {
+    position: relative;
+    height: 120px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+}
+
+.banner::after {
+    position: absolute;
+    left: 50%;
+    bottom: -35px;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 70px;
+    background: white;
+    border-radius: 50%;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 24px;
+    margin-top: -50px;
+    position: relative;
+    z-index: 2;
+}
+
+.profile-pic {
+    position: relative;
+    top: 25px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 5px solid white;
+    object-fit: cover;
+    background: white;
+    margin-bottom: 20px;
+}
+
+.profile-info {
+    flex: 1;
+    margin-top: 50px;
+}
+
+.profile-info h2 {
+    font-size: 20px;
+}
+
+.profile-info p {
+    font-size: 14px;
+    color: #666;
+}
+
+.edit-profile-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    margin-top: 50px;
+    border-radius: 8px;
+    border: none;
+    background: #000000;
+    color: white;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.edit-profile-btn:hover {
+    background: white;
+    color: black;
+}
+
+.account-details {
+    width: 97%;
+    margin: 20px auto 18px;
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-label {
+    font-size: 13px;
+    color: #888;
+    font-weight: 500;
+}
+
+.detail-value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.detail-value-row span {
+    font-size: 15px;
+    color: #222;
+}
+
+.edit-btn {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border-color: #d3d3d5;
+    border-width: 1px;
+    border-style: solid;
+    background: #e4e4e5;
+    cursor: pointer;
+    font-size: 13px;
+    color: #222;
+    text-decoration: none;
+}
+
+.edit-btn:hover {
+    background: #ddd;
+}

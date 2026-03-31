@@ -1,25 +1,53 @@
-{% extends "base.html" %}
+{% extends "profile_base.html" %}
 
-{% block content %}
-<div class="content-section">
-    <div class="media">
-        <img class="rounded-circle account-img" src="{{ profile_image }}" alt="Profile Image">
-        <div class="media-body">
-            <h2 class="account-heading">{{ username }}</h2>
-            <p class="text-secondary">{{ email }}</p>
-            <p>{{ first_name }} {{ last_name }}</p>
+{% block section_title %}
+    My Account
+{% endblock %}
+
+{% block profile_content %}
+
+    <div class="account-card">
+
+        <div class="banner" style="background: {{ banner_colour|default:'#6c5ce7' }};"></div>
+
+        <div class="profile-header">
+            <img class="profile-pic" src="{{ profile_image }}">
+
+            <div class="profile-info">
+                <h2>{{ first_name }} {{ last_name }}</h2>
+                <p>@{{ username }}</p>
+            </div>
+
+            <a href="{% url 'profile_edit' %}" class="edit-profile-btn">Edit User Profile</a>
         </div>
+
+        <div class="account-details">
+
+            <div class="detail-item">
+                <div class="detail-label">Name</div>
+                <div class="detail-value-row">
+                    <span>{{ first_name }} {{ last_name }}</span>
+                    <a href="{% url 'profile_edit' %}" class="edit-btn">Edit</a>
+                </div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">Username</div>
+                <div class="detail-value-row">
+                    <span>{{ username }}</span>
+                    <a href="{% url 'profile_edit' %}" class="edit-btn">Edit</a>
+                </div>
+            </div>
+
+            <div class="detail-item">
+                <div class="detail-label">Email</div>
+                <div class="detail-value-row">
+                    <span>{{ email_masked }}</span>
+                    <a href="{% url 'profile_edit' %}" class="edit-btn">Edit</a>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <form method="POST" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="image" accept="image/*">
-    <button type="submit" class="btn btn-primary mt-2">Update Profile Picture</button>
-    </form>
-
-    <form method="post" action="{% url 'logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger mt-3">Logout</button>
-    </form>
-</div>
 {% endblock %}

@@ -3,6 +3,7 @@ from django.contrib.auth import logout, get_user_model, login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.contrib.auth.models import Group
+from .forms import UserUpdateForm, ProfileUpdateForm
 import uuid
 
 from .models import Profile
@@ -38,6 +39,9 @@ class LoginView(View):
                 'identifier': identifier
             })
 
+def mask_email(email):
+    name, domain = email.split("@")
+    return "*" * len(name) + "@" + domain
 
 class ProfileView(LoginRequiredMixin, View):
     login_url = '/users/login/'
@@ -52,9 +56,10 @@ class ProfileView(LoginRequiredMixin, View):
         context = {
             "profile_image": profile_image_url,
             "username": request.user.username,
-            "email": request.user.email,
+            "email_masked": mask_email(request.user.email),
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
+            "banner_colour": request.user.banner_colour,
             "role": "officer" if request.user.groups.filter(name='Officer').exists() else "member",
         }
         return render(request, 'users/profile.html', context)
@@ -120,6 +125,49 @@ class ChangeRoleView(LoginRequiredMixin, View):
             user.groups.add(officer_group)
         user.save()
         return redirect('/users/profile/')
+
+class ProfileEditView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = ProfileUpdateForm(instance=profile)
+
+        context = {
+            'user_form': user_form,
+            'profile_form': profile_form,
+            'profile_image': profile.image.url if profile.image else '/media/default.jpg',
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'username': request.user.username,
+            'pronouns': request.user.pronouns,
+            'banner_colour': request.user.banner_colour,
+        }
+        return render(request, 'users/profile_edit.html', context)
+
+    def post(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user = user_form.save()
+            profile_form.save()
+            return redirect('/users/profile/')
+
+        context = {
+            'user_form': user_form,
+            'profile_form': profile_form,
+            'profile_image': profile.image.url if profile.image else '/media/default.jpg',
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'username': request.user.username,
+            'pronouns': request.user.pronouns,
+            'banner_colour': request.user.banner_colour,
+        }
+        return render(request, 'users/profile_edit.html', context)
+
 
 
 """def profile(request):
