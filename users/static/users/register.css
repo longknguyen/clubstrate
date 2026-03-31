@@ -28,6 +28,7 @@ body {
     font-size: 26px;
     font-weight: 600;
     margin-bottom: 0px;
+    white-space: nowrap;
 }
 
 .email-text {
