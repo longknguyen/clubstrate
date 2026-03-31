@@ -28,11 +28,13 @@
     </form>
     <div class="divider">or continue with</div>
     <div class="google-wrapper">
-        <button class="google-icon-btn"
-                onclick="window.location.href='{% provider_login_url 'google' %}'">
-            <img src="{% static 'users/google_logo.png' %}" alt="Google">
-            <div class="icon-text">Google</div>
-        </button>
+        <form method="post" action="{% provider_login_url 'google' %}">
+            {% csrf_token %}
+            <button type="submit" class="google-icon-btn">
+                <img src="{% static 'users/google_logo.png' %}" alt="Google">
+                <div class="icon-text">Google</div>
+            </button>
+        </form>
     </div>
 
     {% if error %}
