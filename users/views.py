@@ -62,6 +62,7 @@ class ProfileView(LoginRequiredMixin, View):
             "last_name": request.user.last_name,
             "banner_colour": request.user.banner_colour,
             "role": "officer" if request.user.groups.filter(name='Officer').exists() else "member",
+            "section" : "profile",
         }
         return render(request, 'users/profile.html', context)
 
