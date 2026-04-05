@@ -1,6 +1,4 @@
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -21,7 +19,6 @@ body {
     max-width: 1100px;
 
     display: flex;
-    justify-content: space-between;
     align-items: center;
 
     padding: 12px 20px;
@@ -155,4 +152,123 @@ body {
     .hero h1 {
         font-size: 42px;
     }
+}
+
+.cio-detail-layout {
+    display: flex;
+    gap: 28px;
+    align-items: stretch;
+}
+
+.cio-detail-page {
+    min-height: 100vh;
+    padding: 25px 40px 40px;
+    background: white;
+}
+
+.cio-sidebar {
+    width: 260px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fafafa;
+    border: 1px solid #ecedef;
+    box-shadow: none;
+}
+
+.cio-sidebar-top-section {
+    background: linear-gradient(135deg, #1f3f4d 0%, #2c6f8a 45%, #00c6ff 100%);
+    padding: 32px 24px 28px;
+}
+
+.cio-sidebar-info {
+    color: white;
+}
+
+.cio-sidebar-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.cio-sidebar-top h2 {
+    margin-bottom: 8px;
+    color: white;
+    font-size: 34px;
+    line-height: 1.08;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.cio-sidebar-top p {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
+.cio-sidebar-bottom-section {
+    background: #fafafa;
+    padding: 24px;
+}
+
+.cio-sidebar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cio-sidebar-heading {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.cio-sidebar-divider {
+    height: 1px;
+    width: 100%;
+    background: #e0e0e0;
+    margin: 12px 0;
+}
+
+.cio-sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+}
+
+.cio-sidebar-menu a {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.cio-sidebar-menu a:hover {
+    background: #e4e4e5;
+}
+
+.cio-sidebar-menu a.active {
+    background: rgba(188, 186, 186, 0.84);
+    color: #333;
+    font-weight: 500;
+}
+
+.cio-main-panel {
+    flex: 1;
+    min-height: 700px;
+    padding: 30px;
+    margin-top: 0;
+    border-radius: 28px;
+    background: white;
+    border: 1px solid #e6e6ea;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    color: #222;
 }
