@@ -1,28 +1,130 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-    <h1>{{ cio.name }}</h1>
+<div class="cio-detail-page">
+    <div class="cio-detail-layout">
 
-    <p><strong>Your role:</strong> {{ role|title }}</p>
+        <aside class="cio-sidebar">
 
-    {% if role == 'officer' %}
-        <p>You are an officer of this CIO.</p>
-    {% elif role == 'member' %}
-        <p>You are a member of this CIO.</p>
-    {% else %}
-        <p>You are currently a viewer of this CIO.</p>
-        {% if user.is_authenticated %}
-            <button class='btn btn-primary'>Request to Join</button>
-        {% endif %}
-    {% endif %}
+            <div class="cio-sidebar-top-section">
+                <div class="cio-sidebar-info">
+                    <div class="cio-sidebar-top">
+                        <div>
+                            <h2>{{ cio.name }}</h2>
+                            <p>Your role: {{ role|title }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <h2>Explore {{ cio.name }}</h2>
-<ul>
-    <li><a href="{% url 'discussions:list' cio.id %}">Discussions</a></li>
-    <!-- Future links -->
-    {% comment %}<li><a href="{% url 'cio:events' cio.id %}">Events</a></li>
-    <li><a href="{% url 'cio:members' cio.id %}">Members</a></li>{% endcomment %}
-</ul>
+            <div class="cio-sidebar-bottom-section">
 
+                <div class="cio-sidebar-group">
+                    <div class="cio-sidebar-menu">
+                        <a href="#" class="cio-menu-link active" onclick="showTab('about', this); return false;">About</a>
+                        <a href="#" class="cio-menu-link" onclick="showTab('discussions', this); return false;">Discussions</a>
+                        <a href="#" class="cio-menu-link" onclick="showTab('members', this); return false;">Member List</a>
+                    </div>
+                </div>
 
+                {% if role == 'viewer' and user.is_authenticated %}
+                    <div class="cio-sidebar-divider"></div>
+
+                    <div class="cio-sidebar-group">
+                        <h4 class="cio-sidebar-heading">INTERESTED</h4>
+
+                        <div class="cio-sidebar-menu">
+                            <a href="#" class="cio-menu-link" onclick="showTab('request', this); return false;">Request to Join</a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if role == 'officer' %}
+                    <div class="cio-sidebar-divider"></div>
+
+                    <div class="cio-sidebar-group">
+                        <h4 class="cio-sidebar-heading">OFFICER VIEW</h4>
+
+                        <div class="cio-sidebar-menu">
+                            <a href="#" class="cio-menu-link" onclick="showTab('requests', this); return false;">Join Requests</a>
+                        </div>
+                    </div>
+                {% endif %}
+
+            </div>
+
+        </aside>
+
+        <main class="cio-main-panel">
+            <div id="about-tab" class="cio-tab">
+                <h3>About {{ cio.name }}</h3>
+                <p>{{ cio.description|default:"No description yet." }}</p>
+            </div>
+
+            <div id="discussions-tab" class="cio-tab" style="display: none;">
+                {% include "discussions/list.html" %}
+            </div>
+
+            <div id="members-tab" class="cio-tab" style="display: none;">
+                <h3>Members</h3>
+                <p>Member list will go here.</p>
+            </div>
+
+            {% if role == 'viewer' and user.is_authenticated %}
+            <div id="request-tab" class="cio-tab" style="display: none;">
+                <h3>Request to Join</h3>
+                <p>Request button will go here.</p>
+            </div>
+            {% endif %}
+
+            {% if role == 'officer' %}
+            <div id="requests-tab" class="cio-tab" style="display: none;">
+                <h3>Join Requests</h3>
+                <p>Pending requests will go here.</p>
+            </div>
+            {% endif %}
+        </main>
+
+    </div>
+</div>
+
+<script>
+function showTab(tab, button) {
+    document.getElementById('about-tab').style.display = 'none';
+    document.getElementById('discussions-tab').style.display = 'none';
+    document.getElementById('members-tab').style.display = 'none';
+
+    const requestTab = document.getElementById('request-tab');
+    if (requestTab) requestTab.style.display = 'none';
+
+    const requestsTab = document.getElementById('requests-tab');
+    if (requestsTab) requestsTab.style.display = 'none';
+
+    document.querySelectorAll('.cio-menu-link').forEach(function(link) {
+        link.classList.remove('active');
+    });
+
+    document.getElementById(tab + '-tab').style.display = 'block';
+
+    if (button) {
+        button.classList.add('active');
+    }
+}
+
+window.onload = function () {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'discussions') {
+        showTab('discussions');
+    }
+};
+</script>
 {% endblock %}
+
+{% comment %}
+AI Citation
+Description: CIO detail page UI with sidebar layout and tab navigation
+AI Use: Used ChatGPT on 2026-04-04 to 2026-04-05
+Prompt: Help with restructuring the CIO page to include a sidebar layout, tab switching, and cleaner styling
+Notes: Modified to match project layout, styling, and template structure
+{% endcomment %}

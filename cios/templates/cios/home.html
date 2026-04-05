@@ -1,20 +1,35 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>CIO Home Page</h1>
-<p>Select a CIO below to view its page.</p>
 
-{% if cios %}
-    <ul>
-        {% for cio in cios %}
-            <li>
-                <a href='{% url 'cio_detail' cio.id %}'>{{ cio.name }}</a>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No CIOs have been created yet.</p>
-{% endif %}
+<div class="cio-detail-page">
+    <div class="cio-main-panel">
+
+        <h1>Explore CIOs</h1>
+        <p>Select a CIO below to view its page.</p>
+
+        {% if cios %}
+            <div class="cio-card-grid">
+                {% for cio in cios %}
+                    <a href="{% url 'cio_detail' cio.id %}" class="cio-card-link">
+                        <div class="cio-card">
+                            <div class="cio-card-top"></div>
+                            <div class="cio-card-body">
+                                <h3>{{ cio.name }}</h3>
+                                <p>View this CIO’s page and learn more.</p>
+                                <span class="cio-card-btn">Open CIO</span>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="club-home-empty">
+                <p>No CIOs have been created yet.</p>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
 
 {% endblock %}
-

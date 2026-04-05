@@ -10,7 +10,7 @@ def create_post(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
 
     if not Membership.objects.filter(user=request.user, cio=cio).exists():
-        return redirect('discussions:list', cio_id=cio.id)
+        return redirect(f'/{cio.id}/?tab=discussions')
 
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -25,8 +25,10 @@ def create_post(request, cio_id):
             image=image
         )
 
-        return redirect('discussions:list', cio_id=cio.id)
+        return redirect(f'/{cio.id}/?tab=discussions')
+
     return render(request, 'discussions/create_post.html', {'cio': cio})
+
 
 @login_required
 def create_comment(request, post_id):
@@ -38,7 +40,7 @@ def create_comment(request, post_id):
         parent_id = request.POST.get('parent_id')
 
         if not content or image:
-            return redirect('discussions:list', cio_id=post.cio.id)
+            return redirect(f'/{post.cio.id}/?tab=discussions')
 
         parent = None
         if parent_id:
@@ -52,7 +54,8 @@ def create_comment(request, post_id):
             parent=parent
         )
 
-    return redirect('discussions:list', cio_id=post.cio.id)
+    return redirect(f'/{post.cio.id}/?tab=discussions')
+
 
 @login_required
 def toggle_post_like(request, post_id):
@@ -63,7 +66,8 @@ def toggle_post_like(request, post_id):
     else:
         post.likes.add(request.user)
 
-    return redirect('discussions:list', cio_id=post.cio.id)
+    return redirect(f'/{post.cio.id}/?tab=discussions')
+
 
 @login_required
 def toggle_comment_like(request, comment_id):
@@ -74,13 +78,14 @@ def toggle_comment_like(request, comment_id):
     else:
         comment.likes.add(request.user)
 
-    return redirect('discussions:list', cio_id=comment.post.cio.id)
+    return redirect(f'/{comment.post.cio.id}/?tab=discussions')
+
 
 def discussion_list(request, cio_id):
     cio = get_object_or_404(CIO, id=cio_id)
     posts = Post.objects.filter(cio=cio).order_by('-created_at')
 
-    role = 'viewer'  # default role for anonymous users
+    role = 'viewer'
     if request.user.is_authenticated:
         membership = Membership.objects.filter(user=request.user, cio=cio).first()
         if membership:
