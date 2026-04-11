@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import logout
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
 #from django.contrib.auth.models import Group
 
 
@@ -56,17 +58,14 @@ class RoleAdminView(LoginRequiredMixin, View):
         query = request.GET.get("q", "")
         role = request.GET.get("role", "")
 
-        users = Profile.objects.all()
+        users = Profile.objects.exclude(user_type="user_admin")
 
-        # search
         if query:
             users = users.filter(
-                user__username__icontains=query
-            ) | users.filter(
-                user__email__icontains=query
+                Q(user__username__icontains=query) |
+                Q(user__email__icontains=query)
             )
 
-        # role filter
         if role:
             users = users.filter(user_type=role)
 
@@ -80,43 +79,27 @@ class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
     def post(self, request, user_id):
-        profile = request.user.profile
 
-        # Restrict Access
-        if profile.user_type != "user_admin":
+        if request.user.profile.user_type != "user_admin":
             return redirect('/users/profile/')
 
-        target_profile = Profile.objects.get(user_id=user_id)
+        target_profile = get_object_or_404(Profile, user_id=user_id)
+
+        # 🚨 block editing admin accounts
+        if target_profile.user_type == "user_admin":
+            return redirect('/users/role-admin/')
 
         new_role = request.POST.get("user_type")
 
-        # Block self-assignment
+        # block assigning admin role
         if new_role == "user_admin":
             return redirect('/users/role-admin/')
 
-        # Only allow valid roles
         if new_role in ["student", "president"]:
             target_profile.user_type = new_role
             target_profile.save()
 
         return redirect('/users/role-admin/')
-
-# class ChangeRoleView(LoginRequiredMixin, View):
-#     login_url = '/users/login/'
-#
-#     def post(self, request):
-#         user = request.user
-#         officer_group = Group.objects.get(name='Officer')
-#         member_group = Group.objects.get(name='Member')
-#         if user.groups.filter(name='Officer').exists():
-#             user.groups.remove(officer_group)
-#             user.groups.add(member_group)
-#         else:
-#             user.groups.remove(member_group)
-#             user.groups.add(officer_group)
-#         user.save()
-#         return redirect('/users/profile/')
-
 
 """def profile(request):
     user = User.objects.get(username="Any")  # This user for now, until login is implemented
