@@ -47,7 +47,9 @@
 
             <!-- Left side -->
             <div class="navbar-nav mr-auto">
-              <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                {% if user.is_authenticated and user.profile.user_type != "user_admin" %}
+                    <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
+                {% endif %}
             </div>
 
             <!-- Right side -->
