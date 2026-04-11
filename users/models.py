@@ -26,8 +26,15 @@ class CustomUser(AbstractUser):
     # role = models.CharField(max_length=20, choices=role_choices, default='member')
 
 class Profile(models.Model):
+    USER_TYPES = (
+        ('student', 'Student'),
+        ('officer', 'CIO Officer'),
+        ('user_admin', 'User Administrator'),
+    )
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(default='default.jpg', upload_to='profile_pics')
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='student')
 
     def __str__(self):
         return f'{self.user.username} Profile'
