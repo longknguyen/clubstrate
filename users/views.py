@@ -49,14 +49,32 @@ class RoleAdminView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
     def get(self, request):
-        profile = request.user.profile
 
-        # Restrict Access
-        if profile.user_type != "user_admin":
-            return redirect('/users/profile/')
+        if request.user.profile.user_type != "user_admin":
+            return redirect("/")
+
+        query = request.GET.get("q", "")
+        role = request.GET.get("role", "")
 
         users = Profile.objects.all()
-        return render(request, "users/role_admin.html", {"users": users})
+
+        # search
+        if query:
+            users = users.filter(
+                user__username__icontains=query
+            ) | users.filter(
+                user__email__icontains=query
+            )
+
+        # role filter
+        if role:
+            users = users.filter(user_type=role)
+
+        return render(request, "users/role_admin.html", {
+            "users": users,
+            "query": query,
+            "role": role
+        })
 
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'

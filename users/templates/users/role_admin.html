@@ -3,8 +3,34 @@
 {% block content %}
 <div class="container" style="margin-top: 40px;">
 
-    <h2>User Role Management</h2>
-    <p>Only User Administrators can access this page.</p>
+    <h1>User Role Management</h1>
+
+    <form method="GET" style="margin-bottom: 20px; display:flex; gap:10px; align-items:center;">
+
+        <input
+                type="text"
+                name="q"
+                placeholder="Search username or email"
+                value="{{ query|default:'' }}"
+                class="form-control"
+                style="max-width:300px;"
+        >
+
+        <select name="role" class="form-control" style="max-width:200px;">
+            <option value="">All Roles</option>
+            <option value="student" {% if role == "student" %}selected{% endif %}>Student</option>
+            <option value="president" {% if role == "president" %}selected{% endif %}>CIO President</option>
+        </select>
+
+        <button type="submit" class="btn btn-primary">
+            Search
+        </button>
+
+        <a href="{% url 'role-admin' %}" class="btn btn-secondary">
+            Reset
+        </a>
+
+    </form>
 
     <table class="table table-bordered table-striped" style="margin-top: 20px;">
         <thead>
