@@ -30,6 +30,11 @@ class ProfileView(LoginRequiredMixin, View):
         }
         return render(request, 'users/profile.html', context)
 
+class HomeView(View):
+    def get(self, request):
+        if request.user.is_authenticated and request.user.profile.user_type == "user_admin":
+            return redirect("/users/role-admin/")
+        return render(request, "home.html")
 
 class LogoutView(View):
     def post(self, request):

@@ -1,24 +1,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>CIO Home Page</h1>
-<p>This is where the CIO Cards will appear.</p>
 
-{% if user.is_authenticated %}
+{% if user.is_authenticated and user.profile.user_type == 'user_admin' %}
+    <h3>You are a User Administrator.</h3>
+    <a href="/users/role-admin/" class="btn btn-danger">Manage User Roles</a>
+{% else %}
+    <h1>CIO Home Page</h1>
+    <p>This is where the CIO Cards will appear.</p>
 
-    {% if user.profile.user_type == 'user_admin' %}
-        <h3>You are a User Administrator.</h3>
-        <a href="/users/role-admin/" class="btn btn-danger">Manage User Roles</a>
-
-    {% elif user.profile.user_type == 'president' %}
-        <h3>You are a CIO President.</h3>
-        <a href="#" class="btn btn-primary">Create a CIO</a>
-
-    {% else %}
-        <h3>You are a Student.</h3>
+    {% if user.is_authenticated %}
+        {% if user.profile.user_type == 'president' %}
+            <h3>You are a CIO President.</h3>
+            <a href="#" class="btn btn-primary">Create a CIO</a>
+        {% else %}
+            <h3>You are a Student.</h3>
+        {% endif %}
     {% endif %}
-
 {% endif %}
 
 {% endblock %}
-
