@@ -8,15 +8,6 @@
             <h2 class="account-heading">{{ username }}</h2>
             <p class="text-secondary">{{ email }}</p>
             <p>{{ first_name }} {{ last_name }}</p>
-
-            <form method="POST" action="{% url 'change-role' %}">
-                {% csrf_token %}
-                {% if role == 'officer' %}
-                    <button class="btn btn-warning" type="submit">Switch to Member</button>
-                {% else %}
-                    <button class="btn btn-success" type="submit">Switch to Officer</button>
-                {% endif %}
-            </form>
         </div>
     </div>
 
