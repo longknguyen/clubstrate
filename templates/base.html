@@ -54,8 +54,10 @@
 
             <!-- Right side -->
             <div class="navbar-nav">
-              {% if user.is_authenticated %} <!-- To edit once login page made -->
-                <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
+              {% if user.is_authenticated %}<!-- To edit once login page made -->
+                {% if user.is_authenticated and user.profile.user_type != "user_admin" %}
+                    <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
+                {% endif %}
                 <form method="post" action="{% url 'logout' %}" style="display:inline;">
                     {% csrf_token %}
                     <a href="#" class="nav-item nav-link"

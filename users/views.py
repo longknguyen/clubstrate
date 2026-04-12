@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import logout
+from django.contrib.auth import logout, authenticate, login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.db.models import Q
@@ -15,13 +15,38 @@ class LoginView(View):
     def get(self, request):
         return render(request, 'users/login.html')
 
+    def post(self, request):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+
+            if user.profile.user_type == "user_admin":
+                return redirect('home')   # admins go to home
+
+            next_url = request.POST.get('next')
+            if next_url:
+                return redirect(next_url)  # others go to profile
+
+            return redirect('profile')
+        # if login fails
+        return render(request, 'users/login.html', {
+            'error': 'Invalid username or password'
+        })
 
 class ProfileView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
-        # user = request.user
+
+        # Block profile view from admins
+        if request.user.profile.user_type == "user_admin":
+            return redirect('home')
+
         context = {
             "profile_image": profile.image.url,
             "username": request.user.username,
@@ -85,7 +110,7 @@ class ChangeRoleView(LoginRequiredMixin, View):
 
         target_profile = get_object_or_404(Profile, user_id=user_id)
 
-        # 🚨 block editing admin accounts
+        # block editing admin accounts
         if target_profile.user_type == "user_admin":
             return redirect('/users/role-admin/')
 
