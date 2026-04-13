@@ -1,8 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import logout, get_user_model, login, authenticate
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.contrib.auth.models import Group
+from django.db.models import Q
 from .forms import UserUpdateForm, ProfileUpdateForm
 import uuid
 
@@ -11,7 +12,6 @@ from .models import Profile
 User = get_user_model()
 
 
-# See https://docs.djangoproject.com/en/6.0/ref/class-based-views/base/ to grab request/return http responses using Django abstractions
 class LoginView(View):
     def get(self, request):
         return render(request, 'users/login.html')
@@ -32,6 +32,11 @@ class LoginView(View):
 
         if user:
             login(request, user)
+
+            # ✅ NEW: admin redirect
+            if user.profile.user_type == "user_admin":
+                return redirect('/users/role-admin/')
+
             return redirect('/users/profile/')
         else:
             return render(request, 'users/login.html', {
@@ -48,9 +53,10 @@ class ProfileView(LoginRequiredMixin, View):
 
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
-        # user = request.user
 
-        # Get the image URL - ensures S3 URL is properly generated
+        if request.user.profile.user_type == "user_admin":
+            return redirect('/users/role-admin/')
+
         profile_image_url = profile.image.url if profile.image else '/media/default.jpg'
 
         context = {
@@ -62,7 +68,7 @@ class ProfileView(LoginRequiredMixin, View):
             "last_name": request.user.last_name,
             "banner_colour": request.user.banner_colour,
             "role": "officer" if request.user.groups.filter(name='Officer').exists() else "member",
-            "section" : "profile",
+            "section": "profile",
         }
         return render(request, 'users/profile.html', context)
 
@@ -101,6 +107,7 @@ class RegisterView(View):
         username = email.split('@')[0]
         if User.objects.filter(username=username).exists():
             username = f"{username}{uuid.uuid4().hex[:5]}"
+
         user = User.objects.create_user(
             username=username,
             email=email,
@@ -108,25 +115,58 @@ class RegisterView(View):
             first_name=first_name,
             last_name=last_name,
         )
+
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return redirect('/users/profile/')
-
 
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
-    def post(self, request):
-        user = request.user
-        officer_group = Group.objects.get(name='Officer')
-        member_group = Group.objects.get(name='Member')
-        if user.groups.filter(name='Officer').exists():
-            user.groups.remove(officer_group)
-            user.groups.add(member_group)
-        else:
-            user.groups.remove(member_group)
-            user.groups.add(officer_group)
-        user.save()
-        return redirect('/users/profile/')
+    def post(self, request, user_id):
+        if request.user.profile.user_type != "user_admin":
+            return redirect('/users/profile/')
+
+        target_profile = get_object_or_404(Profile, user_id=user_id)
+
+        if target_profile.user_type == "user_admin":
+            return redirect('/users/role-admin/')
+
+        new_role = request.POST.get("user_type")
+
+        if new_role in ["student", "officer"]:
+            target_profile.user_type = new_role
+            target_profile.save()
+
+        return redirect('/users/role-admin/')
+
+
+class RoleAdminView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request):
+        if request.user.profile.user_type != "user_admin":
+            return redirect('/')
+
+        query = request.GET.get("q", "")
+        role = request.GET.get("role", "")
+
+        users = Profile.objects.exclude(user_type="user_admin")
+
+        if query:
+            users = users.filter(
+                Q(user__username__icontains=query) |
+                Q(user__email__icontains=query)
+            )
+
+        if role:
+            users = users.filter(user_type=role)
+
+        return render(request, "users/role_admin.html", {
+            "users": users,
+            "query": query,
+            "role": role,
+        })
+
 
 class ProfileEditView(LoginRequiredMixin, View):
     login_url = '/users/login/'
@@ -169,9 +209,3 @@ class ProfileEditView(LoginRequiredMixin, View):
             'banner_colour': request.user.banner_colour,
         }
         return render(request, 'users/profile_edit.html', context)
-
-
-
-"""def profile(request):
-    user = User.objects.get(username="Any")  # This user for now, until login is implemented
-    return render(request, "users/profile.html", {"user": user})"""
