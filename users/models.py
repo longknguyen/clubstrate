@@ -19,6 +19,7 @@ class CustomUser(AbstractUser):
     pronouns = models.CharField(max_length=50, blank=True)
     banner_colour = models.CharField(max_length=7, default='#000000')
     email = models.EmailField(unique=True)
+
     def __str__(self):
         return self.username
 
@@ -28,19 +29,28 @@ class CustomUser(AbstractUser):
     # role_choices = [ ('member', 'Club Member'), ('officer', 'Club Officer')]
     # role = models.CharField(max_length=20, choices=role_choices, default='member')
 
+
 class Profile(models.Model):
+    USER_TYPES = (
+        ('student', 'Student'),
+        ('officer', 'CIO Officer'),
+        ('user_admin', 'User Administrator'),
+    )
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='student')
 
     def __str__(self):
         return f'{self.user.username} Profile'
+
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(user=instance)
 
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
-
