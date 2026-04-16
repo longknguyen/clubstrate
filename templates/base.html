@@ -31,9 +31,16 @@
 <header class="site-header">
     <nav class="navbar navbar-expand-md navbar-dark">
         <div class="container">
-            <a class="navbar-brand mr-4" href="{% url 'home' %}">
-                <img src="{% static 'users/logo.png' %}" class="nav-logo">
-            </a>
+
+            {% if user.is_authenticated and user.profile.user_type == "user_admin" %}
+                <div class="navbar-brand mr-4">
+                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
+                </div>
+            {% else %}
+                <a class="navbar-brand mr-4" href="{% url 'home' %}">
+                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
+                </a>
+            {% endif %}
 
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
                     aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,7 +51,7 @@
 
                 <!-- Left side -->
                 <div class="navbar-nav mr-auto">
-                    {% if user.is_authenticated and user.role == "user_admin" %}
+                    {% if user.is_authenticated and user.profile.user_type != "user_admin" %}
                         <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
                         <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
                     {% endif %}
@@ -53,7 +60,7 @@
                 <!-- Right side -->
                 <div class="navbar-nav">
                     {% if user.is_authenticated %}
-                        {% if user.role == "user_admin" %}
+                        {% if user.profile.user_type != "user_admin" %}
                             <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
                         {% endif %}
 
@@ -86,7 +93,7 @@
 
 <!-- Optional JavaScript -->
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+        integrity="sha384-KJ3o2DKtIkvYIK3UENzm7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
         crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
         integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
