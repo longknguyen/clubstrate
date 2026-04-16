@@ -59,7 +59,16 @@
         <main class="cio-main-panel">
             <div id="about-tab" class="cio-tab">
                 <h3>About {{ cio.name }}</h3>
+
+                {% if cio.about_image %}
+                    <img src="{{ cio.about_image.url }}" alt="{{ cio.name }} about image" class="cio-about-image">
+                {% endif %}
+
                 <p>{{ cio.description|default:"No description yet." }}</p>
+
+                <p><strong>Dues:</strong> {{ cio.dues|default:"Not listed yet." }}</p>
+                <p><strong>Commitment Level:</strong> {{ cio.commitment_level|default:"Not listed yet." }}</p>
+                <p><strong>Time Expectations:</strong> {{ cio.time_expectations|default:"Not listed yet." }}</p>
             </div>
 
             <div id="discussions-tab" class="cio-tab" style="display: none;">
