@@ -6,6 +6,12 @@ class CIO(models.Model):
     name = models.CharField(max_length=100, unique=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    # About page fields
+    description = models.TextField(blank=True)
+    dues = models.CharField(max_length=100, blank=True)
+    commitment_level = models.CharField(max_length=100, blank=True)
+    time_expectations = models.CharField(max_length=200, blank=True)
+    about_image = models.ImageField(upload_to='cio_about_images/', blank=True, null=True)
 
     def __str__(self):
         return self.name
