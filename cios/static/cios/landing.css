@@ -290,3 +290,32 @@ body {
 .cio-card {
     height: 100%;
 }
+
+.cio-about-image {
+    max-width: 300px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.cio-about-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.edit-btn {
+    padding: 8px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    background: #f7f8fb;
+    border: 1px solid #e8e9ee;
+}
+
+.edit-btn:hover {
+    color: #333;
+    text-decoration: none;
+}

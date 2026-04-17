@@ -58,7 +58,13 @@
 
         <main class="cio-main-panel">
             <div id="about-tab" class="cio-tab">
-                <h3>About {{ cio.name }}</h3>
+               <div class="cio-about-header">
+                    <h3>About {{ cio.name }}</h3>
+
+                    {% if role == 'officer' %}
+                        <a href="/discussions/cio/{{ cio.id }}/edit/" class="edit-btn">Edit</a>
+                    {% endif %}
+                </div>
 
                 {% if cio.about_image %}
                     <img src="{{ cio.about_image.url }}" alt="{{ cio.name }} about image" class="cio-about-image">

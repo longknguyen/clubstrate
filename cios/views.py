@@ -54,8 +54,33 @@ def cio_detail(request, cio_id):
     return render(request,
         'cios/cio_detail.html',
         {
-                      'cio': cio,
-                      'role': role,
-                      'posts': posts
-                  },
+            'cio': cio,
+            'role': role,
+            'posts': posts
+        },
     )
+
+@login_required
+def edit_cio_about(request, cio_id):
+    cio = get_object_or_404(CIO, pk=cio_id)
+
+    membership = Membership.objects.filter(user=request.user, cio=cio).first()
+    if not membership or membership.role != 'officer':
+        return redirect(f'/{cio.id}/')
+
+    if request.method == 'POST':
+        cio.description = request.POST.get('description', '').strip()
+        cio.dues = request.POST.get('dues', '').strip()
+        cio.commitment_level = request.POST.get('commitment_level', '').strip()
+        cio.time_expectations = request.POST.get('time_expectations', '').strip()
+
+        if request.POST.get('remove_image'):
+            cio.about_image = None
+
+        image = request.FILES.get('about_image')
+        if image:
+            cio.about_image = image
+
+        cio.save()
+        return redirect(f'/{cio.id}/')
+    return render(request, 'cios/edit_cio_about.html', {'cio': cio})

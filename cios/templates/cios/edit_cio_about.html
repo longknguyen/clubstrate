@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="cio-detail-page">
+    <div class="cio-main-panel">
+
+        <div class="cio-about-header">
+            <h2>Edit About for {{ cio.name }}</h2>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <label>Description</label><br>
+            <textarea name="description" rows="4" style="width: 100%;">{{ cio.description }}</textarea><br><br>
+
+            <label>Dues</label><br>
+            <input type="text" name="dues" value="{{ cio.dues }}" style="width: 100%;"><br><br>
+
+            <label>Commitment Level</label><br>
+            <input type="text" name="commitment_level" value="{{ cio.commitment_level }}" style="width: 100%;"><br><br>
+
+            <label>Time Expectations</label><br>
+            <input type="text" name="time_expectations" value="{{ cio.time_expectations }}" style="width: 100%;"><br><br>
+
+            {% if cio.about_image %}
+                <label>Current Image</label><br>
+                <img src="{{ cio.about_image.url }}" width="200"><br><br>
+
+                <label>
+                    <input type="checkbox" name="remove_image">
+                    Remove image (will be removed on save)
+                </label><br><br>
+            {% endif %}
+
+            <label>Upload New Image (optional)</label><br>
+            <input type="file" name="about_image"><br><br>
+
+            <button type="submit">Save</button>
+        </form>
+
+    </div>
+</div>
+{% endblock %}
