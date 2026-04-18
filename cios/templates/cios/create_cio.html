@@ -1,15 +1,25 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>Create a CIO</h1>
-<p>Enter the name of the CIO you want to create.</p>
+<div style="background: white; min-height: 100vh; padding-top: 40px;">
 
-<form method='POST'>
-    {% csrf_token %}
-    <div class='form-group'>
-        <label for='name'>CIO Name</label>
-        <input type='text' class='form-control' id='name' name='name' required>
+    <div style="padding: 40px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
+
+        <h1 style="margin-bottom: 10px;">Create a CIO</h1>
+        <p style="margin-bottom: 10px;">Enter the name of the CIO you want to create.</p>
+        <p style="margin-bottom: 25px; color: #555;">You will automatically be added as an officer.</p>
+
+        <form method='POST'>
+            {% csrf_token %}
+
+            <div class='form-group'>
+                <label for='name'><strong>CIO Name</strong></label>
+                <input type='text' class='form-control' id='name' name='name' placeholder="Enter CIO name" required>
+            </div>
+
+            <button type='submit' class='btn btn-primary'>Create CIO</button>
+        </form>
+
     </div>
-    <button type='submit' class='btn btn-primary'>Create CIO</button>
-</form>
+</div>
 {% endblock %}
