@@ -34,3 +34,22 @@ class Membership(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.cio.name} - {self.get_role_display()}'
+
+
+class JoinRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('denied', 'Denied'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    cio = models.ForeignKey(CIO, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'cio')
+
+    def __str__(self):
+        return f'{self.user.username} - {self.cio.name} - {self.status}'

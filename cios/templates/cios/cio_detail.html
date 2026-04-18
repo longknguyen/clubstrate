@@ -89,7 +89,10 @@
             {% if role == 'viewer' and user.is_authenticated %}
             <div id="request-tab" class="cio-tab" style="display: none;">
                 <h3>Request to Join</h3>
-                <p>Request button will go here.</p>
+                <form method="POST" action="{% url 'request-to-join' cio.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="cio-request-button">Request to Join</button>
+                </form>
             </div>
             {% endif %}
 

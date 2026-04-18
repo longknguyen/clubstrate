@@ -3,7 +3,7 @@ from django.db.models import Prefetch
 from django.shortcuts import render, get_object_or_404, redirect
 
 from discussions.models import Comment, Post
-from .models import CIO, Membership
+from .models import CIO, Membership, JoinRequest
 
 def landing(request):
     return render(request, 'cios/landing.html')
@@ -84,3 +84,20 @@ def edit_cio_about(request, cio_id):
         cio.save()
         return redirect(f'/{cio.id}/')
     return render(request, 'cios/edit_cio_about.html', {'cio': cio})
+
+@login_required
+def request_to_join(request, cio_id):
+    cio = get_object_or_404(CIO, pk=cio_id)
+
+    if request.method == 'POST':
+        membership = Membership.objects.filter(user=request.user, cio=cio).first()
+        join_request = JoinRequest.objects.filter(user=request.user, cio=cio).first()
+
+        if membership is None and join_request is None:
+            JoinRequest.objects.create(
+                user=request.user,
+                cio=cio,
+                status='pending'
+            )
+
+    return redirect(f'/{cio.id}/')

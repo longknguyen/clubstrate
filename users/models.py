@@ -1,5 +1,3 @@
-# Source / AI Citation
-# Description: Django Profile model extending the built-in User model with profile image support.
 # Source: Adapted from Corey Schafer's YouTube tutorial
 #   "Python Django Tutorial: Full-Featured Web App Part 8 - User Profile and Picture"
 #   (https://www.youtube.com/)
@@ -32,14 +30,15 @@ class CustomUser(AbstractUser):
 
 class Profile(models.Model):
     USER_TYPES = (
-        ('student', 'Student'),
+        ('viewer', 'Viewer'),
+        ('member', 'Member'),
         ('officer', 'CIO Officer'),
         ('user_admin', 'User Administrator'),
     )
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     image = models.ImageField(default='profile_pics/default.jpg', upload_to='profile_pics')
-    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='student')
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='viewer')
 
     def __str__(self):
         return f'{self.user.username} Profile'
