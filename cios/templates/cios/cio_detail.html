@@ -91,7 +91,7 @@
                 <h3>Request to Join</h3>
                 <form method="POST" action="{% url 'request-to-join' cio.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="cio-request-button">Request to Join</button>
+                    <button type="submit" class="edit-btn">Request to Join</button>
                 </form>
             </div>
             {% endif %}
