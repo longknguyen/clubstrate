@@ -52,13 +52,13 @@ def cio_detail(request, cio_id):
     ).order_by('-created_at')
 
     return render(request,
-        'cios/cio_detail.html',
-        {
+                  'cios/cio_page.html',
+                  {
             'cio': cio,
             'role': role,
             'posts': posts
         },
-    )
+                  )
 
 @login_required
 def edit_cio_about(request, cio_id):
