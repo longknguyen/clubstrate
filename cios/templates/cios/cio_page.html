@@ -101,12 +101,15 @@
                 <h3>Join Requests</h3>
                 {% if join_requests %}
                     {% for req in join_requests %}
-                        <div>
-                            <p>{{ req.user.username }}</p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+
+                            <span>{{ req.user.username }}</span>
+
                             <form method="POST" action="{% url 'accept-request' req.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="edit-btn">Accept</button>
                             </form>
+
                         </div>
                     {% endfor %}
                 {% else %}
