@@ -63,11 +63,6 @@
                         {% if user.profile.user_type != "user_admin" %}
                             <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
                         {% endif %}
-
-                        <form method="post" action="{% url 'logout' %}" class="logout-form">
-                            {% csrf_token %}
-                            <button type="submit" class="nav-item nav-link logout-btn">Logout</button>
-                        </form>
                     {% else %}
                         <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
                         <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
