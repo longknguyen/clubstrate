@@ -35,11 +35,15 @@ def cio_detail(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
 
     role = 'viewer'
+    join_requests = []
 
     if request.user.is_authenticated:
         membership = Membership.objects.filter(user=request.user, cio=cio).first()
         if membership is not None:
             role = membership.role
+
+    if role == 'officer':
+        join_requests = JoinRequest.objects.filter(cio=cio, status='pending')
 
     posts = cio.posts.prefetch_related(
         'likes',
@@ -56,7 +60,8 @@ def cio_detail(request, cio_id):
                   {
             'cio': cio,
             'role': role,
-            'posts': posts
+            'posts': posts,
+            'join_requests': join_requests
         },
                   )
 
@@ -101,3 +106,25 @@ def request_to_join(request, cio_id):
             )
 
     return redirect(f'/{cio.id}/')
+
+@login_required
+def accept_request(request, request_id):
+    join_request = get_object_or_404(JoinRequest, pk=request_id)
+
+    if request.method == 'POST':
+        membership = Membership.objects.filter(
+            user=join_request.user,
+            cio=join_request.cio
+        ).first()
+
+        if membership is None:
+            Membership.objects.create(
+                user=join_request.user,
+                cio=join_request.cio,
+                role='member'
+            )
+
+        join_request.status = 'approved'
+        join_request.save()
+
+    return redirect(f'/{join_request.cio.id}/')

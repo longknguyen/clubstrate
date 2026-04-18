@@ -99,7 +99,19 @@
             {% if role == 'officer' %}
             <div id="requests-tab" class="cio-tab" style="display: none;">
                 <h3>Join Requests</h3>
-                <p>Pending requests will go here.</p>
+                {% if join_requests %}
+                    {% for req in join_requests %}
+                        <div>
+                            <p>{{ req.user.username }}</p>
+                            <form method="POST" action="{% url 'accept-request' req.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="edit-btn">Accept</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No pending requests.</p>
+                {% endif %}
             </div>
             {% endif %}
         </main>
