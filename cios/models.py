@@ -61,6 +61,10 @@ class Event(models.Model):
     description = models.TextField(blank=True)
     start_time = models.DateTimeField()
     location = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title} - {self.cio.name}'
 
 class Reminder(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -70,3 +74,6 @@ class Reminder(models.Model):
 
     class Meta:
         unique_together = ('user','event')
+
+    def __str__(self):
+        return f'{self.user.username} reminder for {self.event.title}'

@@ -3,7 +3,11 @@ from django.db.models import Prefetch
 from django.shortcuts import render, get_object_or_404, redirect
 
 from discussions.models import Comment, Post
-from .models import CIO, Membership, JoinRequest
+from .models import CIO, Membership, JoinRequest, Event, Reminder
+
+from django.http import JsonResponse
+from django.utils import timezone
+
 
 def landing(request):
     return render(request, 'cios/landing.html')
@@ -128,3 +132,81 @@ def accept_request(request, request_id):
         join_request.save()
 
     return redirect(f'/{join_request.cio.id}/')
+
+@login_required
+def cio_calendar(request, cio_id):
+    cio = get_object_or_404(CIO, id=cio_id)
+    membership = Membership.objects.filter(user=request.user, cio=cio).first()
+
+    # creating event list for FullCalendar
+    events = Event.objects.filter(cio=cio)
+    events_data = [
+        {
+            "id": e.id,
+            "title": e.title,
+            "start": e.start_time.isoformat(),
+            "description": e.description,
+            "location": e.location,
+        }
+        for e in events
+    ]
+
+    # getting user reminders
+    reminder_event_ids = set(
+        Reminder.objects.filter(user=request.user, event__cio=cio)
+        .values_list('event_id', flat=True)
+    )
+
+    return render(request, 'cios/calendar.html', {
+        'cio': cio,
+        'membership': membership,
+        'is_officer': membership and membership.role == Membership.OFFICER,
+        'events_json': json.dumps(events_data),
+        'reminder_event_ids': list(reminder_event_ids),
+    })
+
+@login_required
+def add_event(request, cio_id):
+    cio = get_object_or_404(CIO, id=cio_id)
+    membership = Membership.objects.filter(user=request.user, cio=cio, role=Membership.OFFICER).first()
+
+    # only officers can add events
+    if not membership:
+        return JsonResponse({'error': 'Officers only'}, status=403)
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        event = Event.objects.create(
+            cio=cio,
+            title=data['title'],
+            description=data.get('description', ''),
+            start_time=data['start_time'],  # expects ISO string
+            location=data.get('location', ''),
+            created_by=request.user,
+        )
+        return JsonResponse({
+            'id': event.id,
+            'title': event.title,
+            'start': event.start_time.isoformat(),
+            'description': event.description,
+            'location': event.location,
+        })
+
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+@login_required
+def toggle_reminder(request, event_id): # creating a toggle for users to choose to have reminders for certain events
+    event = get_object_or_404(Event, id=event_id)
+
+    if request.method == 'POST':
+        reminder, created = Reminder.objects.get_or_create(
+            user=request.user,
+            event=event,
+            defaults={'remind_at': event.start_time}  # default: remind at event time
+        )
+        if not created:
+            reminder.delete()
+            return JsonResponse({'status': 'removed'})
+        return JsonResponse({'status': 'added'})
+
+    return JsonResponse({'error': 'POST required'}, status=405)
