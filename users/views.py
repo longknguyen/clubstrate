@@ -54,7 +54,8 @@ class ProfileView(LoginRequiredMixin, View):
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
 
-        if request.user.profile.user_type == "user_admin":
+
+        if profile.user_type == "user_admin":
             return redirect('/users/role-admin/')
 
         profile_image_url = profile.image.url if profile.image else '/media/default.jpg'
@@ -123,7 +124,8 @@ class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
     def post(self, request, user_id):
-        if request.user.profile.user_type != "user_admin":
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.user_type != "user_admin":
             return redirect('/users/profile/')
 
         target_profile = get_object_or_404(Profile, user_id=user_id)
@@ -144,7 +146,8 @@ class RoleAdminView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
     def get(self, request):
-        if request.user.profile.user_type != "user_admin":
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.user_type != "user_admin":
             return redirect('/')
 
         query = request.GET.get("q", "")
@@ -195,7 +198,12 @@ class ProfileEditView(LoginRequiredMixin, View):
 
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save()
-            profile_form.save()
+            if request.POST.get("remove_image") == "1":
+                profile.image = "profile_pics/default.jpg"
+            elif "image" in request.FILES:
+                profile.image = request.FILES["image"]
+
+            profile.save()
             return redirect('/users/profile/')
 
         context = {

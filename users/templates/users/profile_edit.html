@@ -45,6 +45,7 @@
                         <input type="file" name="image" id="id_image" hidden>
                     </div>
 
+                    <input type="hidden" name="remove_image" id="remove-image" value="0">
                     <button type="button" class="btn-secondary" id="remove-avatar">Remove Profile</button>
                 </div>
             </div>
@@ -77,73 +78,92 @@
     </div>
 
     <script>
-            const inputFirstName = document.getElementById('id_first_name');
-            const inputLastName = document.getElementById('id_last_name');
-            const inputUsername = document.getElementById('id_username');
-            const inputPronouns = document.getElementById('id_pronouns');
-            const inputBanner = document.getElementById('id_banner_colour');
-            const inputImage = document.getElementById('id_image');
+        const inputFirstName = document.getElementById('id_first_name');
+        const inputLastName = document.getElementById('id_last_name');
+        const inputUsername = document.getElementById('id_username');
+        const inputPronouns = document.getElementById('id_pronouns');
+        const inputBanner = document.getElementById('id_banner_colour');
+        const inputImage = document.getElementById('id_image');
 
-            const previewName = document.getElementById('preview-name');
-            const previewMeta = document.getElementById('preview-meta');
-            const previewBanner = document.getElementById('preview-banner');
-            const previewAvatarRight = document.getElementById('preview-avatar-right');
-            const previewAvatar = document.getElementById('preview-avatar');
-            const removeAvatarBtn = document.getElementById('remove-avatar');
+        const previewName = document.getElementById('preview-name');
+        const previewMeta = document.getElementById('preview-meta');
+        const previewBanner = document.getElementById('preview-banner');
+        const previewAvatarRight = document.getElementById('preview-avatar-right');
+        const previewAvatar = document.getElementById('preview-avatar');
+        const removeAvatarBtn = document.getElementById('remove-avatar');
 
-            function updateName() {
-                previewName.textContent = `${inputFirstName.value} ${inputLastName.value}`.trim();
-            }
+        function updateName() {
+            previewName.textContent = `${inputFirstName.value} ${inputLastName.value}`.trim();
+        }
 
-            function updateMeta() {
-                const username = inputUsername ? inputUsername.value.trim() : '';
-                const pronouns = inputPronouns ? inputPronouns.value.trim() : '';
-                previewMeta.textContent = `${username}${username && pronouns ? ' · ' : ''}${pronouns}`;
-            }
+        function updateMeta() {
+            const username = inputUsername ? inputUsername.value.trim() : '';
+            const pronouns = inputPronouns ? inputPronouns.value.trim() : '';
+            previewMeta.textContent = `${username}${username && pronouns ? ' · ' : ''}${pronouns}`;
+        }
 
-            if (inputFirstName) {
-                inputFirstName.addEventListener('input', updateName);
-            }
+        if (inputFirstName) {
+            inputFirstName.addEventListener('input', updateName);
+        }
 
-            if (inputLastName) {
-                inputLastName.addEventListener('input', updateName);
-            }
+        if (inputLastName) {
+            inputLastName.addEventListener('input', updateName);
+        }
 
-            if (inputUsername) {
-                inputUsername.addEventListener('input', updateMeta);
-            }
+        if (inputUsername) {
+            inputUsername.addEventListener('input', updateMeta);
+        }
 
-            if (inputPronouns) {
-                inputPronouns.addEventListener('input', updateMeta);
-            }
+        if (inputPronouns) {
+            inputPronouns.addEventListener('input', updateMeta);
+        }
 
-            if (inputBanner) {
-                inputBanner.addEventListener('input', e => {
-                    previewBanner.style.background = e.target.value;
-                });
-            }
+        if (inputBanner) {
+            inputBanner.addEventListener('input', e => {
+                previewBanner.style.background = e.target.value;
+            });
+        }
 
-            if (inputImage) {
-                inputImage.addEventListener('change', e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        const url = URL.createObjectURL(file);
-                        previewAvatar.src = url;
-                        previewAvatarRight.src = url;
+        if (inputImage) {
+            inputImage.addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    previewAvatar.src = url;
+                    previewAvatarRight.src = url;
+                }
+            });
+        }
+
+        const removeImageInput = document.getElementById('remove-image');
+
+        if (removeAvatarBtn) {
+            removeAvatarBtn.addEventListener('click', () => {
+                previewAvatar.src = '/static/users/default.jpg';
+                previewAvatarRight.src = '/static/users/default.jpg';
+                inputImage.value = '';
+                if (removeImageInput) {
+                    removeImageInput.value = '1';
+                }
+            });
+        }
+
+        if (inputImage) {
+            inputImage.addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    previewAvatar.src = url;
+                    previewAvatarRight.src = url;
+                    if (removeImageInput) {
+                        removeImageInput.value = '0';
                     }
-                });
-            }
+                }
+            });
+        }
 
-            if (removeAvatarBtn) {
-                removeAvatarBtn.addEventListener('click', () => {
-                    previewAvatar.src = '/media/default.jpg';
-                    previewAvatarRight.src = '/media/default.jpg';
-                    inputImage.value = '';
-                });
-            }
-
-            updateName();
-            updateMeta();
-        </script>
+        updateName();
+        updateMeta();
+    </script>
 
 {% endblock %}

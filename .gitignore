@@ -14,7 +14,9 @@ env/
 local_settings.py
 db.sqlite3
 staticfiles/
-media/
+media/post_images
+/media/profile_pics/*
+!media/profile_pics/default.jpg
 
 # Testing
 .coverage
