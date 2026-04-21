@@ -23,8 +23,8 @@
                      style="
                              {% if cio.banner_type == 'image' and cio.banner_image %}
                                  background-image: url('{{ cio.banner_image.url }}');
-                             {% elif cio.banner_type == 'gradient' and cio.banner_gradient %}
-                                 background: {{ cio.banner_gradient }};
+                             {% elif cio.gradient %}
+                                 background: {{ cio.gradient }};
                              {% else %}
                                  background-image: url('{% static 'cios/default-banner.svg' %}');
                              {% endif %}
@@ -119,7 +119,16 @@
             modalDateEl.textContent = "Est. " + cio.created;
             modalDescriptionEl.textContent = cio.description;
 
-            modalBannerEl.style.backgroundImage = cio.banner ? `url(${cio.banner})` : "none";
+            if (cio.bannerType === "image" && cio.banner) {
+                modalBannerEl.style.backgroundImage = `url(${cio.banner})`;
+                modalBannerEl.style.background = "";
+            } else if (cio.bannerGradient) {
+                modalBannerEl.style.backgroundImage = "none";
+                modalBannerEl.style.background = cio.bannerGradient;
+            } else {
+                modalBannerEl.style.backgroundImage = cio.banner ? `url(${cio.banner})` : "none";
+                modalBannerEl.style.background = "";
+            }
             renderModalAction(cioId);
         }
 

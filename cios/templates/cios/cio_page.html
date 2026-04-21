@@ -135,18 +135,22 @@
                                         <p>Everything you need to know before getting involved.</p>
                                     </div>
 
-                                    {% if role == 'officer' %}
-                                        <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="edit-btn">Edit</a>
-                                    {% endif %}
                                 </div>
 
                                 <div class="cio-info-overview">
-                                    <div class="cio-about-icon-panel">
+                                    {% if cio.icon and 'cio-default-' in cio.icon.name %}
                                         <img
-                                            src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                            src="{{ cio.icon.url }}"
                                             alt="{{ cio.name }} icon"
-                                            class="cio-about-icon-image">
-                                    </div>
+                                            class="cio-about-icon-image cio-about-icon-image-default">
+                                    {% else %}
+                                        <div class="cio-about-icon-panel">
+                                            <img
+                                                src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                                alt="{{ cio.name }} icon"
+                                                class="cio-about-icon-image">
+                                        </div>
+                                    {% endif %}
 
                                     <div class="cio-info-summary">
                                         <p>{{ cio.description|default:"No description yet." }}</p>

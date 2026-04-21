@@ -170,13 +170,13 @@
     const editCioIconInput = document.getElementById('editCioIconInput');
     const editCioIconPreview = document.getElementById('editCioIconPreview');
     const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
-    const defaultCioIcon = "{% static 'cios/default_cio_icon.svg' %}";
+    const defaultCioIcon = "{{ default_icon_data_uri|escapejs }}";
     const originalCioIcon = "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}";
 
     const editCioBannerInput = document.getElementById('editCioBannerInput');
     const editCioBannerPreview = document.getElementById('editCioBannerPreview');
     const removeBannerCheckbox = document.querySelector('input[name="remove_banner"]');
-    const defaultCioBanner = "url('{% static 'cios/default-banner.svg' %}')";
+    const defaultCioBanner = `{% if cio.gradient %}{{ cio.gradient }}{% else %}url('{% static 'cios/default-banner.svg' %}'){% endif %}`;
     const originalCioBanner = `{% if cio.banner_type == 'image' and cio.banner_image %}url('{{ cio.banner_image.url }}'){% elif cio.gradient %}{{ cio.gradient }}{% else %}url('{% static 'cios/default-banner.svg' %}'){% endif %}`;
 
     if (disabledSearchInput) {
@@ -219,8 +219,13 @@
     if (removeBannerCheckbox && editCioBannerPreview) {
         removeBannerCheckbox.addEventListener('change', () => {
             if (removeBannerCheckbox.checked) {
-                editCioBannerPreview.style.backgroundImage = defaultCioBanner;
-                editCioBannerPreview.style.background = '';
+                if (defaultCioBanner.startsWith('url(')) {
+                    editCioBannerPreview.style.backgroundImage = defaultCioBanner;
+                    editCioBannerPreview.style.background = '';
+                } else {
+                    editCioBannerPreview.style.backgroundImage = 'none';
+                    editCioBannerPreview.style.background = defaultCioBanner;
+                }
             } else {
                 if (originalCioBanner.startsWith('url(')) {
                     editCioBannerPreview.style.backgroundImage = originalCioBanner;

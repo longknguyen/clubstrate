@@ -1,9 +1,13 @@
 from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
 from django.db.models import Count, Exists, OuterRef
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from datetime import timedelta
+import random
+from urllib.parse import quote
+import uuid
 
 from discussions.models import Post
 from .forms import CIOAboutForm, CIOCreateForm
@@ -38,6 +42,118 @@ def _settings_sidebar_context(cio):
 
 
 CHAT_GROUP_GAP = timedelta(minutes=5)
+DEFAULT_CIO_PALETTES = [
+    {
+        'icon_start': '#fecaca',
+        'icon_end': '#fca5a5',
+        'banner_start': '#fee2e2',
+        'banner_mid': '#fecaca',
+        'banner_end': '#fca5a5',
+    },
+    {
+        'icon_start': '#fde68a',
+        'icon_end': '#fcd34d',
+        'banner_start': '#fef3c7',
+        'banner_mid': '#fde68a',
+        'banner_end': '#fbbf24',
+    },
+    {
+        'icon_start': '#bbf7d0',
+        'icon_end': '#86efac',
+        'banner_start': '#dcfce7',
+        'banner_mid': '#bbf7d0',
+        'banner_end': '#4ade80',
+    },
+    {
+        'icon_start': '#bfdbfe',
+        'icon_end': '#93c5fd',
+        'banner_start': '#dbeafe',
+        'banner_mid': '#bfdbfe',
+        'banner_end': '#60a5fa',
+    },
+    {
+        'icon_start': '#ddd6fe',
+        'icon_end': '#c4b5fd',
+        'banner_start': '#ede9fe',
+        'banner_mid': '#ddd6fe',
+        'banner_end': '#a78bfa',
+    },
+    {
+        'icon_start': '#fbcfe8',
+        'icon_end': '#f9a8d4',
+        'banner_start': '#fce7f3',
+        'banner_mid': '#fbcfe8',
+        'banner_end': '#f472b6',
+    },
+]
+
+
+def _build_default_cio_icon_svg(palette):
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="{palette['icon_start']}"/>
+      <stop offset="100%" stop-color="{palette['icon_end']}"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="128" height="128" rx="26" fill="url(#g)"/>
+  <circle cx="64" cy="48" r="22" fill="#ffffff" opacity="0.92"/>
+  <path d="M24 108c7-22 24-33 40-33s33 11 40 33" fill="#ffffff" opacity="0.92"/>
+</svg>"""
+
+
+def _build_default_cio_banner_gradient(palette):
+    return (
+        f"linear-gradient(135deg, {palette['banner_start']} 0%, "
+        f"{palette['banner_mid']} 55%, {palette['banner_end']} 100%)"
+    )
+
+
+def _assign_default_cio_branding(cio):
+    palette = random.choice(DEFAULT_CIO_PALETTES)
+    cio.gradient = _build_default_cio_banner_gradient(palette)
+    cio.banner_type = 'default'
+
+    if not cio.icon:
+        icon_svg = _build_default_cio_icon_svg(palette)
+        cio.icon.save(
+            f"cio-default-{uuid.uuid4().hex[:12]}.svg",
+            ContentFile(icon_svg.encode('utf-8')),
+            save=False,
+        )
+
+
+def _get_default_cio_palette_index(raw_index=None):
+    try:
+        palette_index = int(raw_index)
+    except (TypeError, ValueError):
+        palette_index = random.randrange(len(DEFAULT_CIO_PALETTES))
+
+    if palette_index < 0 or palette_index >= len(DEFAULT_CIO_PALETTES):
+        palette_index = random.randrange(len(DEFAULT_CIO_PALETTES))
+
+    return palette_index
+
+
+def _assign_default_cio_branding_with_palette(cio, palette_index):
+    palette = DEFAULT_CIO_PALETTES[palette_index]
+    cio.gradient = _build_default_cio_banner_gradient(palette)
+    cio.banner_type = 'default'
+
+    if not cio.icon:
+        icon_svg = _build_default_cio_icon_svg(palette)
+        cio.icon.save(
+            f"cio-default-{uuid.uuid4().hex[:12]}.svg",
+            ContentFile(icon_svg.encode('utf-8')),
+            save=False,
+        )
+
+
+def _get_cio_default_palette_index(cio):
+    for idx, palette in enumerate(DEFAULT_CIO_PALETTES):
+        if cio.gradient == _build_default_cio_banner_gradient(palette):
+            return idx
+    return 0
 
 
 def _time_divider_label(created_at):
@@ -131,10 +247,14 @@ def home(request):
 @login_required
 def create_cio(request):
     form = CIOCreateForm(request.POST or None, request.FILES or None)
+    palette_index = _get_default_cio_palette_index(request.POST.get('default_palette_index'))
+    default_icon_svg = _build_default_cio_icon_svg(DEFAULT_CIO_PALETTES[palette_index])
+    default_icon_data_uri = f"data:image/svg+xml;utf8,{quote(default_icon_svg)}"
 
     if request.method == 'POST' and form.is_valid():
         cio = form.save(commit=False)
         cio.created_by = request.user
+        _assign_default_cio_branding_with_palette(cio, palette_index)
         cio.save()
         Membership.objects.create(
             user=request.user,
@@ -142,7 +262,15 @@ def create_cio(request):
             role='officer',
         )
         return redirect('home')
-    return render(request, 'cios/create_cio.html', {'form': form})
+    return render(
+        request,
+        'cios/create_cio.html',
+        {
+            'form': form,
+            'default_palette_index': palette_index,
+            'default_icon_data_uri': default_icon_data_uri,
+        },
+    )
 
 @login_required
 def cio_detail(request, cio_id):
@@ -218,9 +346,12 @@ def edit_cio_about(request, cio_id):
 
     if request.method == 'POST' and form.is_valid():
         cio = form.save(commit=False)
+        default_palette_index = _get_cio_default_palette_index(cio)
 
         if form.cleaned_data.get('remove_icon'):
+            cio.icon.delete(save=False)
             cio.icon = None
+            _assign_default_cio_branding_with_palette(cio, default_palette_index)
         elif request.FILES.get('icon'):
             cio.icon = request.FILES['icon']
 
@@ -235,6 +366,9 @@ def edit_cio_about(request, cio_id):
         return redirect(f'/{cio.id}/')
     context = _settings_sidebar_context(cio)
     context['form'] = form
+    default_palette_index = _get_cio_default_palette_index(cio)
+    default_icon_svg = _build_default_cio_icon_svg(DEFAULT_CIO_PALETTES[default_palette_index])
+    context['default_icon_data_uri'] = f"data:image/svg+xml;utf8,{quote(default_icon_svg)}"
     return render(request, 'cios/edit_cio_about.html', context)
 
 

@@ -188,6 +188,14 @@
     background: transparent;
 }
 
+.cio-about-icon-image-default {
+    display: block;
+    width: 100%;
+    min-height: 240px;
+    object-fit: cover;
+    border-radius: 20px;
+}
+
 .cio-info-summary {
     padding: 24px;
     border-radius: 20px;

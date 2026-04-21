@@ -128,6 +128,8 @@
                 members: "{{ cio.member_count }}",
                 created: "{{ cio.created_at|date:'Y M' }}",
                 icon: "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}",
+                bannerType: "{{ cio.banner_type|escapejs }}",
+                bannerGradient: "{{ cio.gradient|escapejs }}",
                 banner: "{% if cio.banner_image %}{{ cio.banner_image.url }}{% else %}{% static 'cios/default-banner.svg' %}{% endif %}",
                 joined: {{ cio.is_joined|yesno:"true,false" }},
                 pendingRequest: {{ cio.has_pending_request|yesno:"true,false" }},

@@ -13,6 +13,7 @@
 
         <form method="POST" enctype="multipart/form-data" class="cio-form-body cio-form-body-narrow">
             {% csrf_token %}
+            <input type="hidden" name="default_palette_index" value="{{ default_palette_index }}">
 
             {% if form.non_field_errors %}
                 <div class="cio-form-error-banner">
@@ -26,7 +27,7 @@
                 <div class="cio-icon-upload-stack">
                     <div class="cio-icon-preview-frame cio-icon-preview-frame-small">
                         <img
-                            src="{% static 'cios/default_cio_icon.svg' %}"
+                            src="{{ default_icon_data_uri }}"
                             alt="CIO icon preview"
                             class="cio-icon-preview cio-icon-preview-circle cio-icon-preview-small"
                             id="createCioIconPreview">
@@ -62,6 +63,7 @@
     const disabledSearchInput = document.querySelector('.search-bar');
     const createCioIconInput = document.getElementById('createCioIconInput');
     const createCioIconPreview = document.getElementById('createCioIconPreview');
+    const defaultCreateCioIcon = "{{ default_icon_data_uri|escapejs }}";
 
     if (disabledSearchInput) {
         disabledSearchInput.value = '';
@@ -72,7 +74,10 @@
     if (createCioIconInput && createCioIconPreview) {
         createCioIconInput.addEventListener('change', (event) => {
             const file = event.target.files && event.target.files[0];
-            if (!file) return;
+            if (!file) {
+                createCioIconPreview.src = defaultCreateCioIcon;
+                return;
+            }
 
             createCioIconPreview.src = URL.createObjectURL(file);
         });
