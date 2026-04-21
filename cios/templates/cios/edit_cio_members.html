@@ -84,7 +84,7 @@
                                     <div class="cio-member-action-menu">
                                         <button
                                             type="button"
-                                            class="cio-member-action-trigger"
+                                            class="cio-member-action-trigger cio-floating-tooltip-trigger"
                                             data-member-menu-trigger
                                             data-tooltip="more options"
                                             aria-label="More options">
@@ -116,16 +116,16 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <div class="cio-members-footer">
-                    <button type="button" class="cio-members-arrow" id="membersPrevBtn" aria-label="Previous members page">
-                        <i data-lucide="chevron-left"></i>
-                    </button>
-                    <span class="cio-members-page-label" id="membersPageLabel"></span>
-                    <button type="button" class="cio-members-arrow" id="membersNextBtn" aria-label="Next members page">
-                        <i data-lucide="chevron-right"></i>
-                    </button>
-                </div>
+            <div class="cio-members-footer">
+                <button type="button" class="cio-members-arrow" id="membersPrevBtn" aria-label="Previous members page">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <span class="cio-members-page-label" id="membersPageLabel"></span>
+                <button type="button" class="cio-members-arrow" id="membersNextBtn" aria-label="Next members page">
+                    <i data-lucide="chevron-right"></i>
+                </button>
             </div>
         </div>
     </section>
@@ -161,6 +161,7 @@
 
 {% include "cios/partials/delete_cio_modal.html" %}
 {% include "cios/partials/kick_member_modal.html" %}
+<div class="cio-floating-tooltip joined-cio-hidden" id="cioFloatingTooltip"></div>
 
 <script>
     const membersPageSize = 5;
@@ -179,6 +180,7 @@
     const kickMemberForm = document.getElementById('kickMemberForm');
     const kickMemberTitle = document.getElementById('kickMemberTitle');
     const kickMemberBody = document.getElementById('kickMemberBody');
+    const cioFloatingTooltip = document.getElementById('cioFloatingTooltip');
     let activeMemberMenu = null;
 
     function getVisibleMemberRows(query) {
@@ -279,6 +281,40 @@
         kickMemberModal.classList.remove('is-open');
     }
 
+    function hideFloatingTooltip() {
+        if (!cioFloatingTooltip) return;
+        cioFloatingTooltip.classList.add('joined-cio-hidden');
+        cioFloatingTooltip.textContent = '';
+        cioFloatingTooltip.style.top = '';
+        cioFloatingTooltip.style.left = '';
+    }
+
+    function showFloatingTooltip(triggerEl) {
+        if (!cioFloatingTooltip) return;
+        const tooltipText = triggerEl.dataset.tooltip;
+        if (!tooltipText) return;
+
+        cioFloatingTooltip.textContent = tooltipText;
+        cioFloatingTooltip.classList.remove('joined-cio-hidden');
+
+        const triggerRect = triggerEl.getBoundingClientRect();
+        const tooltipRect = cioFloatingTooltip.getBoundingClientRect();
+        const gap = 10;
+        let top = triggerRect.top - tooltipRect.height - gap;
+        let left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+
+        if (left < 12) left = 12;
+        if (left + tooltipRect.width > window.innerWidth - 12) {
+            left = window.innerWidth - tooltipRect.width - 12;
+        }
+        if (top < 12) {
+            top = triggerRect.bottom + gap;
+        }
+
+        cioFloatingTooltip.style.top = `${top}px`;
+        cioFloatingTooltip.style.left = `${left}px`;
+    }
+
     function positionMemberMenu(triggerEl, menuEl) {
         const triggerRect = triggerEl.getBoundingClientRect();
         const menuRect = menuEl.getBoundingClientRect();
@@ -316,6 +352,11 @@
             positionMemberMenu(triggerEl, menuEl);
             activeMemberMenu = {triggerEl, menuEl};
         });
+
+        triggerEl.addEventListener('mouseenter', () => showFloatingTooltip(triggerEl));
+        triggerEl.addEventListener('mouseleave', hideFloatingTooltip);
+        triggerEl.addEventListener('focus', () => showFloatingTooltip(triggerEl));
+        triggerEl.addEventListener('blur', hideFloatingTooltip);
     });
 
     document.querySelectorAll('[data-member-profile]').forEach((buttonEl) => {
@@ -388,8 +429,14 @@
         }
     });
 
-    window.addEventListener('resize', closeMemberMenus);
-    window.addEventListener('scroll', closeMemberMenus, true);
+    window.addEventListener('resize', () => {
+        closeMemberMenus();
+        hideFloatingTooltip();
+    });
+    window.addEventListener('scroll', () => {
+        closeMemberMenus();
+        hideFloatingTooltip();
+    }, true);
 
     renderMembersTable('');
 </script>

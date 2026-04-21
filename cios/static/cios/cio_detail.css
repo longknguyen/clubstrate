@@ -233,17 +233,24 @@
     border: 1px solid #e5e7eb;
     border-radius: 24px;
     background: #ffffff;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
 }
 
 .cio-members-table-wrap {
     overflow-x: auto;
+    border-radius: 24px;
 }
 
 .cio-members-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.cio-members-table th:first-child,
+.cio-members-table td:first-child {
+    width: 40%;
 }
 
 .cio-members-table th,
@@ -268,11 +275,22 @@
     text-align: right;
 }
 
+.cio-requests-table th:first-child,
+.cio-requests-table td:first-child {
+    width: 50%;
+}
+
+.cio-requests-table th:last-child,
+.cio-requests-table td:last-child {
+    width: 132px;
+}
+
 .cio-member-name-cell {
     display: flex;
     align-items: center;
     gap: 14px;
     min-width: 0;
+    max-width: 100%;
 }
 
 .cio-member-actions-cell,
@@ -293,6 +311,8 @@
     flex-direction: column;
     gap: 3px;
     min-width: 0;
+    flex: 1;
+    max-width: 100%;
 }
 
 .cio-member-full-name {
@@ -316,8 +336,8 @@
     justify-content: flex-end;
     align-items: center;
     gap: 10px;
-    padding: 16px 20px;
-    background: #fbfdff;
+    padding: 0 6px;
+    background: #ffffff;
 }
 
 .cio-members-page-label {
@@ -374,6 +394,24 @@
 .cio-member-action-trigger svg {
     width: 18px;
     height: 18px;
+}
+
+.cio-floating-tooltip-trigger::before,
+.cio-floating-tooltip-trigger::after {
+    content: none;
+}
+
+.cio-floating-tooltip {
+    position: fixed;
+    z-index: 1500;
+    background: #ffffff;
+    color: #111827;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .cio-member-action-dropdown {

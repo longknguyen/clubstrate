@@ -30,7 +30,7 @@
 
 {% block content %}
 <div class="cio-form-shell">
-    <section class="cio-form-surface cio-form-surface-wide">
+    <section class="cio-form-surface cio-form-surface-wide cio-form-surface-members">
         <div class="cio-members-shell">
             <div class="cio-members-header">
                 <div class="cio-form-header-top">
@@ -49,7 +49,7 @@
 
             <div class="cio-members-card">
                 <div class="cio-members-table-wrap">
-                    <table class="cio-members-table">
+                    <table class="cio-members-table cio-requests-table">
                         <thead>
                         <tr>
                             <th>Name</th>
@@ -85,16 +85,16 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <div class="cio-members-footer">
-                    <button type="button" class="cio-members-arrow" id="requestsPrevBtn" aria-label="Previous requests page">
-                        <i data-lucide="chevron-left"></i>
-                    </button>
-                    <span class="cio-members-page-label" id="requestsPageLabel"></span>
-                    <button type="button" class="cio-members-arrow" id="requestsNextBtn" aria-label="Next requests page">
-                        <i data-lucide="chevron-right"></i>
-                    </button>
-                </div>
+            <div class="cio-members-footer">
+                <button type="button" class="cio-members-arrow" id="requestsPrevBtn" aria-label="Previous requests page">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <span class="cio-members-page-label" id="requestsPageLabel"></span>
+                <button type="button" class="cio-members-arrow" id="requestsNextBtn" aria-label="Next requests page">
+                    <i data-lucide="chevron-right"></i>
+                </button>
             </div>
         </div>
     </section>
