@@ -21,7 +21,7 @@
         {% if role == 'officer' %}
             <div class="cio-title-dropdown joined-cio-hidden" id="cioTitleDropdown">
                 <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="cio-title-dropdown-link">
-                    <span>Server Settings</span>
+                    <span>CIO Settings</span>
                     {% if pending_requests_count %}
                         <span class="notification-badge">{{ pending_requests_count }}</span>
                     {% endif %}
