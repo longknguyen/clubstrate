@@ -1,0 +1,266 @@
+.landing-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    transform: translateY(40px);
+}
+
+.landing-header h1 {
+    font-size: 48px;
+    line-height: 1.1;
+    color: #000000;
+    font-weight: 900;
+
+}
+
+.landing-header p {
+    margin-top: 10px;
+    color: #000000;
+}
+
+.cio-card-grid {
+    margin-top: 160px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.cio-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 16px;
+    margin-top: -28px; /* pulls content into banner */
+    flex: 1;
+    z-index: 2;
+}
+
+.cio-card {
+    height: 300px;
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    background: white;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.cio-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #d1d5db;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.cio-hover-btn {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    top: 10px;
+    right: 10px;
+    opacity: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 6px;
+    cursor: pointer;
+    transform: translateY(-4px) scale(0.95);
+    transition: opacity 200ms ease, transform 220ms ease, background-color 200ms ease;
+    z-index: 10;
+}
+
+.cio-hover-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    color: #000000;
+}
+
+.cio-card:hover .cio-hover-btn {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.cio-hover-btn:active,
+.cio-hover-btn.is-pressed {
+    transform: translateY(0) scale(0.92);
+}
+
+.cio-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease, visibility 120ms ease;
+}
+
+.cio-modal.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.cio-modal-content {
+    --modal-inset: 6px;
+    width: 420px;
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+    transition: opacity 120ms ease, transform 120ms ease;
+    overflow: hidden;
+    will-change: transform, opacity;
+}
+
+.cio-modal.is-open .cio-modal-content {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.cio-modal-banner {
+    height: 130px;
+    margin: -18px -18px 0 -18px;
+    border-radius: 18px 18px 0 0;
+    background-size: cover;
+    background-position: center;
+}
+
+.cio-modal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 8px;
+    margin-top: -28px;
+    padding-left: var(--modal-inset);
+}
+
+.cio-modal-header h2 {
+    margin: 0;
+}
+
+#modalMembers,
+#modalDate,
+#modalDescription {
+    margin: 0;
+    padding-left: var(--modal-inset);
+}
+
+
+.cio-modal-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: 4px solid white;
+    background: white;
+    flex-shrink: 0;
+}
+
+.cio-modal-spacer {
+    height: 10px;
+}
+
+.cio-join-btn {
+    background: rgba(5, 128, 67, 0.85);
+    height: 40px;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.cio-join-btn:disabled {
+    cursor: default;
+}
+
+.cio-join-btn-pending {
+    background: #7ccf9d;
+    color: #ffffff;
+}
+
+.cio-banner {
+    height: 100px;
+    position: relative;
+
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+
+    background-size: cover;
+    background-position: center;
+}
+
+.cio-text {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex: 1;
+}
+
+.cio-text h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 6px;
+}
+
+.cio-text p {
+    margin: 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.cio-body h3 {
+    margin: 0 0 8px;
+}
+
+.cio-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 14px;
+    border: 5px solid white;
+    background: white;
+    flex-shrink: 0;
+}
+
+.members {
+    margin-top: auto;
+    padding-bottom: 16px;
+    font-size: 12px;
+    color: #888;
+}
+
+.cio-search-empty-state {
+    margin-top: 24px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 14px;
+    padding: 24px;
+    background: #f8fbff;
+    color: #1f2937;
+}
+
+.cio-search-empty-state h3 {
+    margin: 0 0 6px;
+    font-size: 20px;
+}
+
+.cio-search-empty-state p {
+    margin: 0;
+    color: #64748b;
+}

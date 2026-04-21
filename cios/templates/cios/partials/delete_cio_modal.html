@@ -1,0 +1,66 @@
+<div class="cio-delete-modal" id="cioDeleteModal">
+    <div class="cio-delete-card">
+        <button type="button" class="cio-delete-close" id="cioDeleteClose" aria-label="Close delete dialog">
+            <i data-lucide="x"></i>
+        </button>
+
+        <div class="cio-delete-icon">
+            <i data-lucide="triangle-alert"></i>
+        </div>
+
+        <div class="cio-delete-copy">
+            <h3>Delete {{ cio.name }}?</h3>
+            <p>This will permanently remove the CIO, its members, and all related activity. This action cannot be undone.</p>
+        </div>
+
+        <div class="cio-delete-actions">
+            <button type="button" class="discussion-action-btn cio-delete-cancel" id="cioDeleteCancel">Cancel</button>
+            <form method="POST" action="{% url 'discussions:delete_cio' cio.id %}">
+                {% csrf_token %}
+                <button type="submit" class="discussion-action-btn cio-delete-confirm">Delete CIO</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const cioDeleteModal = document.getElementById('cioDeleteModal');
+    const cioDeleteClose = document.getElementById('cioDeleteClose');
+    const cioDeleteCancel = document.getElementById('cioDeleteCancel');
+
+    function openCioDeleteModal() {
+        if (!cioDeleteModal) return;
+        cioDeleteModal.classList.add('is-open');
+    }
+
+    function closeCioDeleteModal() {
+        if (!cioDeleteModal) return;
+        cioDeleteModal.classList.remove('is-open');
+    }
+
+    document.querySelectorAll('[data-delete-cio-open]').forEach((buttonEl) => {
+        buttonEl.addEventListener('click', openCioDeleteModal);
+    });
+
+    if (cioDeleteClose) {
+        cioDeleteClose.addEventListener('click', closeCioDeleteModal);
+    }
+
+    if (cioDeleteCancel) {
+        cioDeleteCancel.addEventListener('click', closeCioDeleteModal);
+    }
+
+    if (cioDeleteModal) {
+        cioDeleteModal.addEventListener('click', (event) => {
+            if (event.target === cioDeleteModal) {
+                closeCioDeleteModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeCioDeleteModal();
+        }
+    });
+</script>

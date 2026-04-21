@@ -1,0 +1,107 @@
+<section class="announcements-shell">
+    <div class="announcements-header">
+        <div>
+            <span class="announcements-eyebrow">Club Updates</span>
+            <h2>Announcements</h2>
+            <p>Important updates, reminders, and official posts for {{ cio.name }}.</p>
+        </div>
+    </div>
+
+    {% if role == "officer" %}
+        <section class="announcement-composer-card">
+            <div class="discussion-section-heading">
+                <h3>Create an announcement</h3>
+                <p>Only officers can post here. Use announcements for updates that should be easy for everyone to find later.</p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_post' cio.id %}" class="discussion-form">
+                {% csrf_token %}
+
+                <input type="text" name="title" placeholder="Announcement title" class="discussion-input">
+                <textarea name="content" placeholder="Share an update..." class="discussion-textarea discussion-textarea-lg"></textarea>
+
+                <div class="discussion-form-footer">
+                    <input type="file" name="image" class="discussion-file-input" accept="image/*">
+                    <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Publish</button>
+                </div>
+            </form>
+        </section>
+    {% endif %}
+
+    {% if announcements %}
+        <div class="announcement-feed">
+            {% for post in announcements %}
+                <article
+                    class="announcement-card"
+                    data-announcement-search="{{ post.title|default:''|escape }} {{ post.content|default:''|escape }} {{ post.display_name|escape }}">
+                    <div class="announcement-card-top">
+                        <div>
+                            <h3>{{ post.title }}</h3>
+                            <p class="discussion-meta">
+                                <span>{{ post.display_name }}</span>
+                                <span class="discussion-meta-dot">•</span>
+                                <span class="post-timestamp" data-datetime="{{ post.created_at|date:'c' }}"></span>
+                            </p>
+                        </div>
+                        <span class="announcement-thread-pill">Officer Announcement</span>
+                    </div>
+
+                    <p class="announcement-body">{{ post.content }}</p>
+
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="discussion-post-image">
+                    {% endif %}
+
+                    {% if role != "viewer" %}
+                        <div class="announcement-actions">
+                            <form method="POST" action="{% url 'discussions:toggle_post_like' post.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="discussion-like-btn">
+                                    <span>Like</span>
+                                    <span class="discussion-like-count">{{ post.likes.count }}</span>
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="discussion-empty-state">
+            <h3>No announcements yet</h3>
+            <p>Updates from this CIO will appear here once someone publishes the first announcement.</p>
+        </div>
+    {% endif %}
+</section>
+
+<script>
+    document.querySelectorAll('.post-timestamp').forEach((el) => {
+        const dt = new Date(el.dataset.datetime);
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const messageDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+
+        let prefix;
+        if (messageDay.getTime() === today.getTime()) {
+            prefix = 'Today';
+        } else if (messageDay.getTime() === yesterday.getTime()) {
+            prefix = 'Yesterday';
+        } else {
+            prefix = dt.toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        const timeLabel = dt.toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+
+        el.textContent = `${prefix} at ${timeLabel}`;
+    });
+</script>

@@ -4,7 +4,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
 from django.contrib.auth.models import Group
 from django.db.models import Q
-from .forms import UserUpdateForm, ProfileUpdateForm
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from .forms import (
+    PROFILE_FIRST_NAME_MAX_LENGTH,
+    PROFILE_LAST_NAME_MAX_LENGTH,
+    UserUpdateForm,
+    ProfileUpdateForm,
+)
 import uuid
 
 from .models import Profile
@@ -37,7 +44,7 @@ class LoginView(View):
             if user.profile.user_type == "user_admin":
                 return redirect('/users/role-admin/')
 
-            return redirect('/users/profile/')
+            return redirect('/')
         else:
             return render(request, 'users/login.html', {
                 'error': 'Invalid credentials',
@@ -48,6 +55,7 @@ def mask_email(email):
     name, domain = email.split("@")
     return "*" * len(name) + "@" + domain
 
+@method_decorator(never_cache, name='dispatch')
 class ProfileView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
@@ -81,6 +89,7 @@ class ProfileView(LoginRequiredMixin, View):
         return redirect('/users/profile/')
 
 
+@method_decorator(never_cache, name='dispatch')
 class LogoutView(View):
     def post(self, request):
         logout(request)
@@ -91,7 +100,7 @@ class RegisterView(View):
         return render(request, 'users/register.html')
 
     def post(self, request):
-        name = request.POST.get('name')
+        name = request.POST.get('name', '').strip()
         email = request.POST.get('email')
         password = request.POST.get('password')
 
@@ -104,6 +113,14 @@ class RegisterView(View):
 
         first_name = name.split(' ')[0] if name else ''
         last_name = " ".join(name.split()[1:]) if name and len(name.split()) > 1 else ''
+
+        if len(first_name) > PROFILE_FIRST_NAME_MAX_LENGTH or len(last_name) > PROFILE_LAST_NAME_MAX_LENGTH:
+            return render(request, 'users/register.html', {
+                'error': f'Please keep first and last names under {PROFILE_FIRST_NAME_MAX_LENGTH} characters each.',
+                'name': name,
+                'email': email,
+                'password': password
+            })
 
         username = email.split('@')[0]
         if User.objects.filter(username=username).exists():
@@ -118,8 +135,9 @@ class RegisterView(View):
         )
 
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-        return redirect('/users/profile/')
+        return redirect('/')
 
+@method_decorator(never_cache, name='dispatch')
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
@@ -142,6 +160,7 @@ class ChangeRoleView(LoginRequiredMixin, View):
         return redirect('/users/role-admin/')
 
 
+@method_decorator(never_cache, name='dispatch')
 class RoleAdminView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
@@ -171,6 +190,7 @@ class RoleAdminView(LoginRequiredMixin, View):
         })
 
 
+@method_decorator(never_cache, name='dispatch')
 class ProfileEditView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
@@ -183,11 +203,11 @@ class ProfileEditView(LoginRequiredMixin, View):
             'user_form': user_form,
             'profile_form': profile_form,
             'profile_image': profile.image.url if profile.image else '/media/default.jpg',
-            'first_name': request.user.first_name,
-            'last_name': request.user.last_name,
-            'username': request.user.username,
-            'pronouns': request.user.pronouns,
-            'banner_colour': request.user.banner_colour,
+            'first_name': user_form['first_name'].value() or '',
+            'last_name': user_form['last_name'].value() or '',
+            'username': user_form['username'].value() or '',
+            'pronouns': user_form['pronouns'].value() or '',
+            'banner_colour': user_form['banner_colour'].value() or request.user.banner_colour,
         }
         return render(request, 'users/profile_edit.html', context)
 

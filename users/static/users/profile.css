@@ -52,15 +52,22 @@
 .profile-info {
     flex: 1;
     margin-top: 50px;
+    min-width: 0;
 }
 
 .profile-info h2 {
     font-size: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .profile-info p {
     font-size: 14px;
     color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .edit-profile-btn {
@@ -112,6 +119,8 @@
 .detail-value-row span {
     font-size: 15px;
     color: #222;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .edit-btn {

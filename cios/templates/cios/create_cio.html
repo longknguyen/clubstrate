@@ -1,25 +1,81 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div style="background: white; min-height: 100vh; padding-top: 40px;">
+<div class="cio-form-shell cio-form-shell-centered">
+    <section class="cio-form-surface cio-form-surface-wide">
+        <div class="cio-form-header cio-form-header-centered">
+            <div>
+                <h1>Create a CIO</h1>
+                <p>Give your CIO a personality with a name and an icon. You can always change it later.</p>
+            </div>
+        </div>
 
-    <div style="padding: 40px; border-radius: 12px; max-width: 600px; margin: 0 auto;">
-
-        <h1 style="margin-bottom: 10px;">Create a CIO</h1>
-        <p style="margin-bottom: 10px;">Enter the name of the CIO you want to create.</p>
-        <p style="margin-bottom: 25px; color: #555;">You will automatically be added as an officer.</p>
-
-        <form method='POST'>
+        <form method="POST" enctype="multipart/form-data" class="cio-form-body cio-form-body-narrow">
             {% csrf_token %}
 
-            <div class='form-group'>
-                <label for='name'><strong>CIO Name</strong></label>
-                <input type='text' class='form-control' id='name' name='name' placeholder="Enter CIO name" required>
+            {% if form.non_field_errors %}
+                <div class="cio-form-error-banner">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="cio-form-section cio-form-section-centered">
+                <div class="cio-icon-upload-stack">
+                    <div class="cio-icon-preview-frame cio-icon-preview-frame-small">
+                        <img
+                            src="{% static 'cios/default_cio_icon.svg' %}"
+                            alt="CIO icon preview"
+                            class="cio-icon-preview cio-icon-preview-circle cio-icon-preview-small"
+                            id="createCioIconPreview">
+                    </div>
+
+                    <div class="cio-icon-upload-actions cio-icon-upload-actions-centered">
+                        <label for="createCioIconInput" class="discussion-action-btn discussion-action-btn-primary">Choose Icon</label>
+                        <input type="file" id="createCioIconInput" name="icon" accept="image/*" hidden>
+                        <p class="cio-form-helper">You will automatically be added as an officer.</p>
+                    </div>
+                </div>
+                {% for error in form.icon.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
             </div>
 
-            <button type='submit' class='btn btn-primary'>Create CIO</button>
-        </form>
+            <div class="cio-form-section">
+                <label for="name">CIO Name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-    </div>
+            <div class="cio-form-actions">
+                <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Create CIO</button>
+            </div>
+        </form>
+    </section>
 </div>
+
+<script>
+    const disabledSearchInput = document.querySelector('.search-bar');
+    const createCioIconInput = document.getElementById('createCioIconInput');
+    const createCioIconPreview = document.getElementById('createCioIconPreview');
+
+    if (disabledSearchInput) {
+        disabledSearchInput.value = '';
+        disabledSearchInput.placeholder = 'Search unavailable while creating a CIO';
+        disabledSearchInput.disabled = true;
+    }
+
+    if (createCioIconInput && createCioIconPreview) {
+        createCioIconInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            createCioIconPreview.src = URL.createObjectURL(file);
+        });
+    }
+</script>
 {% endblock %}

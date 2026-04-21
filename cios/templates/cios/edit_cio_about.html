@@ -1,44 +1,233 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item active">
+        <i data-lucide="building-2"></i>
+        <span>CIO Profile</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'discussions:edit_cio_members' cio.id %}" class="sidebar-item">
+        <i data-lucide="users-round"></i>
+        <span>Members</span>
+    </a>
+    <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
+        <i data-lucide="inbox"></i>
+        <span>Requests</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-danger-form">
+        <button type="button" class="sidebar-item sidebar-item-danger" data-delete-cio-open>
+            <i data-lucide="trash-2"></i>
+            <span>Delete CIO</span>
+        </button>
+    </div>
+{% endblock %}
 
 {% block content %}
-<div class="cio-detail-page">
-    <div class="cio-main-panel">
-
-        <div class="cio-about-header">
-            <h2>Edit About for {{ cio.name }}</h2>
+<div class="cio-form-shell">
+    <section class="cio-form-surface">
+        <div class="cio-form-header">
+            <div class="cio-form-header-top">
+                <div class="cio-form-header-copy">
+                    <div class="cio-form-title-row">
+                        <h1>CIO Profile</h1>
+                        <span class="cio-form-eyebrow">CIO Settings</span>
+                    </div>
+                    <p>Update the CIO name, banner, icon, and profile details members see on the page.</p>
+                </div>
+                <a href="{% url 'cio_detail' cio.id %}" class="cio-settings-close" aria-label="Leave settings and return to {{ cio.name }}">
+                    <i data-lucide="x"></i>
+                </a>
+            </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="cio-form-body">
             {% csrf_token %}
 
-            <label>Description</label><br>
-            <textarea name="description" rows="4" style="width: 100%;">{{ cio.description }}</textarea><br><br>
-
-            <label>Dues</label><br>
-            <input type="text" name="dues" value="{{ cio.dues }}" style="width: 100%;"><br><br>
-
-            <label>Commitment Level</label><br>
-            <input type="text" name="commitment_level" value="{{ cio.commitment_level }}" style="width: 100%;"><br><br>
-
-            <label>Time Expectations</label><br>
-            <input type="text" name="time_expectations" value="{{ cio.time_expectations }}" style="width: 100%;"><br><br>
-
-            {% if cio.about_image %}
-                <label>Current Image</label><br>
-                <img src="{{ cio.about_image.url }}" width="200"><br><br>
-
-                <label>
-                    <input type="checkbox" name="remove_image">
-                    Remove image (will be removed on save)
-                </label><br><br>
+            {% if form.non_field_errors %}
+                <div class="cio-form-error-banner">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
             {% endif %}
 
-            <label>Upload New Image (optional)</label><br>
-            <input type="file" name="about_image"><br><br>
+            <div class="cio-form-section">
+                <label for="name">CIO Name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-            <button type="submit">Save</button>
+            <div class="cio-form-section">
+                <label>Banner</label>
+                <div class="cio-banner-upload-stack">
+                    <div
+                        class="cio-banner-preview"
+                        id="editCioBannerPreview"
+                        style="
+                            {% if cio.banner_type == 'image' and cio.banner_image %}
+                                background-image: url('{{ cio.banner_image.url }}');
+                            {% elif cio.gradient %}
+                                background: {{ cio.gradient }};
+                            {% else %}
+                                background-image: url('{% static 'cios/default-banner.svg' %}');
+                            {% endif %}
+                        ">
+                    </div>
+
+                    <div class="cio-icon-upload-actions">
+                        <label for="editCioBannerInput" class="discussion-action-btn discussion-action-btn-primary">Choose Banner</label>
+                        <input type="file" id="editCioBannerInput" name="banner_image" accept="image/*" hidden>
+
+                        <label class="cio-checkbox-row">
+                            {{ form.remove_banner }}
+                            <span>Remove banner on save</span>
+                        </label>
+                    </div>
+                </div>
+                {% for error in form.banner_image.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-section">
+                <label for="description">Description</label>
+                {{ form.description }}
+                {% for error in form.description.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-grid">
+                <div class="cio-form-section">
+                    <label for="dues">Dues</label>
+                    {{ form.dues }}
+                    {% for error in form.dues.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div class="cio-form-section">
+                    <label for="commitment_level">Commitment Level</label>
+                    {{ form.commitment_level }}
+                    {% for error in form.commitment_level.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="cio-form-section">
+                <label for="time_expectations">Time Expectations</label>
+                {{ form.time_expectations }}
+                {% for error in form.time_expectations.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-section">
+                <label>Icon</label>
+                <div class="cio-icon-upload-row">
+                    <img
+                        src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                        alt="{{ cio.name }} icon preview"
+                        class="cio-icon-preview"
+                        id="editCioIconPreview">
+
+                    <div class="cio-icon-upload-actions">
+                        <label for="editCioIconInput" class="discussion-action-btn discussion-action-btn-primary">Choose Icon</label>
+                        <input type="file" id="editCioIconInput" name="icon" accept="image/*" hidden>
+
+                        <label class="cio-checkbox-row">
+                            {{ form.remove_icon }}
+                            <span>Remove icon on save</span>
+                        </label>
+                    </div>
+                </div>
+                {% for error in form.icon.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-actions">
+                <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Save Changes</button>
+            </div>
         </form>
-
-    </div>
+    </section>
 </div>
+
+{% include "cios/partials/delete_cio_modal.html" %}
+
+<script>
+    const disabledSearchInput = document.querySelector('.search-bar');
+    const editCioIconInput = document.getElementById('editCioIconInput');
+    const editCioIconPreview = document.getElementById('editCioIconPreview');
+    const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
+    const defaultCioIcon = "{% static 'cios/default_cio_icon.svg' %}";
+    const originalCioIcon = "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}";
+
+    const editCioBannerInput = document.getElementById('editCioBannerInput');
+    const editCioBannerPreview = document.getElementById('editCioBannerPreview');
+    const removeBannerCheckbox = document.querySelector('input[name="remove_banner"]');
+    const defaultCioBanner = "url('{% static 'cios/default-banner.svg' %}')";
+    const originalCioBanner = `{% if cio.banner_type == 'image' and cio.banner_image %}url('{{ cio.banner_image.url }}'){% elif cio.gradient %}{{ cio.gradient }}{% else %}url('{% static 'cios/default-banner.svg' %}'){% endif %}`;
+
+    if (disabledSearchInput) {
+        disabledSearchInput.value = '';
+        disabledSearchInput.placeholder = 'Search unavailable in settings';
+        disabledSearchInput.disabled = true;
+    }
+
+    if (editCioIconInput && editCioIconPreview) {
+        editCioIconInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            editCioIconPreview.src = URL.createObjectURL(file);
+            if (removeIconCheckbox) {
+                removeIconCheckbox.checked = false;
+            }
+        });
+    }
+
+    if (removeIconCheckbox && editCioIconPreview) {
+        removeIconCheckbox.addEventListener('change', () => {
+            editCioIconPreview.src = removeIconCheckbox.checked ? defaultCioIcon : originalCioIcon;
+        });
+    }
+
+    if (editCioBannerInput && editCioBannerPreview) {
+        editCioBannerInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            editCioBannerPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+            editCioBannerPreview.style.background = '';
+            if (removeBannerCheckbox) {
+                removeBannerCheckbox.checked = false;
+            }
+        });
+    }
+
+    if (removeBannerCheckbox && editCioBannerPreview) {
+        removeBannerCheckbox.addEventListener('change', () => {
+            if (removeBannerCheckbox.checked) {
+                editCioBannerPreview.style.backgroundImage = defaultCioBanner;
+                editCioBannerPreview.style.background = '';
+            } else {
+                if (originalCioBanner.startsWith('url(')) {
+                    editCioBannerPreview.style.backgroundImage = originalCioBanner;
+                    editCioBannerPreview.style.background = '';
+                } else {
+                    editCioBannerPreview.style.backgroundImage = 'none';
+                    editCioBannerPreview.style.background = originalCioBanner;
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}

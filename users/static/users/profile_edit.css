@@ -27,6 +27,25 @@
     font-weight: 500;
 }
 
+.profile-form-error-banner {
+    border: 1px solid #f5c2c7;
+    border-radius: 12px;
+    background: #fff5f5;
+    color: #b42318;
+    padding: 12px 14px;
+}
+
+.profile-form-error-banner p,
+.profile-field-error {
+    margin: 0;
+}
+
+.profile-field-error {
+    color: #b42318;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 .edit-section input[type="text"],
 .edit-section input[type="color"] {
     padding: 10px 12px;
@@ -109,6 +128,8 @@
     flex-direction: column;
     gap: 4px;
     padding-left: 20px;
+    padding-right: 20px;
+    min-width: 0;
 }
 
 .avatar-actions {
@@ -163,6 +184,9 @@
 .preview-name {
     font-weight: 600;
     font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .preview-pronouns {
@@ -173,6 +197,9 @@
 .preview-meta {
     font-size: 14px;
     color: #666;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .save-row {

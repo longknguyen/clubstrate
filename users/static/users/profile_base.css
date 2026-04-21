@@ -114,6 +114,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 }
 
 .sidebar-avatar {
@@ -126,12 +127,19 @@ body {
 .sidebar-top h3 {
     font-size: 16px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-top a {
     font-size: 13px;
     color: #666666;
     text-decoration: none;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-search {

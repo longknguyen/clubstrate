@@ -1,163 +1,402 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block content %}
-<div class="cio-detail-page">
-    <div class="cio-detail-layout">
+{% block page_title %}{{ cio.name }}{% endblock %}
 
-        <aside class="cio-sidebar">
-
-            <div class="cio-sidebar-top-section">
-                <div class="cio-sidebar-info">
-                    <div class="cio-sidebar-top">
-                        <div>
-                            <h2>{{ cio.name }}</h2>
-                            <p>Your role: {{ role|title }}</p>
-                        </div>
-                    </div>
-                </div>
+{% block page_title_block %}
+    <div class="cio-title-menu">
+        <button
+            type="button"
+            class="cio-title-button {% if role != 'officer' %}cio-title-button-static{% endif %}"
+            id="cioTitleButton"
+            {% if role != 'officer' %}disabled{% endif %}>
+            <span class="page-title">{{ cio.name }}</span>
+            {% if role == 'officer' %}
+                <i data-lucide="chevron-down"></i>
+            {% endif %}
+        </button>
+        {% if role == 'officer' %}
+            <div class="cio-title-dropdown joined-cio-hidden" id="cioTitleDropdown">
+                <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="cio-title-dropdown-link">
+                    Server Settings
+                </a>
             </div>
+        {% endif %}
+    </div>
+{% endblock %}
 
-            <div class="cio-sidebar-bottom-section">
+{% block sidebar_menu %}
+    <div class="sidebar-cio-banner"
+         style="
+                 {% if cio.banner_type == 'image' and cio.banner_image %}
+                     background-image: url('{{ cio.banner_image.url }}');
+                 {% elif cio.gradient %}
+                     background: {{ cio.gradient }};
+                 {% else %}
+                     background-image: url('{% static 'cios/default-banner.svg' %}');
+                 {% endif %}
+                 ">
+    </div>
+    <a href="#" class="sidebar-item" data-cio-tab="events" data-tab-target="events"
+       onclick="showTab('events'); return false;">
+        <i data-lucide="calendar-days"></i>
+        <span>Events</span>
+    </a>
+    <a href="#" class="sidebar-item active" data-cio-tab="info" data-tab-target="info"
+       onclick="showTab('info'); return false;">
+        <i data-lucide="circle-help"></i>
+        <span>Info</span>
+    </a>
 
-                <div class="cio-sidebar-group">
-                    <div class="cio-sidebar-menu">
-                        <a href="#" class="cio-menu-link active" onclick="showTab('about', this); return false;">About</a>
-                        <a href="#" class="cio-menu-link" onclick="showTab('discussions', this); return false;">Discussions</a>
-                        <a href="#" class="cio-menu-link" onclick="showTab('members', this); return false;">Member List</a>
-                    </div>
+    <div class="sidebar-divider"></div>
+
+    <a href="#" class="sidebar-item"
+       data-cio-tab="announcements"
+       data-tab-target="announcements"
+       onclick="showTab('announcements'); return false;">
+        <i data-lucide="megaphone"></i>
+        <span>Announcements</span>
+    </a>
+
+    {% if role != 'viewer' %}
+        <a href="#" class="sidebar-item" data-cio-tab="discussions" data-tab-target="discussions"
+           onclick="showTab('discussions'); return false;">
+            <i data-lucide="messages-square"></i>
+            <span>Discussions</span>
+        </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="cio-detail-page">
+        <div class="cio-detail-layout">
+
+            <aside class="cio-sidebar">
+                <div class="cio-sidebar-bottom-section"></div>
+            </aside>
+
+            <main class="cio-main-panel">
+                <div id="events-tab" class="cio-tab" style="display: none;">
+                    {% if events %}
+                        <h3>Events</h3>
+                        {% for event in events %}
+                            <div class="cio-event-card">
+                                <h4>{{ event.title }}</h4>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="cio-empty-state">
+                            <p>No events are currently happening right now</p>
+                        </div>
+                    {% endif %}
                 </div>
+
+                <div id="info-tab" class="cio-tab">
+                    <section class="cio-info-shell">
+                        <div class="cio-info-hero">
+                            <div class="cio-info-hero-banner"
+                                 style="
+                                         {% if cio.banner_type == 'image' and cio.banner_image %}
+                                             background-image: url('{{ cio.banner_image.url }}');
+                                         {% elif cio.gradient %}
+                                             background: {{ cio.gradient }};
+                                         {% else %}
+                                             background-image: url('{% static 'cios/default-banner.svg' %}');
+                                         {% endif %}
+                                         ">
+                            </div>
+
+                            <div class="cio-info-hero-content">
+                                <div class="cio-about-header">
+                                    <div class="cio-about-heading-group">
+                                        <span class="cio-info-eyebrow">Organisation Info</span>
+                                        <h3>About {{ cio.name }}</h3>
+                                        <p>Everything you need to know before getting involved.</p>
+                                    </div>
+
+                                    {% if role == 'officer' %}
+                                        <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="edit-btn">Edit</a>
+                                    {% endif %}
+                                </div>
+
+                                <div class="cio-info-overview">
+                                    <div class="cio-about-icon-panel">
+                                        <img
+                                            src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                            alt="{{ cio.name }} icon"
+                                            class="cio-about-icon-image">
+                                    </div>
+
+                                    <div class="cio-info-summary">
+                                        <p>{{ cio.description|default:"No description yet." }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cio-info-grid">
+                            <article class="cio-info-card">
+                                <div class="cio-info-card-icon">
+                                    <i data-lucide="wallet"></i>
+                                </div>
+                                <div>
+                                    <span class="cio-info-label">Dues</span>
+                                    <p class="cio-info-value">{{ cio.dues|default:"Not listed yet." }}</p>
+                                </div>
+                            </article>
+
+                            <article class="cio-info-card">
+                                <div class="cio-info-card-icon">
+                                    <i data-lucide="badge-check"></i>
+                                </div>
+                                <div>
+                                    <span class="cio-info-label">Commitment Level</span>
+                                    <p class="cio-info-value">{{ cio.commitment_level|default:"Not listed yet." }}</p>
+                                </div>
+                            </article>
+
+                            <article class="cio-info-card">
+                                <div class="cio-info-card-icon">
+                                    <i data-lucide="clock-3"></i>
+                                </div>
+                                <div>
+                                    <span class="cio-info-label">Time Expectations</span>
+                                    <p class="cio-info-value">{{ cio.time_expectations|default:"Not listed yet." }}</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="announcements-tab" class="cio-tab" style="display: none;">
+                    {% include "discussions/announcements.html" %}
+                </div>
+
+                {% if role != 'viewer' %}
+                    <div id="discussions-tab" class="cio-tab" style="display: none;">
+                        {% include "discussions/list.html" %}
+                    </div>
+                {% endif %}
 
                 {% if role == 'viewer' and user.is_authenticated %}
-                    <div class="cio-sidebar-divider"></div>
-
-                    <div class="cio-sidebar-group">
-                        <h4 class="cio-sidebar-heading">INTERESTED</h4>
-
-                        <div class="cio-sidebar-menu">
-                            <a href="#" class="cio-menu-link" onclick="showTab('request', this); return false;">Request to Join</a>
-                        </div>
+                    <div id="request-tab" class="cio-tab" style="display: none;">
+                        <h3>Request to Join</h3>
+                        <form method="POST" action="{% url 'request-to-join' cio.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="edit-btn">Request to Join</button>
+                        </form>
                     </div>
                 {% endif %}
 
                 {% if role == 'officer' %}
-                    <div class="cio-sidebar-divider"></div>
-
-                    <div class="cio-sidebar-group">
-                        <h4 class="cio-sidebar-heading">OFFICER VIEW</h4>
-
-                        <div class="cio-sidebar-menu">
-                            <a href="#" class="cio-menu-link" onclick="showTab('requests', this); return false;">Join Requests</a>
-                        </div>
+                    <div id="requests-tab" class="cio-tab" style="display: none;">
+                        <h3>Join Requests</h3>
+                        {% if join_requests %}
+                            {% for req in join_requests %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <span>{{ req.user.username }}</span>
+                                    <form method="POST" action="{% url 'accept-request' req.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="edit-btn">Accept</button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>No pending requests.</p>
+                        {% endif %}
                     </div>
                 {% endif %}
+            </main>
 
-            </div>
-
-        </aside>
-
-        <main class="cio-main-panel">
-            <div id="about-tab" class="cio-tab">
-               <div class="cio-about-header">
-                    <h3>About {{ cio.name }}</h3>
-
-                    {% if role == 'officer' %}
-                        <a href="/discussions/cio/{{ cio.id }}/edit/" class="edit-btn">Edit</a>
-                    {% endif %}
-                </div>
-
-                {% if cio.about_image %}
-                    <img src="{{ cio.about_image.url }}" alt="{{ cio.name }} about image" class="cio-about-image">
-                {% endif %}
-
-                <p>{{ cio.description|default:"No description yet." }}</p>
-
-                <p><strong>Dues:</strong> {{ cio.dues|default:"Not listed yet." }}</p>
-                <p><strong>Commitment Level:</strong> {{ cio.commitment_level|default:"Not listed yet." }}</p>
-                <p><strong>Time Expectations:</strong> {{ cio.time_expectations|default:"Not listed yet." }}</p>
-            </div>
-
-            <div id="discussions-tab" class="cio-tab" style="display: none;">
-                {% include "discussions/list.html" %}
-            </div>
-
-            <div id="members-tab" class="cio-tab" style="display: none;">
-                <h3>Members</h3>
-                <p>Member list will go here.</p>
-            </div>
-
-            {% if role == 'viewer' and user.is_authenticated %}
-            <div id="request-tab" class="cio-tab" style="display: none;">
-                <h3>Request to Join</h3>
-                <form method="POST" action="{% url 'request-to-join' cio.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="edit-btn">Request to Join</button>
-                </form>
-            </div>
-            {% endif %}
-
-            {% if role == 'officer' %}
-            <div id="requests-tab" class="cio-tab" style="display: none;">
-                <h3>Join Requests</h3>
-                {% if join_requests %}
-                    {% for req in join_requests %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-
-                            <span>{{ req.user.username }}</span>
-
-                            <form method="POST" action="{% url 'accept-request' req.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="edit-btn">Accept</button>
-                            </form>
-
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No pending requests.</p>
-                {% endif %}
-            </div>
-            {% endif %}
-        </main>
-
+        </div>
     </div>
-</div>
 
-<script>
-function showTab(tab, button) {
-    document.getElementById('about-tab').style.display = 'none';
-    document.getElementById('discussions-tab').style.display = 'none';
-    document.getElementById('members-tab').style.display = 'none';
+    <script>
+        const cioTabStorageKey = 'cio-active-tab-{{ cio.id }}';
+        let activeCioTab = 'info';
 
-    const requestTab = document.getElementById('request-tab');
-    if (requestTab) requestTab.style.display = 'none';
+        function showTab(tab) {
+            ['events', 'info', 'announcements', 'discussions', 'request', 'requests'].forEach((tabName) => {
+                const tabEl = document.getElementById(tabName + '-tab');
+                if (tabEl) {
+                    tabEl.style.display = 'none';
+                }
+            });
 
-    const requestsTab = document.getElementById('requests-tab');
-    if (requestsTab) requestsTab.style.display = 'none';
+            document.querySelectorAll('[data-tab-target]').forEach((link) => {
+                link.classList.remove('active');
+            });
 
-    document.querySelectorAll('.cio-menu-link').forEach(function(link) {
-        link.classList.remove('active');
-    });
+            const activeTabEl = document.getElementById(tab + '-tab');
+            if (activeTabEl) {
+                activeTabEl.style.display = 'block';
+            }
+            document.querySelectorAll('[data-tab-target="' + tab + '"]').forEach((link) => {
+                link.classList.add('active');
+            });
 
-    document.getElementById(tab + '-tab').style.display = 'block';
+            if (tab === 'discussions' && typeof window.activateDiscussionComposer === 'function') {
+                window.activateDiscussionComposer();
+            }
 
-    if (button) {
-        button.classList.add('active');
-    }
-}
+            activeCioTab = tab;
+            localStorage.setItem(cioTabStorageKey, tab);
 
-window.onload = function () {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('tab') === 'discussions') {
-        showTab('discussions');
-    }
-};
-</script>
+            const searchInput = document.querySelector('.search-bar');
+            if (searchInput) {
+                searchInput.placeholder = 'Search messages and announcements...';
+            }
+
+            syncCioPageSearchState();
+
+            const topNavSubsectionLabel = document.getElementById('topNavSubsectionLabel');
+            if (topNavSubsectionLabel) {
+                const tabLabels = {
+                    events: 'Events',
+                    info: 'Info',
+                    announcements: 'Announcements',
+                    discussions: 'Discussions',
+                    request: 'Request to Join',
+                    requests: 'Join Requests'
+                };
+                topNavSubsectionLabel.textContent = tabLabels[tab] || '';
+                topNavSubsectionLabel.classList.toggle('joined-cio-hidden', !topNavSubsectionLabel.textContent);
+            }
+        }
+
+        function filterAnnouncementMessages(query) {
+            const announcementCards = Array.from(document.querySelectorAll('[data-announcement-search]'));
+            let matchCount = 0;
+
+            announcementCards.forEach((cardEl) => {
+                const haystack = (cardEl.dataset.announcementSearch || '').toLowerCase();
+                const matches = !query || haystack.includes(query);
+                cardEl.style.display = matches ? '' : 'none';
+                if (matches) matchCount += 1;
+            });
+
+            return matchCount;
+        }
+
+        function renderSearchResults(query, discussionCount, announcementCount) {
+            const resultsEl = document.getElementById('globalSearchResults');
+            if (!resultsEl) return;
+
+            if (!query) {
+                resultsEl.innerHTML = '';
+                resultsEl.classList.add('joined-cio-hidden');
+                return;
+            }
+
+            const results = [];
+            if (discussionCount > 0 && document.getElementById('discussions-tab')) {
+                results.push({tab: 'discussions', label: `${discussionCount} messages found in: Discussions`});
+            }
+            if (announcementCount > 0) {
+                results.push({tab: 'announcements', label: `${announcementCount} messages found in: Announcements`});
+            }
+
+            if (!results.length) {
+                resultsEl.innerHTML = '';
+                resultsEl.classList.add('joined-cio-hidden');
+                return;
+            }
+
+            resultsEl.innerHTML = results.map((result) => `
+                <button type="button" class="global-search-result-chip ${result.tab === activeCioTab ? 'is-current' : ''}" data-search-target-tab="${result.tab}">
+                    ${result.label}
+                </button>
+            `).join('');
+            resultsEl.classList.remove('joined-cio-hidden');
+
+            resultsEl.querySelectorAll('[data-search-target-tab]').forEach((buttonEl) => {
+                buttonEl.addEventListener('click', () => {
+                    const targetTab = buttonEl.dataset.searchTargetTab;
+                    if (!targetTab || targetTab === activeCioTab) return;
+
+                    const searchInput = document.querySelector('.search-bar');
+                    const queryValue = searchInput ? searchInput.value.trim() : '';
+                    showTab(targetTab);
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', targetTab);
+                    if (queryValue) url.searchParams.set('q', queryValue);
+                    window.history.replaceState({}, '', url.toString());
+                });
+            });
+        }
+
+        function syncCioPageSearchState() {
+            const searchInput = document.querySelector('.search-bar');
+            if (!searchInput) return;
+
+            const rawQuery = searchInput.value || '';
+            const normalizedQuery = rawQuery.trim().toLowerCase();
+            const discussionCount = typeof window.filterDiscussionMessages === 'function'
+                ? window.filterDiscussionMessages(normalizedQuery)
+                : 0;
+            const announcementCount = filterAnnouncementMessages(normalizedQuery);
+
+            renderSearchResults(rawQuery.trim(), discussionCount, announcementCount);
+
+            const url = new URL(window.location.href);
+            if (rawQuery.trim()) {
+                url.searchParams.set('q', rawQuery.trim());
+            } else {
+                url.searchParams.delete('q');
+            }
+            if (activeCioTab && activeCioTab !== 'info') {
+                url.searchParams.set('tab', activeCioTab);
+            } else {
+                url.searchParams.delete('tab');
+            }
+            window.history.replaceState({}, '', url.toString());
+        }
+
+        window.onload = function () {
+            const params = new URLSearchParams(window.location.search);
+            const requestedTab = params.get('tab');
+            const requestedQuery = params.get('q') || '';
+            const savedTab = localStorage.getItem(cioTabStorageKey);
+            const preferredTab = requestedTab || savedTab || 'info';
+            const searchInput = document.querySelector('.search-bar');
+            const titleButton = document.getElementById('cioTitleButton');
+            const titleDropdown = document.getElementById('cioTitleDropdown');
+
+            const availableTabs = {
+                events: true,
+                info: true,
+                announcements: true,
+                discussions: !!document.getElementById('discussions-tab'),
+                request: !!document.getElementById('request-tab'),
+                requests: !!document.getElementById('requests-tab')
+            };
+
+            if (availableTabs[preferredTab]) {
+                showTab(preferredTab);
+            } else {
+                showTab('info');
+            }
+
+            if (searchInput) {
+                searchInput.placeholder = 'Search messages and announcements...';
+                searchInput.value = requestedQuery;
+                searchInput.addEventListener('input', () => {
+                    syncCioPageSearchState();
+                });
+            }
+
+            if (titleButton && titleDropdown) {
+                titleButton.addEventListener('click', () => {
+                    titleDropdown.classList.toggle('joined-cio-hidden');
+                });
+                document.addEventListener('click', (event) => {
+                    if (!event.target.closest('.cio-title-menu')) {
+                        titleDropdown.classList.add('joined-cio-hidden');
+                    }
+                });
+            }
+
+            syncCioPageSearchState();
+        };
+    </script>
 {% endblock %}
-
-{% comment %}
-AI Citation
-Description: CIO detail page UI with sidebar layout and tab navigation
-AI Use: Used ChatGPT on 2026-04-04 to 2026-04-05
-Prompt: Help with restructuring the CIO page to include a sidebar layout, tab switching, and cleaner styling
-Notes: Modified to match project layout, styling, and template structure
-{% endcomment %}

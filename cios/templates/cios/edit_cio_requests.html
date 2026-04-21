@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item">
+        <i data-lucide="building-2"></i>
+        <span>CIO Profile</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'discussions:edit_cio_members' cio.id %}" class="sidebar-item">
+        <i data-lucide="users-round"></i>
+        <span>Members</span>
+    </a>
+    <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item active">
+        <i data-lucide="inbox"></i>
+        <span>Requests</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-danger-form">
+        <button type="button" class="sidebar-item sidebar-item-danger" data-delete-cio-open>
+            <i data-lucide="trash-2"></i>
+            <span>Delete CIO</span>
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="cio-form-shell">
+    <section class="cio-form-surface cio-form-surface-wide">
+        <div class="cio-members-shell">
+            <div class="cio-members-header">
+                <div class="cio-form-header-top">
+                    <div class="cio-form-header-copy">
+                        <div class="cio-form-title-row">
+                            <h2>Requests</h2>
+                            <span class="cio-form-eyebrow">CIO Settings</span>
+                        </div>
+                        <p>Review pending join requests for {{ cio.name }}.</p>
+                    </div>
+                    <a href="{% url 'cio_detail' cio.id %}" class="cio-settings-close" aria-label="Leave settings and return to {{ cio.name }}">
+                        <i data-lucide="x"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="cio-members-card">
+                <div class="cio-members-table-wrap">
+                    <table class="cio-members-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Requested</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="cioRequestsTableBody">
+                        {% for join_request in join_requests %}
+                            <tr class="cio-request-row">
+                                <td>
+                                    <div class="cio-member-name-cell">
+                                        <img src="{{ join_request.user.profile.image.url }}" alt="{{ join_request.display_name }}" class="cio-member-avatar">
+                                        <div class="cio-member-identity">
+                                            <span class="cio-member-full-name">{{ join_request.display_name }}</span>
+                                            <span class="cio-member-username">@{{ join_request.user.username }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ join_request.created_at|date:"F j, Y" }}</td>
+                                <td class="cio-request-actions-cell">
+                                    <form method="POST" action="{% url 'accept-request' join_request.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Accept</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr class="cio-member-empty-row">
+                                <td colspan="3">No pending requests.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="cio-members-footer">
+                    <button type="button" class="cio-members-arrow" id="requestsPrevBtn" aria-label="Previous requests page">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <span class="cio-members-page-label" id="requestsPageLabel"></span>
+                    <button type="button" class="cio-members-arrow" id="requestsNextBtn" aria-label="Next requests page">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include "cios/partials/delete_cio_modal.html" %}
+
+<script>
+    const requestsPageSize = 5;
+    let requestsPage = 0;
+    const disabledSearchInput = document.querySelector('.search-bar');
+    const requestsPrevBtn = document.getElementById('requestsPrevBtn');
+    const requestsNextBtn = document.getElementById('requestsNextBtn');
+    const requestsPageLabel = document.getElementById('requestsPageLabel');
+    const requestRows = Array.from(document.querySelectorAll('.cio-request-row'));
+    const requestsEmptyRow = document.querySelector('.cio-member-empty-row');
+
+    function renderRequestsTable() {
+        if (!requestRows.length) {
+            if (requestsPageLabel) requestsPageLabel.textContent = 'Showing page 0 of 0';
+            if (requestsPrevBtn) requestsPrevBtn.disabled = true;
+            if (requestsNextBtn) requestsNextBtn.disabled = true;
+            return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(requestRows.length / requestsPageSize));
+        requestsPage = Math.min(requestsPage, totalPages - 1);
+
+        requestRows.forEach((rowEl) => {
+            rowEl.style.display = 'none';
+        });
+
+        const start = requestsPage * requestsPageSize;
+        const end = start + requestsPageSize;
+        requestRows.slice(start, end).forEach((rowEl) => {
+            rowEl.style.display = '';
+        });
+
+        if (requestsEmptyRow) {
+            requestsEmptyRow.style.display = 'none';
+        }
+
+        if (requestsPageLabel) {
+            requestsPageLabel.textContent = `Showing page ${requestsPage + 1} of ${totalPages}`;
+        }
+        if (requestsPrevBtn) requestsPrevBtn.disabled = requestsPage === 0;
+        if (requestsNextBtn) requestsNextBtn.disabled = requestsPage >= totalPages - 1;
+    }
+
+    if (disabledSearchInput) {
+        disabledSearchInput.value = '';
+        disabledSearchInput.placeholder = 'Search unavailable in settings';
+        disabledSearchInput.disabled = true;
+    }
+
+    if (requestsPrevBtn) {
+        requestsPrevBtn.addEventListener('click', () => {
+            requestsPage = Math.max(0, requestsPage - 1);
+            renderRequestsTable();
+        });
+    }
+
+    if (requestsNextBtn) {
+        requestsNextBtn.addEventListener('click', () => {
+            requestsPage += 1;
+            renderRequestsTable();
+        });
+    }
+
+    renderRequestsTable();
+</script>
+{% endblock %}

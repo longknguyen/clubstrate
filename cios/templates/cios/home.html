@@ -1,35 +1,227 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-
-<div class="cio-detail-page">
-    <div class="cio-main-panel">
-
-        <h1>Explore CIOs</h1>
-        <p>Select a CIO below to view its page.</p>
-
-        {% if cios %}
-            <div class="cio-card-grid">
-                {% for cio in cios %}
-                    <a href="{% url 'cio_detail' cio.id %}" class="cio-card-link">
-                        <div class="cio-card">
-                            <div class="cio-card-top"></div>
-                            <div class="cio-card-body">
-                                <h3>{{ cio.name }}</h3>
-                                <p>View this CIO’s page and learn more.</p>
-                                <span class="cio-card-btn">Open CIO</span>
-                            </div>
-                        </div>
-                    </a>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="club-home-empty">
-                <p>No CIOs have been created yet.</p>
-            </div>
-        {% endif %}
-
+    <div class="landing-header">
+        <h1>FIND YOUR COMMUNITY<br>ON CLUBSTRATE</h1>
+        <p>From cultures, to music, to gaming, there’s a place for you.</p>
     </div>
-</div>
+
+    <div class="cio-card-grid">
+        {% for cio in cios %}
+            <div class="cio-card"
+                 data-cio-id="{{ cio.id }}"
+                 data-cio-url="{% url 'cio_detail' cio.id %}"
+                 onclick="openCioPage(event, this)">
+                <button type="button"
+                        class="cio-hover-btn"
+                        onclick="event.stopPropagation();"
+                        onpointerdown="openCioModal(event, this)">
+                    <i data-lucide="search"></i>
+                </button>
+                <div class="cio-banner"
+                     style="
+                             {% if cio.banner_type == 'image' and cio.banner_image %}
+                                 background-image: url('{{ cio.banner_image.url }}');
+                             {% elif cio.banner_type == 'gradient' and cio.banner_gradient %}
+                                 background: {{ cio.banner_gradient }};
+                             {% else %}
+                                 background-image: url('{% static 'cios/default-banner.svg' %}');
+                             {% endif %}
+                             ">
+                </div>
+                <div class="cio-content">
+                    <img
+                            src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                            alt="{{ cio.name }} icon"
+                            class="cio-icon">
+
+                    <div class="cio-text">
+                        <h3>{{ cio.name }}</h3>
+                        <p>{{ cio.description }}</p>
+                        <span class="members">{{ cio.member_count }} members</span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <div id="cioSearchEmptyState" class="cio-search-empty-state" style="display: none;">
+        <h3>No CIOs found</h3>
+        <p>Try a different search term.</p>
+    </div>
+
+    <div id="cioModal" class="cio-modal">
+        <div class="cio-modal-content">
+
+            <div class="cio-modal-banner" id="modalBanner"></div>
+
+            <div class="cio-modal-header">
+                <img id="modalIcon" class="cio-modal-icon">
+                <h2 id="modalName"></h2>
+            </div>
+
+            <p id="modalMembers"></p>
+            <p id="modalDate"></p>
+
+            <div class="cio-modal-spacer"></div>
+
+            <p id="modalDescription"></p>
+
+            <button id="modalActionBtn" class="cio-join-btn"></button>
+
+        </div>
+    </div>
+
+    <script>
+        const searchInputEl = document.querySelector(".search-bar");
+        const cardEls = Array.from(document.querySelectorAll(".cio-card"));
+        const modalEl = document.getElementById("cioModal");
+        const modalBannerEl = document.getElementById("modalBanner");
+        const modalIconEl = document.getElementById("modalIcon");
+        const modalNameEl = document.getElementById("modalName");
+        const modalMembersEl = document.getElementById("modalMembers");
+        const modalDateEl = document.getElementById("modalDate");
+        const modalDescriptionEl = document.getElementById("modalDescription");
+        const modalActionBtnEl = document.getElementById("modalActionBtn");
+        const searchEmptyStateEl = document.getElementById("cioSearchEmptyState");
+        const fallbackIcon = "{% static 'cios/default_cio_icon.svg' %}";
+        let activeCioId = null;
+
+        function openCioPage(event, card) {
+            if (event.defaultPrevented) {
+                return;
+            }
+            const targetUrl = card.dataset.cioUrl;
+            if (targetUrl) {
+                window.location.href = targetUrl;
+            }
+        }
+
+        function openCioModal(event, btn) {
+            event.stopPropagation();
+            btn.classList.add("is-pressed");
+            setTimeout(() => btn.classList.remove("is-pressed"), 140);
+
+            const card = btn.closest('.cio-card');
+            const cioId = card.dataset.cioId;
+            activeCioId = cioId;
+
+            const cio = window.cioData[cioId];
+            modalEl.classList.add("is-open");
+
+            modalIconEl.src = cio.icon || fallbackIcon;
+            modalIconEl.onerror = () => {
+                modalIconEl.onerror = null;
+                modalIconEl.src = fallbackIcon;
+            };
+            modalNameEl.textContent = cio.name;
+            modalMembersEl.textContent = cio.members + " members";
+            modalDateEl.textContent = "Est. " + cio.created;
+            modalDescriptionEl.textContent = cio.description;
+
+            modalBannerEl.style.backgroundImage = cio.banner ? `url(${cio.banner})` : "none";
+            renderModalAction(cioId);
+        }
+
+        function renderModalAction(cioId) {
+            const cio = window.cioData[cioId];
+            if (!cio) return;
+
+            modalActionBtnEl.classList.remove("cio-join-btn-pending");
+            modalActionBtnEl.disabled = false;
+
+            if (cio.joined) {
+                modalActionBtnEl.textContent = "Go To";
+                modalActionBtnEl.onclick = () => {
+                    window.location.href = cio.detailUrl;
+                };
+                return;
+            }
+
+            if (cio.pendingRequest) {
+                modalActionBtnEl.textContent = "Pending Request...";
+                modalActionBtnEl.classList.add("cio-join-btn-pending");
+                modalActionBtnEl.disabled = true;
+                modalActionBtnEl.onclick = null;
+                return;
+            }
+
+            modalActionBtnEl.textContent = "Request to Join";
+            modalActionBtnEl.onclick = () => requestToJoinCio(cioId);
+        }
+
+        function getCsrfToken() {
+            const csrfCookie = document.cookie
+                .split("; ")
+                .find((row) => row.startsWith("csrftoken="));
+            return csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+        }
+
+        async function requestToJoinCio(cioId) {
+            const cio = window.cioData[cioId];
+            if (!cio || !cio.requestUrl) return;
+
+            modalActionBtnEl.disabled = true;
+
+            try {
+                const response = await fetch(cio.requestUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCsrfToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Request failed");
+                }
+
+                const payload = await response.json();
+                cio.joined = !!payload.joined;
+                cio.pendingRequest = !!payload.pending;
+                renderModalAction(cioId);
+            } catch (error) {
+                modalActionBtnEl.disabled = false;
+                modalActionBtnEl.textContent = "Request to Join";
+            }
+        }
+
+        function applyCioSearchFilter(query) {
+            const normalizedQuery = query.trim().toLowerCase();
+            let visibleCount = 0;
+
+            cardEls.forEach((cardEl) => {
+                if (!cardEl.dataset.searchText) {
+                    cardEl.dataset.searchText = cardEl.textContent.toLowerCase();
+                }
+                const shouldShow = !normalizedQuery || cardEl.dataset.searchText.includes(normalizedQuery);
+                cardEl.style.display = shouldShow ? "" : "none";
+                if (shouldShow) {
+                    visibleCount += 1;
+                }
+            });
+
+            if (searchEmptyStateEl) {
+                searchEmptyStateEl.style.display = visibleCount === 0 ? "block" : "none";
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            if (searchInputEl) {
+                searchInputEl.placeholder = "Search CIOs...";
+                searchInputEl.addEventListener("input", (event) => {
+                    applyCioSearchFilter(event.target.value || "");
+                });
+            }
+
+            modalEl.addEventListener("click", function (e) {
+                if (e.target === this) {
+                    this.classList.remove("is-open");
+                    activeCioId = null;
+                }
+            });
+        });
+    </script>
 
 {% endblock %}

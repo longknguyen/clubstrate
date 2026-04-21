@@ -10,7 +10,7 @@
 
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en-GB">
 <head>
 
     <!-- Required meta tags -->
@@ -23,78 +23,159 @@
           crossorigin="anonymous">
 
     <!-- Your project CSS -->
-    <link rel="stylesheet" type="text/css" href="{% static 'users/main.css' %}">
-    <link rel="stylesheet" href="{% static 'cios/landing.css' %}">
+    <link rel="stylesheet" href="{% static 'users/main.css' %}">
+    <link rel="stylesheet" href="{% static 'cios/home.css' %}">
+    <link rel="stylesheet" href="{% static 'cios/cio_detail.css' %}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <title></title>
 
 </head>
 <body>
-<header class="site-header">
-    <nav class="navbar navbar-expand-md navbar-dark">
-        <div class="container">
+<div class="app-layout {% if request.resolver_match.url_name == 'home' %}explore-page{% endif %}">
 
-            {% if user.is_authenticated and user.profile.user_type == "user_admin" %}
-                <div class="navbar-brand mr-4">
-                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
-                </div>
-            {% else %}
-                <a class="navbar-brand mr-4" href="{% url 'home' %}">
-                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
-                </a>
-            {% endif %}
+    <div class="top-bar">
 
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
-                    aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+        <div class="top-left">
+            {% block page_title_block %}
+                <h1 class="page-title">{% block page_title %}Explore{% endblock %}</h1>
+            {% endblock %}
+        </div>
 
-            <div class="collapse navbar-collapse" id="navbarToggle">
-
-                <!-- Left side -->
-                <div class="navbar-nav mr-auto">
-                    {% if user.is_authenticated and user.profile.user_type != "user_admin" %}
-                        <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
-                        <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
-                    {% endif %}
-                </div>
-
-                <!-- Right side -->
-                <div class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        {% if user.profile.user_type != "user_admin" %}
-                            <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
-                        {% endif %}
-                    {% else %}
-                        <a class="nav-item nav-link" href="{% url 'register' %}">Sign up</a>
-                        <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
-                    {% endif %}
-                </div>
-
+        {% block top_center %}
+            <div class="cio-scroll">
+                <div class="joined-cio-strip" id="joinedCioStrip" data-page-size="5">
+                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev" aria-label="Previous CIOs">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <div class="joined-cio-track" id="joinedCioTrack">
+                        {% for cio in joined_cios %}
+                            <a href="{% url 'cio_detail' cio.id %}"
+                               class="joined-cio-link tooltip-bottom"
+                               data-tooltip="{{ cio.name }}"
+                               data-joined-cio-index="{{ forloop.counter0 }}">
+                                <img src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                     alt="{{ cio.name }} icon"
+                                     class="joined-cio-icon">
+                            </a>
+                        {% endfor %}
+                    </div>
+                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext" aria-label="Next CIOs">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+                <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
             </div>
         </div>
-    </nav>
-</header>
+        {% endblock %}
 
-<main role="main">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
+        <div class="top-nav-actions">
+            <a href="{% url 'home' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+               data-tooltip="Explore">
+                <i data-lucide="compass"></i>
+            </a>
+
+            <a href="{% url 'create_cio' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'create_cio' %}active{% endif %}"
+               data-tooltip="Create a CIO">
+                <i data-lucide="plus"></i>
+            </a>
+        </div>
+
+        <div class="top-right search-shell">
+            <input type="text" placeholder="Search..." class="search-bar">
+            <div id="globalSearchResults" class="global-search-results joined-cio-hidden"></div>
+        </div>
+
+    </div>
+
+    <div class="main-container">
+
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+                {% block sidebar_menu %}
+                    <a href="#" class="sidebar-item active">
+                        <i data-lucide="users"></i>
+                        <span>CIOs</span>
+                    </a>
+                {% endblock %}
             </div>
+
+            <div class="mini-profile">
+                <img src="{{ user.profile.image.url }}" class="profile-pic">
+                <div class="profile-info">
+                    <span class="name">{{ user.first_name }} {{ user.last_name }}</span>
+                    <span class="pronouns">{{ user.pronouns }}</span>
+                </div>
+                <a href="{% url 'profile' %}" class="settings-icon" data-tooltip="User Settings">
+                    <i data-lucide="settings"></i>
+                </a>
+            </div>
+        </aside>
+
+        <main class="content-panel">
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+</div>
+
+<script>
+    window.cioData = {
+        {% for cio in cios %}
+            "{{ cio.id }}": {
+                name: "{{ cio.name|escapejs }}",
+                description: "{{ cio.description|escapejs }}",
+                members: "{{ cio.member_count }}",
+                created: "{{ cio.created_at|date:'Y M' }}",
+                icon: "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}",
+                banner: "{% if cio.banner_image %}{{ cio.banner_image.url }}{% else %}{% static 'cios/default-banner.svg' %}{% endif %}",
+                joined: {{ cio.is_joined|yesno:"true,false" }},
+                pendingRequest: {{ cio.has_pending_request|yesno:"true,false" }},
+                requestUrl: "{% url 'request-to-join' cio.id %}",
+                detailUrl: "{% url 'cio_detail' cio.id %}"
+            },
         {% endfor %}
-    {% endif %}
+    };
+    window.addEventListener("DOMContentLoaded", () => {
+        const joinedCioStrip = document.getElementById("joinedCioStrip");
+        const joinedCioLinks = Array.from(document.querySelectorAll("[data-joined-cio-index]"));
+        const joinedCioPrev = document.getElementById("joinedCioPrev");
+        const joinedCioNext = document.getElementById("joinedCioNext");
 
-    {% block content %}{% endblock %}
-</main>
+        if (joinedCioStrip && joinedCioPrev && joinedCioNext && joinedCioLinks.length > 0) {
+            const pageSize = Number(joinedCioStrip.dataset.pageSize || 5);
+            const totalPages = Math.ceil(joinedCioLinks.length / pageSize);
+            let currentPage = 0;
 
-<!-- Optional JavaScript -->
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzm7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
+            const renderJoinedCioPage = () => {
+                const start = currentPage * pageSize;
+                const end = start + pageSize;
+
+                joinedCioLinks.forEach((linkEl, idx) => {
+                    const inPage = idx >= start && idx < end;
+                    linkEl.classList.toggle("joined-cio-hidden", !inPage);
+                });
+
+                joinedCioPrev.classList.toggle("joined-cio-hidden", currentPage === 0);
+                joinedCioNext.classList.toggle("joined-cio-hidden", currentPage >= totalPages - 1);
+            };
+
+            if (totalPages > 1) {
+                joinedCioPrev.addEventListener("click", () => {
+                    currentPage = Math.max(0, currentPage - 1);
+                    renderJoinedCioPage();
+                });
+                joinedCioNext.addEventListener("click", () => {
+                    currentPage = Math.min(totalPages - 1, currentPage + 1);
+                    renderJoinedCioPage();
+                });
+            }
+
+            renderJoinedCioPage();
+        }
+
+        lucide.createIcons();
+    });
+</script>
 </body>
 </html>
