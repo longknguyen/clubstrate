@@ -24,6 +24,45 @@
     color: #555;
 }
 
+.cio-preview-callout {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px 10px 0;
+}
+
+.cio-preview-copy {
+    margin: 0;
+    color: #4b5563;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.cio-preview-callout .cio-preview-join-btn {
+    width: 100%;
+    justify-content: center;
+    background: rgba(5, 128, 67, 0.85);
+    border: none;
+    color: #ffffff;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.cio-preview-callout .cio-preview-join-btn:hover {
+    background: rgba(5, 128, 67, 0.96);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.cio-preview-callout .cio-preview-join-btn.is-pending,
+.cio-preview-callout .cio-preview-join-btn:disabled {
+    background: #7ccf9d;
+    color: #ffffff;
+    cursor: default;
+    text-decoration: none;
+}
+
 .cio-info-shell {
     display: flex;
     flex-direction: column;

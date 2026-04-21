@@ -31,7 +31,10 @@ def _get_cio_officer_membership(user, cio):
 
 
 def _settings_sidebar_context(cio):
-    return {'cio': cio}
+    return {
+        'cio': cio,
+        'pending_requests_count': JoinRequest.objects.filter(cio=cio, status='pending').count(),
+    }
 
 
 CHAT_GROUP_GAP = timedelta(minutes=5)
@@ -147,11 +150,18 @@ def cio_detail(request, cio_id):
 
     role = 'viewer'
     join_requests = []
+    has_pending_request = False
 
     if request.user.is_authenticated:
         membership = Membership.objects.filter(user=request.user, cio=cio).first()
         if membership is not None:
             role = membership.role
+        else:
+            has_pending_request = JoinRequest.objects.filter(
+                user=request.user,
+                cio=cio,
+                status='pending'
+            ).exists()
 
     if role == 'officer':
         join_requests = JoinRequest.objects.filter(cio=cio, status='pending')
@@ -192,6 +202,8 @@ def cio_detail(request, cio_id):
             'discussion_messages': discussion_messages,
             'join_requests': join_requests,
             'members': members,
+            'pending_requests_count': len(join_requests),
+            'has_pending_request': has_pending_request,
         },
                   )
 
@@ -298,21 +310,28 @@ def request_to_join(request, cio_id):
     if request.method == 'POST':
         membership = Membership.objects.filter(user=request.user, cio=cio).first()
         join_request = JoinRequest.objects.filter(user=request.user, cio=cio).first()
-        request_created = False
+        pending = False
 
-        if membership is None and join_request is None:
-            JoinRequest.objects.create(
-                user=request.user,
-                cio=cio,
-                status='pending'
-            )
-            request_created = True
+        if membership is None:
+            if join_request is None:
+                JoinRequest.objects.create(
+                    user=request.user,
+                    cio=cio,
+                    status='pending'
+                )
+                pending = True
+            elif join_request.status == 'pending':
+                pending = True
+            else:
+                join_request.status = 'pending'
+                join_request.save(update_fields=['status'])
+                pending = True
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'ok': True,
                 'joined': membership is not None,
-                'pending': membership is None and (join_request is not None or request_created),
+                'pending': pending,
             })
 
     return redirect(f'/{cio.id}/')

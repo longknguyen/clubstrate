@@ -15,6 +15,9 @@
     <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
         <i data-lucide="inbox"></i>
         <span>Requests</span>
+        {% if pending_requests_count %}
+            <span class="notification-badge">{{ pending_requests_count }}</span>
+        {% endif %}
     </a>
     <div class="sidebar-divider"></div>
     <div class="sidebar-danger-form">
@@ -75,8 +78,8 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ membership.created_at|date:"F j, Y" }}</td>
-                                <td>{{ membership.user.date_joined|date:"F j, Y" }}</td>
+                                <td>{{ membership.created_at|date:"j F Y" }}</td>
+                                <td>{{ membership.user.date_joined|date:"j F Y" }}</td>
                                 <td class="cio-member-actions-cell">
                                     <div class="cio-member-action-menu">
                                         <button
@@ -92,15 +95,14 @@
                                                 Profile
                                             </button>
                                             {% if not membership.is_self %}
-                                                <form method="POST" action="{% url 'discussions:remove_cio_member' cio.id membership.id %}">
-                                                    {% csrf_token %}
-                                                    <button
-                                                        type="submit"
-                                                        class="cio-member-action-item cio-member-action-item-danger"
-                                                        onclick="return confirm('Kick {{ membership.display_name }} from {{ cio.name }}?');">
-                                                        Kick {{ membership.display_name }}
-                                                    </button>
-                                                </form>
+                                                <button
+                                                    type="button"
+                                                    class="cio-member-action-item cio-member-action-item-danger"
+                                                    data-kick-member-open
+                                                    data-kick-member-name="{{ membership.display_name }}"
+                                                    data-kick-member-url="{% url 'discussions:remove_cio_member' cio.id membership.id %}">
+                                                    Kick {{ membership.display_name }}
+                                                </button>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -158,6 +160,7 @@
 </div>
 
 {% include "cios/partials/delete_cio_modal.html" %}
+{% include "cios/partials/kick_member_modal.html" %}
 
 <script>
     const membersPageSize = 5;
@@ -170,6 +173,12 @@
     const chatUserPronouns = document.getElementById('chatUserPronouns');
     const chatUserRole = document.getElementById('chatUserRole');
     const chatUserClose = document.getElementById('chatUserClose');
+    const kickMemberModal = document.getElementById('kickMemberModal');
+    const kickMemberClose = document.getElementById('kickMemberClose');
+    const kickMemberCancel = document.getElementById('kickMemberCancel');
+    const kickMemberForm = document.getElementById('kickMemberForm');
+    const kickMemberTitle = document.getElementById('kickMemberTitle');
+    const kickMemberBody = document.getElementById('kickMemberBody');
     let activeMemberMenu = null;
 
     function getVisibleMemberRows(query) {
@@ -257,6 +266,19 @@
         activeMemberMenu = null;
     }
 
+    function openKickMemberModal(name, url) {
+        if (!kickMemberModal || !kickMemberForm || !kickMemberTitle || !kickMemberBody) return;
+        kickMemberTitle.textContent = `Kick ${name}?`;
+        kickMemberBody.textContent = `${name} will be removed from {{ cio.name }}. They can request to join again later.`;
+        kickMemberForm.action = url;
+        kickMemberModal.classList.add('is-open');
+    }
+
+    function closeKickMemberModal() {
+        if (!kickMemberModal) return;
+        kickMemberModal.classList.remove('is-open');
+    }
+
     function positionMemberMenu(triggerEl, menuEl) {
         const triggerRect = triggerEl.getBoundingClientRect();
         const menuRect = menuEl.getBoundingClientRect();
@@ -317,6 +339,16 @@
         });
     });
 
+    document.querySelectorAll('[data-kick-member-open]').forEach((buttonEl) => {
+        buttonEl.addEventListener('click', () => {
+            closeMemberMenus();
+            openKickMemberModal(
+                buttonEl.dataset.kickMemberName || 'this member',
+                buttonEl.dataset.kickMemberUrl || ''
+            );
+        });
+    });
+
     if (chatUserClose && chatUserModal) {
         chatUserClose.addEventListener('click', () => {
             chatUserModal.classList.remove('is-open');
@@ -328,9 +360,31 @@
         });
     }
 
+    if (kickMemberClose) {
+        kickMemberClose.addEventListener('click', closeKickMemberModal);
+    }
+
+    if (kickMemberCancel) {
+        kickMemberCancel.addEventListener('click', closeKickMemberModal);
+    }
+
+    if (kickMemberModal) {
+        kickMemberModal.addEventListener('click', (event) => {
+            if (event.target === kickMemberModal) {
+                closeKickMemberModal();
+            }
+        });
+    }
+
     document.addEventListener('click', (event) => {
         if (!event.target.closest('.cio-member-action-menu')) {
             closeMemberMenus();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeKickMemberModal();
         }
     });
 

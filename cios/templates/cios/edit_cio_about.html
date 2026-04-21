@@ -16,6 +16,9 @@
     <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
         <i data-lucide="inbox"></i>
         <span>Requests</span>
+        {% if pending_requests_count %}
+            <span class="notification-badge">{{ pending_requests_count }}</span>
+        {% endif %}
     </a>
     <div class="sidebar-divider"></div>
     <div class="sidebar-danger-form">

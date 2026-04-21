@@ -15,6 +15,9 @@
     <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item active">
         <i data-lucide="inbox"></i>
         <span>Requests</span>
+        {% if pending_requests_count %}
+            <span class="notification-badge">{{ pending_requests_count }}</span>
+        {% endif %}
     </a>
     <div class="sidebar-divider"></div>
     <div class="sidebar-danger-form">
@@ -66,7 +69,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ join_request.created_at|date:"F j, Y" }}</td>
+                                <td>{{ join_request.created_at|date:"j F Y" }}</td>
                                 <td class="cio-request-actions-cell">
                                     <form method="POST" action="{% url 'accept-request' join_request.id %}">
                                         {% csrf_token %}

@@ -1,0 +1,24 @@
+<div class="cio-delete-modal" id="kickMemberModal">
+    <div class="cio-delete-card">
+        <button type="button" class="cio-delete-close" id="kickMemberClose" aria-label="Close kick member dialog">
+            <i data-lucide="x"></i>
+        </button>
+
+        <div class="cio-delete-icon">
+            <i data-lucide="user-round-x"></i>
+        </div>
+
+        <div class="cio-delete-copy">
+            <h3 id="kickMemberTitle">Kick member?</h3>
+            <p id="kickMemberBody">This will remove the selected member from the CIO. They can request to join again later.</p>
+        </div>
+
+        <div class="cio-delete-actions">
+            <button type="button" class="discussion-action-btn cio-delete-cancel" id="kickMemberCancel">Cancel</button>
+            <form method="POST" id="kickMemberForm">
+                {% csrf_token %}
+                <button type="submit" class="discussion-action-btn cio-delete-confirm">Kick Member</button>
+            </form>
+        </div>
+    </div>
+</div>

@@ -11,6 +11,9 @@
             id="cioTitleButton"
             {% if role != 'officer' %}disabled{% endif %}>
             <span class="page-title">{{ cio.name }}</span>
+            {% if role == 'officer' and pending_requests_count %}
+                <span class="notification-badge notification-badge-inline">{{ pending_requests_count }}</span>
+            {% endif %}
             {% if role == 'officer' %}
                 <i data-lucide="chevron-down"></i>
             {% endif %}
@@ -18,7 +21,10 @@
         {% if role == 'officer' %}
             <div class="cio-title-dropdown joined-cio-hidden" id="cioTitleDropdown">
                 <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="cio-title-dropdown-link">
-                    Server Settings
+                    <span>Server Settings</span>
+                    {% if pending_requests_count %}
+                        <span class="notification-badge">{{ pending_requests_count }}</span>
+                    {% endif %}
                 </a>
             </div>
         {% endif %}
@@ -57,6 +63,21 @@
         <i data-lucide="megaphone"></i>
         <span>Announcements</span>
     </a>
+
+    {% if role == 'viewer' %}
+        <div class="sidebar-divider"></div>
+        <div class="cio-preview-callout">
+            <p class="cio-preview-copy">You are in preview mode. Request access to this CIO to join in on the discussions.</p>
+            <button
+                type="button"
+                class="discussion-action-btn cio-preview-join-btn {% if has_pending_request %}is-pending{% endif %}"
+                id="cioPreviewJoinButton"
+                data-request-url="{% url 'request-to-join' cio.id %}"
+                {% if has_pending_request %}disabled{% endif %}>
+                {% if has_pending_request %}Pending Request...{% else %}Request to Join{% endif %}
+            </button>
+        </div>
+    {% endif %}
 
     {% if role != 'viewer' %}
         <a href="#" class="sidebar-item" data-cio-tab="discussions" data-tab-target="discussions"
@@ -352,6 +373,13 @@
             window.history.replaceState({}, '', url.toString());
         }
 
+        function getCsrfToken() {
+            const csrfCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('csrftoken='));
+            return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
+        }
+
         window.onload = function () {
             const params = new URLSearchParams(window.location.search);
             const requestedTab = params.get('tab');
@@ -361,6 +389,7 @@
             const searchInput = document.querySelector('.search-bar');
             const titleButton = document.getElementById('cioTitleButton');
             const titleDropdown = document.getElementById('cioTitleDropdown');
+            const previewJoinButton = document.getElementById('cioPreviewJoinButton');
 
             const availableTabs = {
                 events: true,
@@ -392,6 +421,41 @@
                 document.addEventListener('click', (event) => {
                     if (!event.target.closest('.cio-title-menu')) {
                         titleDropdown.classList.add('joined-cio-hidden');
+                    }
+                });
+            }
+
+            if (previewJoinButton) {
+                previewJoinButton.addEventListener('click', async () => {
+                    const requestUrl = previewJoinButton.dataset.requestUrl;
+                    if (!requestUrl || previewJoinButton.disabled) return;
+
+                    previewJoinButton.disabled = true;
+
+                    try {
+                        const response = await fetch(requestUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Request failed');
+                        }
+
+                        const payload = await response.json();
+
+                        if (payload && payload.pending) {
+                            previewJoinButton.textContent = 'Pending Request...';
+                            previewJoinButton.classList.add('is-pending');
+                        } else {
+                            previewJoinButton.disabled = false;
+                        }
+                    } catch (error) {
+                        previewJoinButton.disabled = false;
                     }
                 });
             }
