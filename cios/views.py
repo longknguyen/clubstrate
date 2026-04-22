@@ -283,7 +283,7 @@ def create_cio(request):
             cio=cio,
             role='officer',
         )
-        return redirect('home')
+        return redirect('cio_detail', cio_id=cio.id)
     return render(
         request,
         'cios/create_cio.html',

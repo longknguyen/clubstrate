@@ -149,7 +149,7 @@
                                     {% endif %}
 
                                     <div class="cio-info-summary">
-                                        <p>{{ cio.description|default:"No description yet." }}</p>
+                                        <p>{{ cio.description|default:"No description yet."|truncatechars:250 }}</p>
                                     </div>
                                 </div>
                             </div>

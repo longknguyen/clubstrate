@@ -142,14 +142,23 @@
             modalDescriptionEl.textContent = truncatedDescription;
 
             if (cio.bannerType === "image" && cio.banner) {
+                modalBannerEl.style.background = "none";
                 modalBannerEl.style.backgroundImage = `url(${cio.banner})`;
-                modalBannerEl.style.background = "";
+                modalBannerEl.style.backgroundSize = "100% 100%";
+                modalBannerEl.style.backgroundPosition = "center";
+                modalBannerEl.style.backgroundRepeat = "no-repeat";
             } else if (cio.bannerGradient) {
                 modalBannerEl.style.backgroundImage = "none";
                 modalBannerEl.style.background = cio.bannerGradient;
+                modalBannerEl.style.backgroundSize = "";
+                modalBannerEl.style.backgroundPosition = "";
+                modalBannerEl.style.backgroundRepeat = "";
             } else {
+                modalBannerEl.style.background = "none";
                 modalBannerEl.style.backgroundImage = cio.banner ? `url(${cio.banner})` : "none";
-                modalBannerEl.style.background = "";
+                modalBannerEl.style.backgroundSize = "100% 100%";
+                modalBannerEl.style.backgroundPosition = "center";
+                modalBannerEl.style.backgroundRepeat = "no-repeat";
             }
             renderModalAction(cioId);
         }

@@ -70,34 +70,54 @@
                 {% endfor %}
             </div>
 
-            <div class="cio-form-section">
-                <label>Banner</label>
-                <div class="cio-banner-upload-stack">
-                    <div
-                        class="cio-banner-preview"
-                        id="editCioBannerPreview"
-                        style="
-                            {% if cio.display_banner_kind == 'image' %}
-                                background-image: url('{{ cio.display_banner_value }}');
-                            {% else %}
-                                background: {{ cio.display_banner_value }};
-                            {% endif %}
-                        ">
-                    </div>
+            <div class="cio-media-grid">
+                <div class="cio-form-section">
+                    <label>Banner</label>
+                    <div class="cio-banner-upload-stack">
+                        <div
+                            class="cio-banner-preview"
+                            id="editCioBannerPreview"
+                            style="
+                                {% if cio.display_banner_kind == 'image' %}
+                                    background-image: url('{{ cio.display_banner_value }}');
+                                {% else %}
+                                    background: {{ cio.display_banner_value }};
+                                {% endif %}
+                            ">
+                        </div>
 
-                    <div class="cio-icon-upload-actions">
-                        <label for="editCioBannerInput" class="discussion-action-btn discussion-action-btn-primary">Choose Banner</label>
-                        <input type="file" id="editCioBannerInput" name="banner_image" accept="image/*" hidden>
-
-                        <label class="cio-checkbox-row">
-                            {{ form.remove_banner }}
-                            <span>Remove banner on save</span>
-                        </label>
+                        <div class="cio-icon-upload-actions">
+                            <label for="editCioBannerInput" class="discussion-action-btn discussion-action-btn-primary">Choose Banner</label>
+                            <input type="file" id="editCioBannerInput" name="banner_image" accept="image/*" hidden>
+                            {{ form.remove_banner.as_hidden }}
+                            <button type="button" class="cio-media-toggle-btn" id="removeBannerButton">Remove Banner</button>
+                        </div>
                     </div>
+                    {% for error in form.banner_image.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
                 </div>
-                {% for error in form.banner_image.errors %}
-                    <p class="cio-field-error">{{ error }}</p>
-                {% endfor %}
+
+                <div class="cio-form-section">
+                    <label>Icon</label>
+                    <div class="cio-icon-upload-row cio-icon-upload-row-compact">
+                        <img
+                            src="{{ cio.display_icon_url }}"
+                            alt="{{ cio.name }} icon preview"
+                            class="cio-icon-preview"
+                            id="editCioIconPreview">
+
+                        <div class="cio-icon-upload-actions">
+                            <label for="editCioIconInput" class="discussion-action-btn discussion-action-btn-primary">Choose Icon</label>
+                            <input type="file" id="editCioIconInput" name="icon" accept="image/*" hidden>
+                            {{ form.remove_icon.as_hidden }}
+                            <button type="button" class="cio-media-toggle-btn" id="removeIconButton">Remove Icon</button>
+                        </div>
+                    </div>
+                    {% for error in form.icon.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
             </div>
 
             <div class="cio-form-section">
@@ -134,30 +154,6 @@
                 {% endfor %}
             </div>
 
-            <div class="cio-form-section">
-                <label>Icon</label>
-                <div class="cio-icon-upload-row">
-                    <img
-                        src="{{ cio.display_icon_url }}"
-                        alt="{{ cio.name }} icon preview"
-                        class="cio-icon-preview"
-                        id="editCioIconPreview">
-
-                    <div class="cio-icon-upload-actions">
-                        <label for="editCioIconInput" class="discussion-action-btn discussion-action-btn-primary">Choose Icon</label>
-                        <input type="file" id="editCioIconInput" name="icon" accept="image/*" hidden>
-
-                        <label class="cio-checkbox-row">
-                            {{ form.remove_icon }}
-                            <span>Remove icon on save</span>
-                        </label>
-                    </div>
-                </div>
-                {% for error in form.icon.errors %}
-                    <p class="cio-field-error">{{ error }}</p>
-                {% endfor %}
-            </div>
-
             <div class="cio-form-actions">
                 <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Save Changes</button>
             </div>
@@ -172,14 +168,46 @@
     const editCioIconInput = document.getElementById('editCioIconInput');
     const editCioIconPreview = document.getElementById('editCioIconPreview');
     const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
+    const removeIconButton = document.getElementById('removeIconButton');
     const defaultCioIcon = "{{ default_icon_data_uri|escapejs }}";
     const originalCioIcon = "{{ cio.display_icon_url|escapejs }}";
 
     const editCioBannerInput = document.getElementById('editCioBannerInput');
     const editCioBannerPreview = document.getElementById('editCioBannerPreview');
     const removeBannerCheckbox = document.querySelector('input[name="remove_banner"]');
+    const removeBannerButton = document.getElementById('removeBannerButton');
     const defaultCioBanner = `{{ cio.default_gradient|escapejs }}`;
     const originalCioBanner = `{% if cio.display_banner_kind == 'image' %}url('{{ cio.display_banner_value|escapejs }}'){% else %}{{ cio.display_banner_value|escapejs }}{% endif %}`;
+
+    function applyBannerPreviewImage(imageValue) {
+        if (!editCioBannerPreview) return;
+        editCioBannerPreview.style.background = 'none';
+        editCioBannerPreview.style.backgroundImage = imageValue;
+        editCioBannerPreview.style.backgroundSize = '100% 100%';
+        editCioBannerPreview.style.backgroundPosition = 'center';
+        editCioBannerPreview.style.backgroundRepeat = 'no-repeat';
+    }
+
+    function applyBannerPreviewBackground(backgroundValue) {
+        if (!editCioBannerPreview) return;
+        editCioBannerPreview.style.backgroundImage = 'none';
+        editCioBannerPreview.style.background = backgroundValue;
+        editCioBannerPreview.style.backgroundSize = '';
+        editCioBannerPreview.style.backgroundPosition = '';
+        editCioBannerPreview.style.backgroundRepeat = '';
+    }
+
+    function syncRemoveIconButton() {
+        if (!removeIconButton || !removeIconCheckbox) return;
+        removeIconButton.textContent = removeIconCheckbox.checked ? 'Using Default Icon' : 'Remove Icon';
+        removeIconButton.classList.toggle('is-active', removeIconCheckbox.checked);
+    }
+
+    function syncRemoveBannerButton() {
+        if (!removeBannerButton || !removeBannerCheckbox) return;
+        removeBannerButton.textContent = removeBannerCheckbox.checked ? 'Using Default Banner' : 'Remove Banner';
+        removeBannerButton.classList.toggle('is-active', removeBannerCheckbox.checked);
+    }
 
     if (disabledSearchInput) {
         disabledSearchInput.value = '';
@@ -195,13 +223,16 @@
             editCioIconPreview.src = URL.createObjectURL(file);
             if (removeIconCheckbox) {
                 removeIconCheckbox.checked = false;
+                syncRemoveIconButton();
             }
         });
     }
 
-    if (removeIconCheckbox && editCioIconPreview) {
-        removeIconCheckbox.addEventListener('change', () => {
+    if (removeIconButton && removeIconCheckbox && editCioIconPreview) {
+        removeIconButton.addEventListener('click', () => {
+            removeIconCheckbox.checked = !removeIconCheckbox.checked;
             editCioIconPreview.src = removeIconCheckbox.checked ? defaultCioIcon : originalCioIcon;
+            syncRemoveIconButton();
         });
     }
 
@@ -210,34 +241,35 @@
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
-            editCioBannerPreview.style.background = 'none';
-            editCioBannerPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
+            applyBannerPreviewImage(`url(${URL.createObjectURL(file)})`);
             if (removeBannerCheckbox) {
                 removeBannerCheckbox.checked = false;
+                syncRemoveBannerButton();
             }
         });
     }
 
-    if (removeBannerCheckbox && editCioBannerPreview) {
-        removeBannerCheckbox.addEventListener('change', () => {
+    if (removeBannerButton && removeBannerCheckbox && editCioBannerPreview) {
+        removeBannerButton.addEventListener('click', () => {
+            removeBannerCheckbox.checked = !removeBannerCheckbox.checked;
             if (removeBannerCheckbox.checked) {
                 if (defaultCioBanner.startsWith('url(')) {
-                    editCioBannerPreview.style.background = 'none';
-                    editCioBannerPreview.style.backgroundImage = defaultCioBanner;
+                    applyBannerPreviewImage(defaultCioBanner);
                 } else {
-                    editCioBannerPreview.style.backgroundImage = 'none';
-                    editCioBannerPreview.style.background = defaultCioBanner;
+                    applyBannerPreviewBackground(defaultCioBanner);
                 }
             } else {
                 if (originalCioBanner.startsWith('url(')) {
-                    editCioBannerPreview.style.background = 'none';
-                    editCioBannerPreview.style.backgroundImage = originalCioBanner;
+                    applyBannerPreviewImage(originalCioBanner);
                 } else {
-                    editCioBannerPreview.style.backgroundImage = 'none';
-                    editCioBannerPreview.style.background = originalCioBanner;
+                    applyBannerPreviewBackground(originalCioBanner);
                 }
             }
+            syncRemoveBannerButton();
         });
     }
+
+    syncRemoveIconButton();
+    syncRemoveBannerButton();
 </script>
 {% endblock %}
