@@ -269,13 +269,23 @@
 
             const start = currentGridPage * cardsPerPage;
             const end = start + cardsPerPage;
+            const visibleCardEls = filteredCardEls.slice(start, end);
 
             cardEls.forEach((cardEl) => {
                 cardEl.style.display = "none";
+                cardEl.classList.remove("cio-card-reveal");
+                cardEl.style.removeProperty("--cio-card-delay");
             });
 
-            filteredCardEls.slice(start, end).forEach((cardEl) => {
+            visibleCardEls.forEach((cardEl) => {
                 cardEl.style.display = "";
+            });
+
+            window.requestAnimationFrame(() => {
+                visibleCardEls.forEach((cardEl, idx) => {
+                    cardEl.style.setProperty("--cio-card-delay", `${idx * 45}ms`);
+                    cardEl.classList.add("cio-card-reveal");
+                });
             });
 
             updateCioGridPager(totalPages);

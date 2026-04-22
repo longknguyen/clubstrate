@@ -55,11 +55,27 @@
     position: relative;
 }
 
+.cio-card-reveal {
+    animation: cioCardReveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--cio-card-delay, 0ms);
+}
+
 .cio-card:hover {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     border: 1px solid #d1d5db;
     transition: all 0.3s ease;
     cursor: pointer;
+}
+
+@keyframes cioCardReveal {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .cio-hover-btn {
