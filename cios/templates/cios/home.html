@@ -47,6 +47,19 @@
         <h3>No CIOs found</h3>
         <p>Try a different search term.</p>
     </div>
+    <div id="cioGridPagination" class="cio-grid-pagination joined-cio-hidden" aria-label="CIO pagination">
+        <button type="button" class="joined-cio-arrow" id="cioGridPrev" aria-label="Previous CIO page">
+            <i data-lucide="chevron-left"></i>
+        </button>
+        <label for="cioGridPageInput" class="cio-grid-page-indicator">
+            <input type="number" min="1" step="1" value="1" id="cioGridPageInput" class="cio-grid-page-input" aria-label="Current CIO page">
+            <span class="cio-grid-page-separator">of</span>
+            <span id="cioGridPageSuffix">1</span>
+        </label>
+        <button type="button" class="joined-cio-arrow" id="cioGridNext" aria-label="Next CIO page">
+            <i data-lucide="chevron-right"></i>
+        </button>
+    </div>
 
     <div id="cioModal" class="cio-modal">
         <div class="cio-modal-content">
@@ -82,7 +95,15 @@
         const modalDescriptionEl = document.getElementById("modalDescription");
         const modalActionBtnEl = document.getElementById("modalActionBtn");
         const searchEmptyStateEl = document.getElementById("cioSearchEmptyState");
+        const cioGridPaginationEl = document.getElementById("cioGridPagination");
+        const cioGridPrevEl = document.getElementById("cioGridPrev");
+        const cioGridNextEl = document.getElementById("cioGridNext");
+        const cioGridPageInputEl = document.getElementById("cioGridPageInput");
+        const cioGridPageSuffixEl = document.getElementById("cioGridPageSuffix");
         const fallbackIcon = "{% static 'cios/default_cio_icon.svg' %}";
+        const cardsPerPage = 9;
+        let filteredCardEls = [...cardEls];
+        let currentGridPage = 0;
         let activeCioId = null;
 
         function openCioPage(event, card) {
@@ -199,22 +220,56 @@
 
         function applyCioSearchFilter(query) {
             const normalizedQuery = query.trim().toLowerCase();
-            let visibleCount = 0;
+            filteredCardEls = [];
 
             cardEls.forEach((cardEl) => {
                 if (!cardEl.dataset.searchText) {
                     cardEl.dataset.searchText = cardEl.textContent.toLowerCase();
                 }
                 const shouldShow = !normalizedQuery || cardEl.dataset.searchText.includes(normalizedQuery);
-                cardEl.style.display = shouldShow ? "" : "none";
                 if (shouldShow) {
-                    visibleCount += 1;
+                    filteredCardEls.push(cardEl);
                 }
             });
 
             if (searchEmptyStateEl) {
-                searchEmptyStateEl.style.display = visibleCount === 0 ? "block" : "none";
+                searchEmptyStateEl.style.display = filteredCardEls.length === 0 ? "block" : "none";
             }
+
+            renderCioGridPage(0);
+        }
+
+        function updateCioGridPager(totalPages) {
+            if (!cioGridPaginationEl || !cioGridPrevEl || !cioGridNextEl || !cioGridPageInputEl || !cioGridPageSuffixEl) {
+                return;
+            }
+
+            const hasMultiplePages = totalPages > 1;
+            cioGridPaginationEl.classList.toggle("joined-cio-hidden", !hasMultiplePages);
+            cioGridPageInputEl.value = totalPages ? String(currentGridPage + 1) : "0";
+            cioGridPageInputEl.max = totalPages ? String(totalPages) : "1";
+            cioGridPageSuffixEl.textContent = `${totalPages || 0}`;
+            cioGridPrevEl.disabled = currentGridPage <= 0 || totalPages <= 1;
+            cioGridNextEl.disabled = totalPages <= 1 || currentGridPage >= totalPages - 1;
+        }
+
+        function renderCioGridPage(pageIndex) {
+            const totalPages = Math.ceil(filteredCardEls.length / cardsPerPage);
+            const safeTotalPages = totalPages || 1;
+            currentGridPage = Math.min(Math.max(pageIndex, 0), safeTotalPages - 1);
+
+            const start = currentGridPage * cardsPerPage;
+            const end = start + cardsPerPage;
+
+            cardEls.forEach((cardEl) => {
+                cardEl.style.display = "none";
+            });
+
+            filteredCardEls.slice(start, end).forEach((cardEl) => {
+                cardEl.style.display = "";
+            });
+
+            updateCioGridPager(totalPages);
         }
 
         window.addEventListener("DOMContentLoaded", () => {
@@ -225,12 +280,46 @@
                 });
             }
 
+            if (cioGridPrevEl) {
+                cioGridPrevEl.addEventListener("click", () => {
+                    renderCioGridPage(currentGridPage - 1);
+                });
+            }
+
+            if (cioGridNextEl) {
+                cioGridNextEl.addEventListener("click", () => {
+                    renderCioGridPage(currentGridPage + 1);
+                });
+            }
+
+            if (cioGridPageInputEl) {
+                const commitGridPageInput = () => {
+                    const requestedPage = Number(cioGridPageInputEl.value);
+                    if (!Number.isFinite(requestedPage) || requestedPage < 1) {
+                        cioGridPageInputEl.value = String(currentGridPage + 1);
+                        return;
+                    }
+                    renderCioGridPage(requestedPage - 1);
+                };
+
+                cioGridPageInputEl.addEventListener("change", commitGridPageInput);
+                cioGridPageInputEl.addEventListener("blur", commitGridPageInput);
+                cioGridPageInputEl.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitGridPageInput();
+                    }
+                });
+            }
+
             modalEl.addEventListener("click", function (e) {
                 if (e.target === this) {
                     this.classList.remove("is-open");
                     activeCioId = null;
                 }
             });
+
+            applyCioSearchFilter(searchInputEl ? (searchInputEl.value || "") : "");
         });
     </script>
 

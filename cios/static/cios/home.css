@@ -107,7 +107,7 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 120ms ease, visibility 120ms ease;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .cio-modal.is-open {
@@ -126,15 +126,19 @@
     flex-direction: column;
     gap: 6px;
     opacity: 0;
-    transform: translateY(24px) scale(0.96);
-    transition: opacity 120ms ease, transform 120ms ease;
+    visibility: hidden;
+    pointer-events: none;
+    transform: scale(0.85);
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
     overflow: hidden;
     will-change: transform, opacity;
 }
 
 .cio-modal.is-open .cio-modal-content {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    visibility: visible;
+    pointer-events: auto;
+    transform: scale(1);
 }
 
 .cio-modal-banner {
@@ -295,6 +299,76 @@
 .cio-search-empty-state p {
     margin: 0;
     color: #64748b;
+}
+
+.cio-grid-pagination {
+    margin: 24px auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.cio-grid-page-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border: 1px solid #d1d5db;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.cio-grid-page-input {
+    width: 24px;
+    min-width: 24px;
+    height: 20px;
+    border: none;
+    background: transparent;
+    color: #111827;
+    font: inherit;
+    line-height: 1;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.cio-grid-page-input::-webkit-outer-spin-button,
+.cio-grid-page-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cio-grid-pagination .joined-cio-arrow:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.cio-grid-pagination .joined-cio-arrow:disabled:hover {
+    background: #ffffff;
+}
+
+.cio-grid-page-separator {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+#cioGridPageSuffix {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    width: 24px;
+    min-width: 24px;
 }
 
 @media (max-width: 1100px) {
