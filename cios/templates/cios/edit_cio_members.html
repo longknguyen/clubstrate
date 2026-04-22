@@ -2,6 +2,10 @@
 
 {% block page_title %}{{ cio.name }}{% endblock %}
 
+{% block page_title_block %}
+    <h1 class="page-title cio-page-title">{{ cio.name }}</h1>
+{% endblock %}
+
 {% block sidebar_menu %}
     <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item">
         <i data-lucide="building-2"></i>

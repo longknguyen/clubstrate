@@ -3,6 +3,10 @@
 
 {% block page_title %}{{ cio.name }}{% endblock %}
 
+{% block page_title_block %}
+    <h1 class="page-title cio-page-title">{{ cio.name }}</h1>
+{% endblock %}
+
 {% block sidebar_menu %}
     <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item active">
         <i data-lucide="building-2"></i>
@@ -73,12 +77,10 @@
                         class="cio-banner-preview"
                         id="editCioBannerPreview"
                         style="
-                            {% if cio.banner_type == 'image' and cio.banner_image %}
-                                background-image: url('{{ cio.banner_image.url }}');
-                            {% elif cio.gradient %}
-                                background: {{ cio.gradient }};
+                            {% if cio.display_banner_kind == 'image' %}
+                                background-image: url('{{ cio.display_banner_value }}');
                             {% else %}
-                                background-image: url('{% static 'cios/default-banner.svg' %}');
+                                background: {{ cio.display_banner_value }};
                             {% endif %}
                         ">
                     </div>
@@ -136,7 +138,7 @@
                 <label>Icon</label>
                 <div class="cio-icon-upload-row">
                     <img
-                        src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                        src="{{ cio.display_icon_url }}"
                         alt="{{ cio.name }} icon preview"
                         class="cio-icon-preview"
                         id="editCioIconPreview">
@@ -171,13 +173,13 @@
     const editCioIconPreview = document.getElementById('editCioIconPreview');
     const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
     const defaultCioIcon = "{{ default_icon_data_uri|escapejs }}";
-    const originalCioIcon = "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}";
+    const originalCioIcon = "{{ cio.display_icon_url|escapejs }}";
 
     const editCioBannerInput = document.getElementById('editCioBannerInput');
     const editCioBannerPreview = document.getElementById('editCioBannerPreview');
     const removeBannerCheckbox = document.querySelector('input[name="remove_banner"]');
-    const defaultCioBanner = `{% if cio.gradient %}{{ cio.gradient }}{% else %}url('{% static 'cios/default-banner.svg' %}'){% endif %}`;
-    const originalCioBanner = `{% if cio.banner_type == 'image' and cio.banner_image %}url('{{ cio.banner_image.url }}'){% elif cio.gradient %}{{ cio.gradient }}{% else %}url('{% static 'cios/default-banner.svg' %}'){% endif %}`;
+    const defaultCioBanner = `{{ cio.default_gradient|escapejs }}`;
+    const originalCioBanner = `{% if cio.display_banner_kind == 'image' %}url('{{ cio.display_banner_value|escapejs }}'){% else %}{{ cio.display_banner_value|escapejs }}{% endif %}`;
 
     if (disabledSearchInput) {
         disabledSearchInput.value = '';
@@ -208,8 +210,8 @@
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
+            editCioBannerPreview.style.background = 'none';
             editCioBannerPreview.style.backgroundImage = `url(${URL.createObjectURL(file)})`;
-            editCioBannerPreview.style.background = '';
             if (removeBannerCheckbox) {
                 removeBannerCheckbox.checked = false;
             }
@@ -220,16 +222,16 @@
         removeBannerCheckbox.addEventListener('change', () => {
             if (removeBannerCheckbox.checked) {
                 if (defaultCioBanner.startsWith('url(')) {
+                    editCioBannerPreview.style.background = 'none';
                     editCioBannerPreview.style.backgroundImage = defaultCioBanner;
-                    editCioBannerPreview.style.background = '';
                 } else {
                     editCioBannerPreview.style.backgroundImage = 'none';
                     editCioBannerPreview.style.background = defaultCioBanner;
                 }
             } else {
                 if (originalCioBanner.startsWith('url(')) {
+                    editCioBannerPreview.style.background = 'none';
                     editCioBannerPreview.style.backgroundImage = originalCioBanner;
-                    editCioBannerPreview.style.background = '';
                 } else {
                     editCioBannerPreview.style.backgroundImage = 'none';
                     editCioBannerPreview.style.background = originalCioBanner;

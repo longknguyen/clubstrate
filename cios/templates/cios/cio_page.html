@@ -10,7 +10,7 @@
             class="cio-title-button {% if role != 'officer' %}cio-title-button-static{% endif %}"
             id="cioTitleButton"
             {% if role != 'officer' %}disabled{% endif %}>
-            <span class="page-title">{{ cio.name }}</span>
+            <span class="page-title cio-page-title">{{ cio.name }}</span>
             {% if role == 'officer' and pending_requests_count %}
                 <span class="notification-badge notification-badge-inline">{{ pending_requests_count }}</span>
             {% endif %}
@@ -34,12 +34,10 @@
 {% block sidebar_menu %}
     <div class="sidebar-cio-banner"
          style="
-                 {% if cio.banner_type == 'image' and cio.banner_image %}
-                     background-image: url('{{ cio.banner_image.url }}');
-                 {% elif cio.gradient %}
-                     background: {{ cio.gradient }};
+                 {% if cio.display_banner_kind == 'image' %}
+                     background-image: url('{{ cio.display_banner_value }}');
                  {% else %}
-                     background-image: url('{% static 'cios/default-banner.svg' %}');
+                     background: {{ cio.display_banner_value }};
                  {% endif %}
                  ">
     </div>
@@ -117,12 +115,10 @@
                         <div class="cio-info-hero">
                             <div class="cio-info-hero-banner"
                                  style="
-                                         {% if cio.banner_type == 'image' and cio.banner_image %}
-                                             background-image: url('{{ cio.banner_image.url }}');
-                                         {% elif cio.gradient %}
-                                             background: {{ cio.gradient }};
+                                         {% if cio.display_banner_kind == 'image' %}
+                                             background-image: url('{{ cio.display_banner_value }}');
                                          {% else %}
-                                             background-image: url('{% static 'cios/default-banner.svg' %}');
+                                             background: {{ cio.display_banner_value }};
                                          {% endif %}
                                          ">
                             </div>
@@ -138,15 +134,15 @@
                                 </div>
 
                                 <div class="cio-info-overview">
-                                    {% if cio.icon and 'cio-default-' in cio.icon.name %}
+                                    {% if not cio.icon or 'cio-default-' in cio.icon.name %}
                                         <img
-                                            src="{{ cio.icon.url }}"
+                                            src="{{ cio.display_icon_url }}"
                                             alt="{{ cio.name }} icon"
                                             class="cio-about-icon-image cio-about-icon-image-default">
                                     {% else %}
                                         <div class="cio-about-icon-panel">
                                             <img
-                                                src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                                src="{{ cio.display_icon_url }}"
                                                 alt="{{ cio.name }} icon"
                                                 class="cio-about-icon-image">
                                         </div>

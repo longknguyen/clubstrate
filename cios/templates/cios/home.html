@@ -21,18 +21,16 @@
                 </button>
                 <div class="cio-banner"
                      style="
-                             {% if cio.banner_type == 'image' and cio.banner_image %}
-                                 background-image: url('{{ cio.banner_image.url }}');
-                             {% elif cio.gradient %}
-                                 background: {{ cio.gradient }};
+                             {% if cio.display_banner_kind == 'image' %}
+                                 background-image: url('{{ cio.display_banner_value }}');
                              {% else %}
-                                 background-image: url('{% static 'cios/default-banner.svg' %}');
+                                 background: {{ cio.display_banner_value }};
                              {% endif %}
                              ">
                 </div>
                 <div class="cio-content">
                     <img
-                            src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                            src="{{ cio.display_icon_url }}"
                             alt="{{ cio.name }} icon"
                             class="cio-icon">
 
@@ -117,7 +115,10 @@
             modalNameEl.textContent = cio.name;
             modalMembersEl.textContent = cio.members + " members";
             modalDateEl.textContent = "Est. " + cio.created;
-            modalDescriptionEl.textContent = cio.description;
+            const truncatedDescription = (cio.description || "").length > 250
+                ? `${cio.description.slice(0, 250)}...`
+                : (cio.description || "");
+            modalDescriptionEl.textContent = truncatedDescription;
 
             if (cio.bannerType === "image" && cio.banner) {
                 modalBannerEl.style.backgroundImage = `url(${cio.banner})`;

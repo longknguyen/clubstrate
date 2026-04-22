@@ -109,6 +109,10 @@ def _build_default_cio_banner_gradient(palette):
     )
 
 
+def _build_default_cio_icon_data_uri(palette):
+    return f"data:image/svg+xml;utf8,{quote(_build_default_cio_icon_svg(palette))}"
+
+
 def _assign_default_cio_branding(cio):
     palette = random.choice(DEFAULT_CIO_PALETTES)
     cio.gradient = _build_default_cio_banner_gradient(palette)
@@ -153,7 +157,24 @@ def _get_cio_default_palette_index(cio):
     for idx, palette in enumerate(DEFAULT_CIO_PALETTES):
         if cio.gradient == _build_default_cio_banner_gradient(palette):
             return idx
-    return 0
+    seed = f"{cio.pk or ''}:{cio.created_by_id or ''}:{cio.name or ''}"
+    return sum(ord(char) for char in seed) % len(DEFAULT_CIO_PALETTES)
+
+
+def _attach_cio_branding_display(cio):
+    palette = DEFAULT_CIO_PALETTES[_get_cio_default_palette_index(cio)]
+    cio.default_gradient = _build_default_cio_banner_gradient(palette)
+    cio.default_icon_data_uri = _build_default_cio_icon_data_uri(palette)
+    cio.display_icon_url = cio.icon.url if cio.icon else cio.default_icon_data_uri
+
+    if cio.banner_type == 'image' and cio.banner_image:
+        cio.display_banner_kind = 'image'
+        cio.display_banner_value = cio.banner_image.url
+    else:
+        cio.display_banner_kind = 'gradient'
+        cio.display_banner_value = cio.gradient or cio.default_gradient
+
+    return cio
 
 
 def _time_divider_label(created_at):
@@ -242,14 +263,15 @@ def home(request):
             JoinRequest.objects.filter(cio=OuterRef('pk'), user=request.user, status='pending')
         ),
     ).order_by('name')
+    for cio in cios:
+        _attach_cio_branding_display(cio)
     return render(request, 'cios/home.html', {'cios': cios})
 
 @login_required
 def create_cio(request):
     form = CIOCreateForm(request.POST or None, request.FILES or None)
     palette_index = _get_default_cio_palette_index(request.POST.get('default_palette_index'))
-    default_icon_svg = _build_default_cio_icon_svg(DEFAULT_CIO_PALETTES[palette_index])
-    default_icon_data_uri = f"data:image/svg+xml;utf8,{quote(default_icon_svg)}"
+    default_icon_data_uri = _build_default_cio_icon_data_uri(DEFAULT_CIO_PALETTES[palette_index])
 
     if request.method == 'POST' and form.is_valid():
         cio = form.save(commit=False)
@@ -275,6 +297,7 @@ def create_cio(request):
 @login_required
 def cio_detail(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
+    _attach_cio_branding_display(cio)
 
     role = 'viewer'
     join_requests = []
@@ -338,6 +361,7 @@ def cio_detail(request, cio_id):
 @login_required
 def edit_cio_about(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
+    _attach_cio_branding_display(cio)
 
     if not _get_cio_officer_membership(request.user, cio):
         return redirect(f'/{cio.id}/')
@@ -367,14 +391,14 @@ def edit_cio_about(request, cio_id):
     context = _settings_sidebar_context(cio)
     context['form'] = form
     default_palette_index = _get_cio_default_palette_index(cio)
-    default_icon_svg = _build_default_cio_icon_svg(DEFAULT_CIO_PALETTES[default_palette_index])
-    context['default_icon_data_uri'] = f"data:image/svg+xml;utf8,{quote(default_icon_svg)}"
+    context['default_icon_data_uri'] = _build_default_cio_icon_data_uri(DEFAULT_CIO_PALETTES[default_palette_index])
     return render(request, 'cios/edit_cio_about.html', context)
 
 
 @login_required
 def edit_cio_members(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
+    _attach_cio_branding_display(cio)
 
     if not _get_cio_officer_membership(request.user, cio):
         return redirect(f'/{cio.id}/')
@@ -396,6 +420,7 @@ def edit_cio_members(request, cio_id):
 @login_required
 def edit_cio_requests(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
+    _attach_cio_branding_display(cio)
 
     if not _get_cio_officer_membership(request.user, cio):
         return redirect(f'/{cio.id}/')

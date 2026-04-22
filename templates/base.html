@@ -51,9 +51,9 @@
                         {% for cio in joined_cios %}
                             <a href="{% url 'cio_detail' cio.id %}"
                                class="joined-cio-link tooltip-bottom"
-                               data-tooltip="{{ cio.name }}"
+                                data-tooltip="{{ cio.name }}"
                                data-joined-cio-index="{{ forloop.counter0 }}">
-                                <img src="{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}"
+                                <img src="{{ cio.display_icon_url }}"
                                      alt="{{ cio.name }} icon"
                                      class="joined-cio-icon">
                             </a>
@@ -127,10 +127,10 @@
                 description: "{{ cio.description|escapejs }}",
                 members: "{{ cio.member_count }}",
                 created: "{{ cio.created_at|date:'Y M' }}",
-                icon: "{% if cio.icon %}{{ cio.icon.url }}{% else %}{% static 'cios/default_cio_icon.svg' %}{% endif %}",
-                bannerType: "{{ cio.banner_type|escapejs }}",
-                bannerGradient: "{{ cio.gradient|escapejs }}",
-                banner: "{% if cio.banner_image %}{{ cio.banner_image.url }}{% else %}{% static 'cios/default-banner.svg' %}{% endif %}",
+                icon: "{{ cio.display_icon_url|escapejs }}",
+                bannerType: "{{ cio.display_banner_kind|escapejs }}",
+                bannerGradient: "{{ cio.display_banner_value|escapejs }}",
+                banner: "{{ cio.display_banner_value|escapejs }}",
                 joined: {{ cio.is_joined|yesno:"true,false" }},
                 pendingRequest: {{ cio.has_pending_request|yesno:"true,false" }},
                 requestUrl: "{% url 'request-to-join' cio.id %}",

@@ -132,6 +132,10 @@ body {
     white-space: nowrap;
 }
 
+.cio-page-title {
+    max-width: 10ch;
+}
+
 .cio-scroll {
     display: flex;
     flex: 0 1 auto;
