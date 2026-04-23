@@ -29,6 +29,23 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+def _split_env_list(value):
+    return [item.strip() for item in (value or '').split(',') if item.strip()]
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://project-a-08-f1babc20b53c.herokuapp.com',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+APP_URL = os.getenv('APP_URL')
+if APP_URL:
+    CSRF_TRUSTED_ORIGINS.append(APP_URL.rstrip('/'))
+
+CSRF_TRUSTED_ORIGINS.extend(_split_env_list(os.getenv('CSRF_TRUSTED_ORIGINS')))
+
+
 # Application definition
 
 INSTALLED_APPS = [
