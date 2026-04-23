@@ -382,6 +382,46 @@ body {
     margin: 8px 0;
 }
 
+.sidebar-section-label {
+    margin: 4px 10px 2px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.sidebar-section-empty {
+    margin: 0 10px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.sidebar-dm-item {
+    min-height: 52px;
+}
+
+.sidebar-dm-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.sidebar-dm-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-dm-name {
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .mini-profile {
     display: flex;
     align-items: center;
@@ -642,6 +682,189 @@ body {
     flex: 1;
     padding: 40px;
     background: #ffffff;
+}
+
+.friends-page {
+    height: calc(100vh - 131px);
+}
+
+.friends-shell,
+.friends-chat-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.friends-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.friends-notice {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 14px;
+}
+
+.friends-list-shell,
+.friends-add-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.friends-list-header h2,
+.friends-add-shell h2 {
+    margin: 0;
+    font-size: 32px;
+    color: #111827;
+}
+
+.friends-list-header p,
+.friends-add-shell p {
+    margin: 6px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.friends-list-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.friends-list-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.friends-list-row:last-child {
+    border-bottom: none;
+}
+
+.friends-list-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.friends-list-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.friends-list-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friends-list-username {
+    margin-top: 2px;
+    color: #6b7280;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.friends-list-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.friends-list-page-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.friends-add-form {
+    width: min(100%, 620px);
+}
+
+.friends-add-input-wrap {
+    position: relative;
+}
+
+.friends-add-input {
+    width: 100%;
+    min-height: 54px;
+    padding: 0 178px 0 16px;
+    border: 2px solid #111827;
+    border-radius: 16px;
+    font-size: 14px;
+    color: #111827;
+}
+
+.friends-add-input:focus {
+    outline: none;
+}
+
+.friends-add-submit {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 12px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.friends-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 4px 0 16px;
+}
+
+.friends-chat-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friends-chat-header-copy h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #111827;
+}
+
+.friends-chat-message-list {
+    flex: 1;
+    min-height: 0;
+    padding: 0 0 16px;
+}
+
+.friends-chat-composer {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+    padding-top: 12px;
 }
 
 .app-layout.explore-page .content-panel {

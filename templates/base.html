@@ -44,14 +44,15 @@
         {% block top_center %}
             <div class="cio-scroll">
                 <div class="joined-cio-strip" id="joinedCioStrip" data-page-size="5">
-                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev" aria-label="Previous CIOs">
+                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev"
+                            aria-label="Previous CIOs">
                         <i data-lucide="chevron-left"></i>
                     </button>
                     <div class="joined-cio-track" id="joinedCioTrack">
                         {% for cio in joined_cios %}
                             <a href="{% url 'cio_detail' cio.id %}"
                                class="joined-cio-link tooltip-bottom"
-                                data-tooltip="{{ cio.name }}"
+                               data-tooltip="{{ cio.name }}"
                                data-joined-cio-index="{{ forloop.counter0 }}">
                                 <img src="{{ cio.display_icon_url }}"
                                      alt="{{ cio.name }} icon"
@@ -59,15 +60,22 @@
                             </a>
                         {% endfor %}
                     </div>
-                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext" aria-label="Next CIOs">
-                    <i data-lucide="chevron-right"></i>
-                </button>
-                <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
+                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext"
+                            aria-label="Next CIOs">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                    <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
+                </div>
             </div>
-        </div>
         {% endblock %}
 
         <div class="top-nav-actions">
+            <a href="{% url 'friends' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'friends' %}active{% endif %}"
+               data-tooltip="Friends">
+                <i data-lucide="users"></i>
+            </a>
+
             <a href="{% url 'home' %}"
                class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
                data-tooltip="Explore">
@@ -102,11 +110,15 @@
 
             <div class="mini-profile" id="miniProfileShell">
                 <div class="mini-profile-card joined-cio-hidden" id="miniProfileCard">
-                    <div class="mini-profile-card-banner" style="background: {{ user.banner_colour|default:'#111827' }};"></div>
+                    <div class="mini-profile-card-banner"
+                         style="background: {{ user.banner_colour|default:'#111827' }};"></div>
                     <div class="mini-profile-card-body">
-                        <img src="{{ user.profile.image.url }}" class="mini-profile-card-avatar" alt="{{ user.username }} profile image">
+                        <img src="{{ user.profile.image.url }}" class="mini-profile-card-avatar"
+                             alt="{{ user.username }} profile image">
                         <div class="mini-profile-card-copy">
-                            <span class="mini-profile-card-name">{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                            <span class="mini-profile-card-name">{% if user.first_name or user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}{% else %}
+                                {{ user.username }}{% endif %}</span>
                             <div class="mini-profile-card-meta">
                                 <span>@{{ user.username }}</span>
                                 <span class="mini-profile-card-separator" aria-hidden="true">•</span>
@@ -119,10 +131,12 @@
                         </a>
                     </div>
                 </div>
-                <button type="button" class="mini-profile-trigger" id="miniProfileTrigger" aria-expanded="false" aria-controls="miniProfileCard">
+                <button type="button" class="mini-profile-trigger" id="miniProfileTrigger" aria-expanded="false"
+                        aria-controls="miniProfileCard">
                     <img src="{{ user.profile.image.url }}" class="profile-pic" alt="{{ user.username }} profile image">
                     <div class="profile-info">
-                        <span class="name">{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                        <span class="name">{% if user.first_name or user.last_name %}{{ user.first_name }}
+                            {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
                         <span class="profile-subline">
                             <span class="profile-subline-item profile-subline-pronouns">{{ user.pronouns|default:"No pronouns listed" }}</span>
                             <span class="profile-subline-item profile-subline-username">@{{ user.username }}</span>
