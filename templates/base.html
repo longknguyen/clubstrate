@@ -100,12 +100,35 @@
                 {% endblock %}
             </div>
 
-            <div class="mini-profile">
-                <img src="{{ user.profile.image.url }}" class="profile-pic">
-                <div class="profile-info">
-                    <span class="name">{{ user.first_name }} {{ user.last_name }}</span>
-                    <span class="pronouns">{{ user.pronouns }}</span>
+            <div class="mini-profile" id="miniProfileShell">
+                <div class="mini-profile-card joined-cio-hidden" id="miniProfileCard">
+                    <div class="mini-profile-card-banner" style="background: {{ user.banner_colour|default:'#111827' }};"></div>
+                    <div class="mini-profile-card-body">
+                        <img src="{{ user.profile.image.url }}" class="mini-profile-card-avatar" alt="{{ user.username }} profile image">
+                        <div class="mini-profile-card-copy">
+                            <span class="mini-profile-card-name">{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                            <div class="mini-profile-card-meta">
+                                <span>@{{ user.username }}</span>
+                                <span class="mini-profile-card-separator" aria-hidden="true">•</span>
+                                <span>{{ user.pronouns|default:"No pronouns listed" }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'profile_edit' %}" class="mini-profile-card-edit">
+                            <i data-lucide="pencil"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </div>
                 </div>
+                <button type="button" class="mini-profile-trigger" id="miniProfileTrigger" aria-expanded="false" aria-controls="miniProfileCard">
+                    <img src="{{ user.profile.image.url }}" class="profile-pic" alt="{{ user.username }} profile image">
+                    <div class="profile-info">
+                        <span class="name">{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                        <span class="profile-subline">
+                            <span class="profile-subline-item profile-subline-pronouns">{{ user.pronouns|default:"No pronouns listed" }}</span>
+                            <span class="profile-subline-item profile-subline-username">@{{ user.username }}</span>
+                        </span>
+                    </div>
+                </button>
                 <a href="{% url 'profile' %}" class="settings-icon" data-tooltip="User Settings">
                     <i data-lucide="settings"></i>
                 </a>
@@ -143,6 +166,10 @@
         const joinedCioLinks = Array.from(document.querySelectorAll("[data-joined-cio-index]"));
         const joinedCioPrev = document.getElementById("joinedCioPrev");
         const joinedCioNext = document.getElementById("joinedCioNext");
+        const miniProfileShell = document.getElementById("miniProfileShell");
+        const miniProfileTrigger = document.getElementById("miniProfileTrigger");
+        const miniProfileCard = document.getElementById("miniProfileCard");
+        let miniProfileHideTimeout = null;
 
         if (joinedCioStrip && joinedCioPrev && joinedCioNext && joinedCioLinks.length > 0) {
             const pageSize = Number(joinedCioStrip.dataset.pageSize || 5);
@@ -174,6 +201,53 @@
             }
 
             renderJoinedCioPage();
+        }
+
+        if (miniProfileShell && miniProfileTrigger && miniProfileCard) {
+            const closeMiniProfileCard = () => {
+                miniProfileCard.classList.remove("is-open");
+                miniProfileTrigger.setAttribute("aria-expanded", "false");
+                if (miniProfileHideTimeout) {
+                    window.clearTimeout(miniProfileHideTimeout);
+                }
+                miniProfileHideTimeout = window.setTimeout(() => {
+                    miniProfileCard.classList.add("joined-cio-hidden");
+                    miniProfileHideTimeout = null;
+                }, 180);
+            };
+
+            const openMiniProfileCard = () => {
+                if (miniProfileHideTimeout) {
+                    window.clearTimeout(miniProfileHideTimeout);
+                    miniProfileHideTimeout = null;
+                }
+                miniProfileCard.classList.remove("joined-cio-hidden");
+                window.requestAnimationFrame(() => {
+                    miniProfileCard.classList.add("is-open");
+                });
+                miniProfileTrigger.setAttribute("aria-expanded", "true");
+            };
+
+            miniProfileTrigger.addEventListener("click", () => {
+                const isOpen = miniProfileCard.classList.contains("is-open");
+                if (isOpen) {
+                    closeMiniProfileCard();
+                } else {
+                    openMiniProfileCard();
+                }
+            });
+
+            document.addEventListener("click", (event) => {
+                if (!miniProfileShell.contains(event.target)) {
+                    closeMiniProfileCard();
+                }
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    closeMiniProfileCard();
+                }
+            });
         }
 
         lucide.createIcons();

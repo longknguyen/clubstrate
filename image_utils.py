@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 
 try:
     from PIL import Image, ImageOps, ImageSequence
-except ImportError:  # pragma: no cover - Pillow is declared in requirements but may be missing locally.
+except ImportError:
     Image = None
     ImageOps = None
     ImageSequence = None
