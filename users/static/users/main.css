@@ -267,6 +267,33 @@ body {
     align-items: flex-end;
 }
 
+.friends-dm-recipient {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    max-width: min(28vw, 280px);
+    margin-left: 4px;
+}
+
+.friends-dm-recipient-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.friends-dm-recipient-name {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 
 .search-bar {
     padding: 8px 12px;
@@ -682,17 +709,26 @@ body {
     flex: 1;
     padding: 40px;
     background: #ffffff;
-}
-
-.friends-page {
-    height: calc(100vh - 131px);
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .friends-shell,
-.friends-chat-shell {
+.friends-chat-shell,
+.friends-chat-page {
     display: flex;
     flex-direction: column;
-    height: 100%;
+}
+
+.friends-page {
+    min-height: 100%;
+}
+
+.friends-chat-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 131px);
+    min-height: 0;
 }
 
 .friends-tabs {
@@ -709,6 +745,14 @@ body {
     background: #f9fafb;
     color: #374151;
     font-size: 14px;
+}
+
+.friends-add-error {
+    margin: 8px 2px 0;
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
 }
 
 .friends-list-shell,
@@ -832,31 +876,12 @@ body {
     font-weight: 600;
 }
 
-.friends-chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    padding: 4px 0 16px;
-}
-
-.friends-chat-avatar {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.friends-chat-header-copy h2 {
-    margin: 0;
-    font-size: 20px;
-    color: #111827;
-}
-
 .friends-chat-message-list {
     flex: 1;
     min-height: 0;
     padding: 0 0 16px;
+    background: transparent !important;
+    overflow-y: auto;
 }
 
 .friends-chat-composer {
@@ -864,7 +889,51 @@ body {
     grid-template-columns: 1fr auto;
     gap: 12px;
     align-items: end;
-    padding-top: 12px;
+    flex-shrink: 0;
+    padding: 12px 0 0;
+    position: sticky;
+    bottom: 0;
+    background: #ffffff;
+    z-index: 5;
+}
+
+.friends-chat-composer-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.friends-chat-input {
+    min-height: 56px;
+    max-height: 180px;
+}
+
+.friends-chat-counter {
+    align-self: flex-end;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1;
+}
+
+.friends-chat-page .chat-message {
+    max-width: min(78%, 720px);
+}
+
+.friends-chat-page .chat-message:not(.chat-message-own) .chat-message-bubble {
+    background: #e5e7eb;
+    border-color: #e5e7eb;
+    box-shadow: none;
+}
+
+.friends-chat-page .chat-message-list {
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent !important;
+}
+
+.friends-chat-page .chat-date-divider span {
+    background: #ffffff;
 }
 
 .app-layout.explore-page .content-panel {

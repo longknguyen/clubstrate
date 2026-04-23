@@ -1,0 +1,45 @@
+{% if show_time_divider %}
+    <div class="chat-date-divider">
+        <span>{{ time_divider_label }}</span>
+    </div>
+{% endif %}
+<article
+    class="chat-message {% if is_own %}chat-message-own{% endif %} {% if not show_header %}chat-message-grouped{% endif %}"
+    data-message-sender-id="{{ message.author_id }}"
+    data-message-created-at="{{ message.created_at|date:'c' }}">
+    {% if show_avatar %}
+        <img
+            src="{{ message.author.profile.image.url }}"
+            alt="{{ message.author.username }} profile image"
+            class="chat-message-avatar">
+    {% else %}
+        <div class="chat-message-avatar-spacer" aria-hidden="true"></div>
+    {% endif %}
+
+    <div class="chat-message-content">
+        {% if show_header %}
+            <div class="chat-message-meta">
+                <button
+                    type="button"
+                    class="chat-message-author chat-user-trigger"
+                    title="View profile"
+                    data-user-name="{{ display_name }}"
+                    data-user-username="@{{ message.author.username }}"
+                    data-user-pronouns="{{ message.author.pronouns|default:'No pronouns listed' }}"
+                    data-user-role="{{ cio_role_label }}"
+                    data-user-image="{{ message.author.profile.image.url }}"
+                    data-user-banner="{{ message.author.banner_colour|default:'#111827' }}">
+                    {{ display_name }}
+                </button>
+                <span class="discussion-meta-dot">•</span>
+                <span>{{ timestamp_label }}</span>
+            </div>
+        {% endif %}
+
+        {% if message.content %}
+            <div class="chat-message-bubble">
+                <p>{{ message.content }}</p>
+            </div>
+        {% endif %}
+    </div>
+</article>

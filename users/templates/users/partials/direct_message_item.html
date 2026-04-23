@@ -1,9 +1,14 @@
 {% if show_time_divider %}
-    <div class="chat-date-divider">
+    <div class="chat-date-divider" data-divider-day="{{ message.created_at|date:'Y-m-d' }}">
         <span>{{ time_divider_label }}</span>
     </div>
 {% endif %}
-<article class="chat-message {% if is_own %}chat-message-own{% endif %}">
+<article
+    class="chat-message {% if is_own %}chat-message-own{% endif %}"
+    data-message-sender-id="{{ message.sender_id }}"
+    data-message-created-at="{{ message.created_at|date:'c' }}"
+    data-message-day="{{ message.created_at|date:'Y-m-d' }}"
+    data-search-text="{{ display_name }} {{ message.sender.username }} {{ message.content|default:''|escape }}">
     {% if show_avatar %}
         <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.username }}" class="chat-message-avatar">
     {% else %}

@@ -1,13 +1,4 @@
-<section class="messages-shell">
-    <div class="chat-room-card">
-        <div class="chat-room-header">
-            <div>
-                {% comment %}<span class="chat-room-label">General Chat</span>{% endcomment %}
-                {% comment %}<h3>{{ cio.name }}</h3>{% endcomment %}
-                <p>Recent messages from members and officers.</p>
-            </div>
-        </div>
-
+<section class="discussion-chat-page" data-cio-discussion-id="{{ cio.id }}">
         <div class="chat-message-list" id="chatMessageList">
             {% for message in discussion_messages %}
                 {% with message_day=message.created_at|date:"Y-m-d" %}
@@ -20,6 +11,8 @@
                     <article
                             class="chat-message {% if message.author == user %}chat-message-own{% endif %} {% if not message.show_header %}chat-message-grouped{% endif %}"
                             data-message-day="{{ message_day }}"
+                            data-message-sender-id="{{ message.author_id }}"
+                            data-message-created-at="{{ message.created_at|date:'c' }}"
                             data-search-text="{{ message.display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
                         {% if message.show_avatar %}
                             <img
@@ -93,14 +86,14 @@
             <input id="chatAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
 
             <textarea name="content" placeholder="Type a message..." class="chat-composer-input"
-                      id="chatComposerInput"></textarea>
+                      id="chatComposerInput" maxlength="2000"></textarea>
 
             <div class="chat-composer-actions">
+                <span class="chat-character-counter" id="chatComposerCounter">0 / 2000</span>
                 <span class="chat-attachment-name" id="chatAttachmentName">No file selected</span>
                 <button type="submit" class="discussion-action-btn chat-send-btn">Send</button>
             </div>
         </form>
-    </div>
 </section>
 
 <div class="chat-user-modal" id="chatUserModal">
@@ -184,9 +177,16 @@
     const chatUserClose = document.getElementById('chatUserClose');
     const chatComposerForm = document.getElementById('chatComposerForm');
     const chatComposerInput = document.getElementById('chatComposerInput');
+    const chatComposerCounter = document.getElementById('chatComposerCounter');
     const chatImageModal = document.getElementById('chatImageModal');
     const chatImagePreview = document.getElementById('chatImagePreview');
     const chatImageClose = document.getElementById('chatImageClose');
+    const discussionChatPage = document.querySelector('[data-cio-discussion-id]');
+
+    function updateComposerCounter() {
+        if (!chatComposerInput || !chatComposerCounter) return;
+        chatComposerCounter.textContent = `${chatComposerInput.value.length} / 2000`;
+    }
     if (chatAttachmentInput && chatAttachmentName) {
         chatAttachmentInput.addEventListener('change', () => {
             const file = chatAttachmentInput.files && chatAttachmentInput.files[0];
@@ -198,11 +198,10 @@
         chatComposerInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
-                if (validateMessageForm(chatComposerForm)) {
-                    chatComposerForm.requestSubmit();
-                }
+                chatComposerForm.requestSubmit();
             }
         });
+        chatComposerInput.addEventListener('input', updateComposerCounter);
     }
 
     function scrollToLatestMessage() {
@@ -211,6 +210,38 @@
                 chatMessageList.scrollTop = chatMessageList.scrollHeight;
             });
         }
+    }
+
+    function shouldGroupMessages(previousMessageEl, nextMessageEl) {
+        if (!previousMessageEl || !nextMessageEl) return false;
+
+        const previousSenderId = previousMessageEl.dataset.messageSenderId;
+        const nextSenderId = nextMessageEl.dataset.messageSenderId;
+        if (!previousSenderId || previousSenderId !== nextSenderId) return false;
+
+        const previousCreatedAt = new Date(previousMessageEl.dataset.messageCreatedAt || '');
+        const nextCreatedAt = new Date(nextMessageEl.dataset.messageCreatedAt || '');
+        if (Number.isNaN(previousCreatedAt.getTime()) || Number.isNaN(nextCreatedAt.getTime())) return false;
+
+        const sameDay =
+            previousCreatedAt.getFullYear() === nextCreatedAt.getFullYear()
+            && previousCreatedAt.getMonth() === nextCreatedAt.getMonth()
+            && previousCreatedAt.getDate() === nextCreatedAt.getDate();
+        const withinFiveMinutes = (nextCreatedAt - previousCreatedAt) <= (5 * 60 * 1000);
+
+        return sameDay && withinFiveMinutes;
+    }
+
+    function updateGroupedAvatar(previousMessageEl) {
+        if (!previousMessageEl) return;
+
+        const avatarEl = previousMessageEl.querySelector('.chat-message-avatar');
+        if (!avatarEl) return;
+
+        const spacerEl = document.createElement('div');
+        spacerEl.className = 'chat-message-avatar-spacer';
+        spacerEl.setAttribute('aria-hidden', 'true');
+        avatarEl.replaceWith(spacerEl);
     }
 
     function focusChatComposer() {
@@ -270,7 +301,7 @@
         return matchCount;
     };
 
-    document.querySelectorAll('.chat-user-trigger').forEach((triggerEl) => {
+    function bindChatUserTrigger(triggerEl) {
         triggerEl.addEventListener('click', () => {
             chatUserBanner.style.background = triggerEl.dataset.userBanner || '#111827';
             chatUserAvatar.src = triggerEl.dataset.userImage || '';
@@ -281,6 +312,10 @@
             chatUserRole.textContent = triggerEl.dataset.userRole || 'Member';
             chatUserModal.classList.add('is-open');
         });
+    }
+
+    document.querySelectorAll('.chat-user-trigger').forEach((triggerEl) => {
+        bindChatUserTrigger(triggerEl);
     });
 
     if (chatUserClose) {
@@ -297,7 +332,7 @@
         });
     }
 
-    document.querySelectorAll('[data-chat-image]').forEach((triggerEl) => {
+    function bindChatImageTrigger(triggerEl) {
         triggerEl.addEventListener('click', () => {
             if (!chatImageModal || !chatImagePreview) return;
 
@@ -305,6 +340,10 @@
             chatImagePreview.alt = triggerEl.dataset.chatImageAlt || 'Chat image preview';
             chatImageModal.classList.add('is-open');
         });
+    }
+
+    document.querySelectorAll('[data-chat-image]').forEach((triggerEl) => {
+        bindChatImageTrigger(triggerEl);
     });
 
     if (chatImageClose) {
@@ -331,4 +370,58 @@
         }
         return true;
     }
+
+    if (discussionChatPage && chatComposerForm && chatComposerInput) {
+        const cioId = discussionChatPage.dataset.cioDiscussionId;
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${window.location.host}/ws/cios/${cioId}/discussions/`);
+
+        socket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            if (!chatMessageList || payload.type !== 'message') return;
+
+            const emptyState = chatMessageList.querySelector('.chat-empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = payload.html;
+            const previousMessageEl = chatMessageList.querySelector('.chat-message:last-of-type');
+            const newMessageEl = wrapper.querySelector('.chat-message');
+
+            if (shouldGroupMessages(previousMessageEl, newMessageEl)) {
+                updateGroupedAvatar(previousMessageEl);
+            }
+
+            Array.from(wrapper.children).forEach((child) => {
+                chatMessageList.appendChild(child);
+                if (child.matches && child.matches('.chat-message')) {
+                    child.querySelectorAll('.chat-user-trigger').forEach(bindChatUserTrigger);
+                    child.querySelectorAll('[data-chat-image]').forEach(bindChatImageTrigger);
+                }
+            });
+            scrollToLatestMessage();
+        });
+
+        chatComposerForm.addEventListener('submit', (event) => {
+            const file = chatAttachmentInput && chatAttachmentInput.files && chatAttachmentInput.files[0];
+            if (file) {
+                if (!validateMessageForm(chatComposerForm)) {
+                    event.preventDefault();
+                }
+                return;
+            }
+
+            event.preventDefault();
+            const content = chatComposerInput.value.trim();
+            if (!content || socket.readyState !== WebSocket.OPEN) return;
+
+            socket.send(JSON.stringify({content}));
+            chatComposerInput.value = '';
+            updateComposerCounter();
+        });
+    }
+
+    updateComposerCounter();
 </script>

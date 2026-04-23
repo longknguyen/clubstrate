@@ -89,10 +89,12 @@
             </a>
         </div>
 
-        <div class="top-right search-shell">
-            <input type="text" placeholder="Search..." class="search-bar">
-            <div id="globalSearchResults" class="global-search-results joined-cio-hidden"></div>
-        </div>
+        {% block top_right %}
+            <div class="top-right search-shell">
+                <input type="text" placeholder="Search..." class="search-bar">
+                <div id="globalSearchResults" class="global-search-results joined-cio-hidden"></div>
+            </div>
+        {% endblock %}
 
     </div>
 

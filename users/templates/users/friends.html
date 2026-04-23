@@ -2,8 +2,48 @@
 
 {% block page_title %}Friends{% endblock %}
 
+{% block top_center %}
+    {% if selected_friend and selected_friendship %}
+        <div class="cio-scroll">
+            <div class="joined-cio-strip" id="joinedCioStrip" data-page-size="5">
+                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev" aria-label="Previous CIOs">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <div class="joined-cio-track" id="joinedCioTrack">
+                    {% for cio in joined_cios %}
+                        <a href="{% url 'cio_detail' cio.id %}"
+                           class="joined-cio-link tooltip-bottom"
+                           data-tooltip="{{ cio.name }}"
+                           data-joined-cio-index="{{ forloop.counter0 }}">
+                            <img src="{{ cio.display_icon_url }}"
+                                 alt="{{ cio.name }} icon"
+                                 class="joined-cio-icon">
+                        </a>
+                    {% endfor %}
+                </div>
+                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext" aria-label="Next CIOs">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+                <div class="friends-dm-recipient">
+                    <img src="{{ selected_friend.profile.image.url }}" alt="{{ selected_friend.username }}" class="friends-dm-recipient-avatar">
+                    <span class="friends-dm-recipient-name">
+                        {% if selected_friend.first_name or selected_friend.last_name %}
+                            {{ selected_friend.first_name }} {{ selected_friend.last_name }}
+                        {% else %}
+                            {{ selected_friend.username }}
+                        {% endif %}
+                    </span>
+                </div>
+                <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
+            </div>
+        </div>
+    {% else %}
+        {{ block.super }}
+    {% endif %}
+{% endblock %}
+
 {% block sidebar_menu %}
-    <a href="{% url 'friends' %}" class="sidebar-item active">
+    <a href="{% url 'friends' %}?section=all" class="sidebar-item {% if section != 'dm' %}active{% endif %}">
         <i data-lucide="users"></i>
         <span>Friends</span>
     </a>
@@ -24,22 +64,20 @@
 {% block content %}
     <div class="friends-page">
         {% if selected_friend and selected_friendship %}
-            <section class="friends-chat-shell" data-friendship-id="{{ selected_friendship.id }}">
-                <div class="friends-chat-header">
-                    <img src="{{ selected_friend.profile.image.url }}" alt="{{ selected_friend.username }}" class="friends-chat-avatar">
-                    <div class="friends-chat-header-copy">
-                        <h2>{{ selected_friend.first_name }} {{ selected_friend.last_name }}</h2>
-                    </div>
-                </div>
-
+            <section class="friends-chat-page" data-friendship-id="{{ selected_friendship.id }}">
                 <div class="chat-message-list friends-chat-message-list" id="directMessageList">
                     {% for message in direct_messages %}
                         {% if message.show_time_divider %}
-                            <div class="chat-date-divider">
+                            <div class="chat-date-divider" data-divider-day="{{ message.created_at|date:'Y-m-d' }}">
                                 <span>{{ message.time_divider_label }}</span>
                             </div>
                         {% endif %}
-                        <article class="chat-message {% if message.sender == user %}chat-message-own{% endif %} {% if not message.show_header %}chat-message-grouped{% endif %}">
+                        <article
+                            class="chat-message {% if message.sender == user %}chat-message-own{% endif %} {% if not message.show_header %}chat-message-grouped{% endif %}"
+                            data-message-sender-id="{{ message.sender_id }}"
+                            data-message-created-at="{{ message.created_at|date:'c' }}"
+                            data-message-day="{{ message.created_at|date:'Y-m-d' }}"
+                            data-search-text="{{ message.display_name }} {{ message.sender.username }} {{ message.content|default:''|escape }}">
                             {% if message.show_avatar %}
                                 <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.username }}" class="chat-message-avatar">
                             {% else %}
@@ -67,7 +105,10 @@
                 </div>
 
                 <form class="friends-chat-composer" id="directMessageForm">
-                    <textarea id="directMessageInput" class="chat-composer-input" placeholder="Type a message..."></textarea>
+                    <div class="friends-chat-composer-main">
+                        <textarea id="directMessageInput" class="chat-composer-input friends-chat-input" placeholder="Type a message..." maxlength="2000"></textarea>
+                        <div class="friends-chat-counter" id="directMessageCounter">0 / 2000</div>
+                    </div>
                     <button type="submit" class="discussion-action-btn chat-send-btn">Send</button>
                 </form>
             </section>
@@ -77,10 +118,6 @@
                     <a href="{% url 'friends' %}?section=all" class="cio-subsection-link {% if section != 'add' %}active{% endif %}">All</a>
                     <a href="{% url 'friends' %}?section=add" class="cio-subsection-link {% if section == 'add' %}active{% endif %}">Add Friend</a>
                 </div>
-
-                {% if notice %}
-                    <div class="friends-notice">{{ notice }}</div>
-                {% endif %}
 
                 {% if section == 'add' %}
                     <div class="friends-add-shell">
@@ -97,10 +134,16 @@
                                     maxlength="150">
                                 <button type="submit" class="friends-add-submit">Send Friend Request</button>
                             </div>
+                            {% if notice %}
+                                <p class="friends-add-error">{{ notice }}</p>
+                            {% endif %}
                         </form>
                     </div>
                 {% else %}
                     <div class="friends-list-shell">
+                        {% if notice %}
+                            <div class="friends-notice">{{ notice }}</div>
+                        {% endif %}
                         <div class="friends-list-header">
                             <div>
                                 <h2>All</h2>
@@ -204,6 +247,10 @@
         const directMessageList = document.getElementById('directMessageList');
         const directMessageForm = document.getElementById('directMessageForm');
         const directMessageInput = document.getElementById('directMessageInput');
+        const directMessageCounter = document.getElementById('directMessageCounter');
+        const dmSearchBar = document.querySelector('.search-bar');
+        const dmMessages = Array.from(document.querySelectorAll('[data-message-day]'));
+        const dmDividers = Array.from(document.querySelectorAll('[data-divider-day]'));
 
         function scrollDmToLatest() {
             if (!directMessageList) return;
@@ -212,18 +259,102 @@
             });
         }
 
+        function shouldGroupMessages(previousMessageEl, nextMessageEl) {
+            if (!previousMessageEl || !nextMessageEl) return false;
+
+            const previousSenderId = previousMessageEl.dataset.messageSenderId;
+            const nextSenderId = nextMessageEl.dataset.messageSenderId;
+            if (!previousSenderId || previousSenderId !== nextSenderId) return false;
+
+            const previousCreatedAt = new Date(previousMessageEl.dataset.messageCreatedAt || '');
+            const nextCreatedAt = new Date(nextMessageEl.dataset.messageCreatedAt || '');
+            if (Number.isNaN(previousCreatedAt.getTime()) || Number.isNaN(nextCreatedAt.getTime())) return false;
+
+            const sameDay =
+                previousCreatedAt.getFullYear() === nextCreatedAt.getFullYear()
+                && previousCreatedAt.getMonth() === nextCreatedAt.getMonth()
+                && previousCreatedAt.getDate() === nextCreatedAt.getDate();
+            const withinFiveMinutes = (nextCreatedAt - previousCreatedAt) <= (5 * 60 * 1000);
+
+            return sameDay && withinFiveMinutes;
+        }
+
+        function updateGroupedAvatar(previousMessageEl) {
+            if (!previousMessageEl) return;
+
+            const avatarEl = previousMessageEl.querySelector('.chat-message-avatar');
+            if (!avatarEl) return;
+
+            const spacerEl = document.createElement('div');
+            spacerEl.className = 'chat-message-avatar-spacer';
+            spacerEl.setAttribute('aria-hidden', 'true');
+            avatarEl.replaceWith(spacerEl);
+        }
+
+        function filterDirectMessages(query) {
+            const normalizedQuery = (query || '').trim().toLowerCase();
+
+            dmMessages.forEach((messageEl) => {
+                const haystack = (messageEl.dataset.searchText || '').toLowerCase();
+                const matches = !normalizedQuery || haystack.includes(normalizedQuery);
+                messageEl.style.display = matches ? '' : 'none';
+            });
+
+            dmDividers.forEach((dividerEl) => {
+                let hasVisibleMessages = false;
+                let sibling = dividerEl.nextElementSibling;
+
+                while (sibling && !sibling.hasAttribute('data-divider-day')) {
+                    if (sibling.hasAttribute('data-message-day') && sibling.style.display !== 'none') {
+                        hasVisibleMessages = true;
+                        break;
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+
+                dividerEl.style.display = hasVisibleMessages ? '' : 'none';
+            });
+        }
+
+        if (dmSearchBar && directMessageShell) {
+            dmSearchBar.placeholder = 'Search this DM...';
+            dmSearchBar.addEventListener('input', () => {
+                filterDirectMessages(dmSearchBar.value);
+            });
+        }
+
         if (directMessageShell && directMessageForm && directMessageInput) {
             const friendshipId = directMessageShell.dataset.friendshipId;
             const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
             const socket = new WebSocket(`${protocol}://${window.location.host}/ws/friends/${friendshipId}/`);
 
+            const updateDirectMessageCounter = () => {
+                if (!directMessageCounter) return;
+                directMessageCounter.textContent = `${directMessageInput.value.length} / 2000`;
+            };
+
             socket.addEventListener('message', (event) => {
                 const payload = JSON.parse(event.data);
                 if (!directMessageList || payload.type !== 'message') return;
 
+                const previousMessageEl = directMessageList.querySelector('.chat-message:last-of-type');
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = payload.html;
+                const newMessageEl = wrapper.querySelector('.chat-message');
+                const newDividerEls = Array.from(wrapper.querySelectorAll('[data-divider-day]'));
+
+                if (shouldGroupMessages(previousMessageEl, newMessageEl)) {
+                    updateGroupedAvatar(previousMessageEl);
+                }
+
                 Array.from(wrapper.children).forEach((child) => directMessageList.appendChild(child));
+                if (newMessageEl) {
+                    dmMessages.push(newMessageEl);
+                }
+                newDividerEls.forEach((dividerEl) => dmDividers.push(dividerEl));
+                if (dmSearchBar) {
+                    filterDirectMessages(dmSearchBar.value);
+                }
                 scrollDmToLatest();
             });
 
@@ -233,6 +364,7 @@
                 if (!content || socket.readyState !== WebSocket.OPEN) return;
                 socket.send(JSON.stringify({content}));
                 directMessageInput.value = '';
+                updateDirectMessageCounter();
             });
 
             directMessageInput.addEventListener('keydown', (event) => {
@@ -242,6 +374,12 @@
                 }
             });
 
+            directMessageInput.addEventListener('input', updateDirectMessageCounter);
+
+            updateDirectMessageCounter();
+            if (dmSearchBar) {
+                filterDirectMessages(dmSearchBar.value);
+            }
             scrollDmToLatest();
         }
     </script>
