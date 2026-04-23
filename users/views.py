@@ -6,6 +6,7 @@ from django.contrib.auth.models import Group
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from image_utils import convert_upload_to_webp
 from .forms import (
     PROFILE_FIRST_NAME_MAX_LENGTH,
     PROFILE_LAST_NAME_MAX_LENGTH,
@@ -84,7 +85,7 @@ class ProfileView(LoginRequiredMixin, View):
     def post(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
         if 'image' in request.FILES:
-            profile.image = request.FILES['image']
+            profile.image = convert_upload_to_webp(request.FILES['image'], stem='profile')
             profile.save()
         return redirect('/users/profile/')
 
@@ -221,7 +222,7 @@ class ProfileEditView(LoginRequiredMixin, View):
             if request.POST.get("remove_image") == "1":
                 profile.image = "profile_pics/default.jpg"
             elif "image" in request.FILES:
-                profile.image = request.FILES["image"]
+                profile.image = convert_upload_to_webp(request.FILES["image"], stem='profile')
 
             profile.save()
             return redirect('/users/profile/')

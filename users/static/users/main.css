@@ -6,12 +6,13 @@ body {
 .app-layout {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 .main-container {
     display: flex;
     flex: 1;
+    min-height: 0;
 }
 
 .top-bar {
@@ -22,6 +23,10 @@ body {
     padding: 0 16px;
     border-bottom: 1px solid #e5e7eb;
     background: #f3f3f3;
+    position: sticky;
+    top: 0;
+    z-index: 1200;
+    backdrop-filter: blur(10px);
 }
 
 .top-left {

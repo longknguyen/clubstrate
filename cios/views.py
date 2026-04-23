@@ -10,6 +10,7 @@ from urllib.parse import quote
 import uuid
 
 from discussions.models import Post
+from image_utils import convert_upload_to_webp
 from .forms import CIOAboutForm, CIOCreateForm
 from .models import CIO, Membership, JoinRequest
 
@@ -276,6 +277,8 @@ def create_cio(request):
     if request.method == 'POST' and form.is_valid():
         cio = form.save(commit=False)
         cio.created_by = request.user
+        if request.FILES.get('icon'):
+            cio.icon = convert_upload_to_webp(request.FILES['icon'], stem='cio-icon')
         _assign_default_cio_branding_with_palette(cio, palette_index)
         cio.save()
         Membership.objects.create(
@@ -377,13 +380,13 @@ def edit_cio_about(request, cio_id):
             cio.icon = None
             _assign_default_cio_branding_with_palette(cio, default_palette_index)
         elif request.FILES.get('icon'):
-            cio.icon = request.FILES['icon']
+            cio.icon = convert_upload_to_webp(request.FILES['icon'], stem='cio-icon')
 
         if form.cleaned_data.get('remove_banner'):
             cio.banner_image = None
             cio.banner_type = 'default'
         elif request.FILES.get('banner_image'):
-            cio.banner_image = request.FILES['banner_image']
+            cio.banner_image = convert_upload_to_webp(request.FILES['banner_image'], stem='cio-banner')
             cio.banner_type = 'image'
 
         cio.save()

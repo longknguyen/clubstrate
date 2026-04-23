@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from cios.models import CIO, Membership
 from discussions.models import Post, Comment
+from image_utils import convert_upload_to_webp
 
 
 def _display_name_for_user(user):
@@ -107,7 +108,7 @@ def create_post(request, cio_id):
             author=request.user,
             title=title,
             content=content,
-            image=image,
+            image=convert_upload_to_webp(image, stem='announcement') if image else None,
             kind=Post.ANNOUNCEMENT,
         )
 
@@ -135,7 +136,7 @@ def create_message(request, cio_id):
             author=request.user,
             title=content[:80],
             content=content,
-            image=image,
+            image=convert_upload_to_webp(image, stem='discussion') if image else None,
             kind=Post.DISCUSSION,
         )
 
@@ -164,7 +165,7 @@ def create_comment(request, post_id):
             post=post,
             author=request.user,
             content=content,
-            image=image,
+            image=convert_upload_to_webp(image, stem='comment') if image else None,
             parent=parent
         )
 

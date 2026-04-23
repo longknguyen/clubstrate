@@ -204,6 +204,8 @@
     overflow-wrap: anywhere;
     max-width: 100%;
     line-height: 1.45;
+    font-size: 14px;
+    color: #4b5563;
 }
 
 .cio-modal-icon {
