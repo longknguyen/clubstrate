@@ -12,7 +12,7 @@
     background: #fafafa;
     border: 1px solid #ecedef;
     border-radius: 16px;
-    padding: 24px;
+    padding: 24px 24px 112px;
 }
 
 .edit-section {
@@ -222,4 +222,100 @@
 .save-btn:hover {
     background: white;
     color: black;
+}
+
+.unsaved-changes-banner {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translate(-50%, calc(100% + 24px));
+    width: min(720px, calc(100vw - 32px));
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.24s ease, opacity 0.24s ease, border-color 0.2s ease, background 0.2s ease;
+    z-index: 1200;
+}
+
+.unsaved-changes-banner.is-visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.unsaved-changes-banner.is-warning {
+    background: #fff1f2;
+    border-color: #fda4af;
+    animation: unsavedChangesShake 0.4s ease;
+}
+
+.unsaved-changes-banner p {
+    margin: 0;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.unsaved-changes-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+.unsaved-changes-reset {
+    border: none;
+    background: transparent;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: none;
+}
+
+.unsaved-changes-reset:hover {
+    text-decoration: underline;
+}
+
+.unsaved-changes-save {
+    border: 1px solid #111827;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.unsaved-changes-save:hover {
+    background: #111827;
+    color: #ffffff;
+}
+
+@keyframes unsavedChangesShake {
+    0%, 100% {
+        transform: translate(-50%, 0);
+    }
+    20% {
+        transform: translate(calc(-50% - 6px), 0);
+    }
+    40% {
+        transform: translate(calc(-50% + 6px), 0);
+    }
+    60% {
+        transform: translate(calc(-50% - 4px), 0);
+    }
+    80% {
+        transform: translate(calc(-50% + 4px), 0);
+    }
 }

@@ -81,6 +81,14 @@
             </div>
         </form>
 
+        <div class="unsaved-changes-banner" id="profileUnsavedBanner" aria-live="polite">
+            <p>Careful! You have unsaved changes.</p>
+            <div class="unsaved-changes-actions">
+                <button type="button" class="unsaved-changes-reset" id="profileUnsavedReset">Reset</button>
+                <button type="button" class="unsaved-changes-save" id="profileUnsavedSave">Save</button>
+            </div>
+        </div>
+
         <div class="preview-panel" id="preview-panel">
             <div class="banner-preview-panel" id="preview-banner"
                  style="background: {{ banner_colour|default:'#6c5ce7' }};">
@@ -98,6 +106,7 @@
     </div>
 
     <script>
+        const profileEditForm = document.querySelector('.edit-form');
         const inputFirstName = document.getElementById('id_first_name');
         const inputLastName = document.getElementById('id_last_name');
         const inputUsername = document.getElementById('id_username');
@@ -111,6 +120,12 @@
         const previewAvatarRight = document.getElementById('preview-avatar-right');
         const previewAvatar = document.getElementById('preview-avatar');
         const removeAvatarBtn = document.getElementById('remove-avatar');
+        const profileUnsavedBanner = document.getElementById('profileUnsavedBanner');
+        const profileUnsavedReset = document.getElementById('profileUnsavedReset');
+        const profileUnsavedSave = document.getElementById('profileUnsavedSave');
+        const defaultProfileImage = '/static/users/default.jpg';
+        const originalProfileImage = '{{ profile_image|escapejs }}';
+        const originalBannerColour = '{{ banner_colour|default:"#6c5ce7"|escapejs }}';
 
         function updateName() {
             previewName.textContent = `${inputFirstName.value} ${inputLastName.value}`.trim();
@@ -157,14 +172,36 @@
 
         const removeImageInput = document.getElementById('remove-image');
 
+        function applyProfilePreviewState() {
+            if (previewAvatar && previewAvatarRight) {
+                if (inputImage && inputImage.files && inputImage.files[0]) {
+                    const uploadedUrl = URL.createObjectURL(inputImage.files[0]);
+                    previewAvatar.src = uploadedUrl;
+                    previewAvatarRight.src = uploadedUrl;
+                } else if (removeImageInput && removeImageInput.value === '1') {
+                    previewAvatar.src = defaultProfileImage;
+                    previewAvatarRight.src = defaultProfileImage;
+                } else {
+                    previewAvatar.src = originalProfileImage;
+                    previewAvatarRight.src = originalProfileImage;
+                }
+            }
+
+            if (previewBanner) {
+                previewBanner.style.background = inputBanner ? inputBanner.value : originalBannerColour;
+            }
+
+            updateName();
+            updateMeta();
+        }
+
         if (removeAvatarBtn) {
             removeAvatarBtn.addEventListener('click', () => {
-                previewAvatar.src = '/static/users/default.jpg';
-                previewAvatarRight.src = '/static/users/default.jpg';
                 inputImage.value = '';
                 if (removeImageInput) {
                     removeImageInput.value = '1';
                 }
+                applyProfilePreviewState();
             });
         }
 
@@ -172,18 +209,114 @@
             inputImage.addEventListener('change', e => {
                 const file = e.target.files[0];
                 if (file) {
-                    const url = URL.createObjectURL(file);
-                    previewAvatar.src = url;
-                    previewAvatarRight.src = url;
                     if (removeImageInput) {
                         removeImageInput.value = '0';
                     }
                 }
+                applyProfilePreviewState();
             });
         }
 
-        updateName();
-        updateMeta();
+        function serializeProfileFormState() {
+            if (!profileEditForm) return '';
+
+            const state = [];
+            Array.from(profileEditForm.elements).forEach((element) => {
+                if (!element.name) return;
+
+                if (element.type === 'file') {
+                    state.push(`${element.name}:${element.files && element.files.length ? 'has-file' : 'no-file'}`);
+                    return;
+                }
+
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    state.push(`${element.name}:${element.checked}`);
+                    return;
+                }
+
+                state.push(`${element.name}:${element.value}`);
+            });
+
+            return state.join('|');
+        }
+
+        let isProfileDirty = false;
+        let isProfileSubmitting = false;
+        const initialProfileState = serializeProfileFormState();
+
+        function setProfileDirtyState(nextDirty) {
+            isProfileDirty = nextDirty;
+            if (!profileUnsavedBanner) return;
+            profileUnsavedBanner.classList.toggle('is-visible', nextDirty);
+            if (!nextDirty) {
+                profileUnsavedBanner.classList.remove('is-warning');
+            }
+        }
+
+        function syncProfileDirtyState() {
+            setProfileDirtyState(serializeProfileFormState() !== initialProfileState);
+        }
+
+        function flashProfileUnsavedWarning() {
+            if (!profileUnsavedBanner) return;
+            profileUnsavedBanner.classList.add('is-visible', 'is-warning');
+            window.clearTimeout(profileUnsavedBanner._warningTimeout);
+            profileUnsavedBanner._warningTimeout = window.setTimeout(() => {
+                profileUnsavedBanner.classList.remove('is-warning');
+            }, 1000);
+        }
+
+        if (profileEditForm) {
+            profileEditForm.addEventListener('input', syncProfileDirtyState);
+            profileEditForm.addEventListener('change', syncProfileDirtyState);
+            profileEditForm.addEventListener('submit', () => {
+                isProfileSubmitting = true;
+                setProfileDirtyState(false);
+            });
+        }
+
+        if (profileUnsavedReset && profileEditForm) {
+            profileUnsavedReset.addEventListener('click', () => {
+                profileEditForm.reset();
+                if (removeImageInput) {
+                    removeImageInput.value = '0';
+                }
+                applyProfilePreviewState();
+                syncProfileDirtyState();
+            });
+        }
+
+        if (profileUnsavedSave && profileEditForm) {
+            profileUnsavedSave.addEventListener('click', () => {
+                profileEditForm.requestSubmit();
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!isProfileDirty || isProfileSubmitting) return;
+
+            const targetLink = event.target.closest('a[href]');
+            if (!targetLink) return;
+            if (targetLink.target === '_blank' || targetLink.hasAttribute('download')) return;
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+            const nextUrl = new URL(targetLink.href, window.location.origin);
+            if (nextUrl.href === window.location.href || nextUrl.hash && nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search) {
+                return;
+            }
+
+            event.preventDefault();
+            flashProfileUnsavedWarning();
+        });
+
+        window.addEventListener('beforeunload', (event) => {
+            if (!isProfileDirty || isProfileSubmitting) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        applyProfilePreviewState();
+        syncProfileDirtyState();
     </script>
 
 {% endblock %}

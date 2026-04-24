@@ -159,12 +159,21 @@
                 <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Save Changes</button>
             </div>
         </form>
+
+        <div class="unsaved-changes-banner" id="cioUnsavedBanner" aria-live="polite">
+            <p>Careful! You have unsaved changes.</p>
+            <div class="unsaved-changes-actions">
+                <button type="button" class="unsaved-changes-reset" id="cioUnsavedReset">Reset</button>
+                <button type="button" class="unsaved-changes-save" id="cioUnsavedSave">Save</button>
+            </div>
+        </div>
     </section>
 </div>
 
 {% include "cios/partials/delete_cio_modal.html" %}
 
 <script>
+    const cioEditForm = document.querySelector('.cio-form-body');
     const disabledSearchInput = document.querySelector('.search-bar');
     const editCioIconInput = document.getElementById('editCioIconInput');
     const editCioIconPreview = document.getElementById('editCioIconPreview');
@@ -179,6 +188,18 @@
     const removeBannerButton = document.getElementById('removeBannerButton');
     const defaultCioBanner = `{{ cio.default_gradient|escapejs }}`;
     const originalCioBanner = `{% if cio.display_banner_kind == 'image' %}url('{{ cio.display_banner_value|escapejs }}'){% else %}{{ cio.display_banner_value|escapejs }}{% endif %}`;
+    const cioUnsavedBanner = document.getElementById('cioUnsavedBanner');
+    const cioUnsavedReset = document.getElementById('cioUnsavedReset');
+    const cioUnsavedSave = document.getElementById('cioUnsavedSave');
+
+    function isHiddenToggleEnabled(inputEl) {
+        return ['1', 'true', 'on', 'yes'].includes(String(inputEl?.value || '').toLowerCase());
+    }
+
+    function setHiddenToggleValue(inputEl, enabled) {
+        if (!inputEl) return;
+        inputEl.value = enabled ? 'true' : '';
+    }
 
     function applyBannerPreviewImage(imageValue) {
         if (!editCioBannerPreview) return;
@@ -200,14 +221,42 @@
 
     function syncRemoveIconButton() {
         if (!removeIconButton || !removeIconCheckbox) return;
-        removeIconButton.textContent = removeIconCheckbox.checked ? 'Using Default Icon' : 'Remove Icon';
-        removeIconButton.classList.toggle('is-active', removeIconCheckbox.checked);
+        const isEnabled = isHiddenToggleEnabled(removeIconCheckbox);
+        removeIconButton.textContent = isEnabled ? 'Using Default Icon' : 'Remove Icon';
+        removeIconButton.classList.toggle('is-active', isEnabled);
     }
 
     function syncRemoveBannerButton() {
         if (!removeBannerButton || !removeBannerCheckbox) return;
-        removeBannerButton.textContent = removeBannerCheckbox.checked ? 'Using Default Banner' : 'Remove Banner';
-        removeBannerButton.classList.toggle('is-active', removeBannerCheckbox.checked);
+        const isEnabled = isHiddenToggleEnabled(removeBannerCheckbox);
+        removeBannerButton.textContent = isEnabled ? 'Using Default Banner' : 'Remove Banner';
+        removeBannerButton.classList.toggle('is-active', isEnabled);
+    }
+
+    function applyCioIconPreviewState() {
+        if (!editCioIconPreview) return;
+
+        if (editCioIconInput && editCioIconInput.files && editCioIconInput.files[0]) {
+            editCioIconPreview.src = URL.createObjectURL(editCioIconInput.files[0]);
+        } else {
+            editCioIconPreview.src = isHiddenToggleEnabled(removeIconCheckbox) ? defaultCioIcon : originalCioIcon;
+        }
+    }
+
+    function applyCioBannerPreviewState() {
+        if (!editCioBannerPreview) return;
+
+        if (editCioBannerInput && editCioBannerInput.files && editCioBannerInput.files[0]) {
+            applyBannerPreviewImage(`url(${URL.createObjectURL(editCioBannerInput.files[0])})`);
+            return;
+        }
+
+        const bannerValue = isHiddenToggleEnabled(removeBannerCheckbox) ? defaultCioBanner : originalCioBanner;
+        if (bannerValue.startsWith('url(')) {
+            applyBannerPreviewImage(bannerValue);
+        } else {
+            applyBannerPreviewBackground(bannerValue);
+        }
     }
 
     if (disabledSearchInput) {
@@ -221,18 +270,21 @@
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
-            editCioIconPreview.src = URL.createObjectURL(file);
             if (removeIconCheckbox) {
-                removeIconCheckbox.checked = false;
+                setHiddenToggleValue(removeIconCheckbox, false);
                 syncRemoveIconButton();
             }
+            applyCioIconPreviewState();
         });
     }
 
     if (removeIconButton && removeIconCheckbox && editCioIconPreview) {
         removeIconButton.addEventListener('click', () => {
-            removeIconCheckbox.checked = !removeIconCheckbox.checked;
-            editCioIconPreview.src = removeIconCheckbox.checked ? defaultCioIcon : originalCioIcon;
+            setHiddenToggleValue(removeIconCheckbox, !isHiddenToggleEnabled(removeIconCheckbox));
+            if (editCioIconInput) {
+                editCioIconInput.value = '';
+            }
+            applyCioIconPreviewState();
             syncRemoveIconButton();
         });
     }
@@ -242,35 +294,127 @@
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
-            applyBannerPreviewImage(`url(${URL.createObjectURL(file)})`);
             if (removeBannerCheckbox) {
-                removeBannerCheckbox.checked = false;
+                setHiddenToggleValue(removeBannerCheckbox, false);
                 syncRemoveBannerButton();
             }
+            applyCioBannerPreviewState();
         });
     }
 
     if (removeBannerButton && removeBannerCheckbox && editCioBannerPreview) {
         removeBannerButton.addEventListener('click', () => {
-            removeBannerCheckbox.checked = !removeBannerCheckbox.checked;
-            if (removeBannerCheckbox.checked) {
-                if (defaultCioBanner.startsWith('url(')) {
-                    applyBannerPreviewImage(defaultCioBanner);
-                } else {
-                    applyBannerPreviewBackground(defaultCioBanner);
-                }
-            } else {
-                if (originalCioBanner.startsWith('url(')) {
-                    applyBannerPreviewImage(originalCioBanner);
-                } else {
-                    applyBannerPreviewBackground(originalCioBanner);
-                }
+            setHiddenToggleValue(removeBannerCheckbox, !isHiddenToggleEnabled(removeBannerCheckbox));
+            if (editCioBannerInput) {
+                editCioBannerInput.value = '';
             }
+            applyCioBannerPreviewState();
             syncRemoveBannerButton();
         });
     }
 
+    function serializeCioFormState() {
+        if (!cioEditForm) return '';
+
+        const state = [];
+        Array.from(cioEditForm.elements).forEach((element) => {
+            if (!element.name) return;
+
+            if (element.type === 'file') {
+                state.push(`${element.name}:${element.files && element.files.length ? 'has-file' : 'no-file'}`);
+                return;
+            }
+
+            if (element.type === 'checkbox' || element.type === 'radio') {
+                state.push(`${element.name}:${element.checked}`);
+                return;
+            }
+
+            state.push(`${element.name}:${element.value}`);
+        });
+
+        return state.join('|');
+    }
+
+    let isCioDirty = false;
+    let isCioSubmitting = false;
+    const initialCioState = serializeCioFormState();
+
+    function setCioDirtyState(nextDirty) {
+        isCioDirty = nextDirty;
+        if (!cioUnsavedBanner) return;
+        cioUnsavedBanner.classList.toggle('is-visible', nextDirty);
+        if (!nextDirty) {
+            cioUnsavedBanner.classList.remove('is-warning');
+        }
+    }
+
+    function syncCioDirtyState() {
+        setCioDirtyState(serializeCioFormState() !== initialCioState);
+    }
+
+    function flashCioUnsavedWarning() {
+        if (!cioUnsavedBanner) return;
+        cioUnsavedBanner.classList.add('is-visible', 'is-warning');
+        window.clearTimeout(cioUnsavedBanner._warningTimeout);
+        cioUnsavedBanner._warningTimeout = window.setTimeout(() => {
+            cioUnsavedBanner.classList.remove('is-warning');
+        }, 1000);
+    }
+
+    if (cioEditForm) {
+        cioEditForm.addEventListener('input', syncCioDirtyState);
+        cioEditForm.addEventListener('change', syncCioDirtyState);
+        cioEditForm.addEventListener('submit', () => {
+            isCioSubmitting = true;
+            setCioDirtyState(false);
+        });
+    }
+
+    if (cioUnsavedReset && cioEditForm) {
+        cioUnsavedReset.addEventListener('click', () => {
+            cioEditForm.reset();
+            applyCioIconPreviewState();
+            applyCioBannerPreviewState();
+            syncRemoveIconButton();
+            syncRemoveBannerButton();
+            syncCioDirtyState();
+        });
+    }
+
+    if (cioUnsavedSave && cioEditForm) {
+        cioUnsavedSave.addEventListener('click', () => {
+            cioEditForm.requestSubmit();
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        if (!isCioDirty || isCioSubmitting) return;
+
+        const targetLink = event.target.closest('a[href]');
+        if (!targetLink) return;
+        if (targetLink.target === '_blank' || targetLink.hasAttribute('download')) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const nextUrl = new URL(targetLink.href, window.location.origin);
+        if (nextUrl.href === window.location.href || nextUrl.hash && nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search) {
+            return;
+        }
+
+        event.preventDefault();
+        flashCioUnsavedWarning();
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isCioDirty || isCioSubmitting) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    applyCioIconPreviewState();
+    applyCioBannerPreviewState();
     syncRemoveIconButton();
     syncRemoveBannerButton();
+    syncCioDirtyState();
 </script>
 {% endblock %}
