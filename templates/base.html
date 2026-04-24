@@ -279,8 +279,10 @@
                 searchFilterPillLabel.textContent = modeConfig.label || "";
             }
             if (searchFilterPillValue) {
-                searchFilterPillValue.textContent = modeConfig.value || "";
-                searchFilterPillValue.classList.toggle("joined-cio-hidden", !modeConfig.value);
+                const rawValue = modeConfig.value || "";
+                const displayValue = rawValue.length > 6 ? `${rawValue.slice(0, 6)}...` : rawValue;
+                searchFilterPillValue.textContent = displayValue;
+                searchFilterPillValue.classList.toggle("joined-cio-hidden", !displayValue);
             }
             defaultSearchPlaceholder = searchInput.placeholder || defaultSearchPlaceholder;
             searchInput.placeholder = modeConfig.placeholder || "Search...";

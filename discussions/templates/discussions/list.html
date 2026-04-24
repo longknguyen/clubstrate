@@ -14,6 +14,7 @@
                             data-message-sender-id="{{ message.author_id }}"
                             data-message-created-at="{{ message.created_at|date:'c' }}"
                             data-message-author="{{ message.display_name }} {{ message.author.username }}"
+                            data-message-author-name="{{ message.display_name }}"
                             data-search-text="{{ message.display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
                         {% if message.show_avatar %}
                             <img

@@ -299,7 +299,7 @@
                 if (!userMap.has(authorKey)) {
                     userMap.set(authorKey, {
                         value: authorValue,
-                        label: authorValue,
+                        label: (itemEl.dataset.messageAuthorName || itemEl.dataset.announcementAuthorName || authorValue).trim(),
                     });
                 }
             });
