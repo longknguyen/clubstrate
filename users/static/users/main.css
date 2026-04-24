@@ -268,9 +268,10 @@ body {
 }
 
 .search-input-shell {
-    width: 180px;
+    width: 200px;
+    height: 30px;
     min-width: 180px;
-    min-height: 30px;
+    min-height: 20px;
     padding: 0 12px;
     border: 1px solid #d1d5db;
     border-radius: 999px;
@@ -290,7 +291,7 @@ body {
 }
 
 .search-input-shell.has-filter {
-    padding: 0 12px 0 0;
+    padding: 3px 12px 3px 0;
     gap: 4px;
 }
 
@@ -299,11 +300,13 @@ body {
     background: #ffffff;
     color: #111827;
     border-radius: 999px;
-    padding: 3px 8px;
+    min-height: 22px;
+    padding: 0 8px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 12px;
+    line-height: 1;
     font-weight: 600;
     flex-shrink: 0;
     cursor: pointer;
