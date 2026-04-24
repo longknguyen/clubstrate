@@ -381,6 +381,23 @@ body {
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
     padding: 10px;
     z-index: 34;
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.global-search-popover.is-open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.global-search-popover.is-closing,
+.global-search-popover.is-swapping {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+    pointer-events: none;
 }
 
 .global-search-section {

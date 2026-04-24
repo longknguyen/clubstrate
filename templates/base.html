@@ -228,6 +228,7 @@
         let miniProfileHideTimeout = null;
         let activeGlobalSearchMode = null;
         let defaultSearchPlaceholder = searchInput ? searchInput.placeholder : "Search...";
+        let searchPopoverHideTimeout = null;
 
         window.getActiveGlobalSearchMode = function getActiveGlobalSearchMode() {
             return activeGlobalSearchMode;
@@ -239,12 +240,51 @@
 
         function showSearchPopover() {
             if (!searchPopover) return;
+            if (searchPopoverHideTimeout) {
+                window.clearTimeout(searchPopoverHideTimeout);
+                searchPopoverHideTimeout = null;
+            }
             searchPopover.classList.remove("joined-cio-hidden");
+            searchPopover.classList.remove("is-closing", "is-swapping");
+            window.requestAnimationFrame(() => {
+                searchPopover.classList.add("is-open");
+            });
         }
 
         function hideSearchPopover() {
             if (!searchPopover) return;
-            searchPopover.classList.add("joined-cio-hidden");
+            if (searchPopoverHideTimeout) {
+                window.clearTimeout(searchPopoverHideTimeout);
+            }
+            searchPopover.classList.remove("is-open", "is-swapping");
+            searchPopover.classList.add("is-closing");
+            searchPopoverHideTimeout = window.setTimeout(() => {
+                searchPopover.classList.add("joined-cio-hidden");
+                searchPopover.classList.remove("is-closing");
+                searchPopoverHideTimeout = null;
+            }, 180);
+        }
+
+        function transitionSearchPopover(renderFn) {
+            if (!searchPopover) return;
+            if (searchPopover.classList.contains("joined-cio-hidden")) {
+                renderFn();
+                showSearchPopover();
+                return;
+            }
+
+            searchPopover.classList.remove("is-open");
+            searchPopover.classList.add("is-swapping");
+            window.setTimeout(() => {
+                renderFn();
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+                window.requestAnimationFrame(() => {
+                    searchPopover.classList.remove("is-swapping");
+                    searchPopover.classList.add("is-open");
+                });
+            }, 90);
         }
 
         function getJoinedCioSuggestions(queryValue) {
@@ -306,16 +346,18 @@
                 const sectionLabel = (searchInput.value || "").trim() ? "Matching CIOs" : "Recently visited";
 
                 if (!suggestions.length) {
-                    searchPopover.innerHTML = `
+                    transitionSearchPopover(() => {
+                        searchPopover.innerHTML = `
                         <div class="global-search-empty">
                             <p>No joined CIOs match that search.</p>
                         </div>
                     `;
-                    showSearchPopover();
+                    });
                     return;
                 }
 
-                searchPopover.innerHTML = `
+                transitionSearchPopover(() => {
+                    searchPopover.innerHTML = `
                     <div class="global-search-section">
                         <span class="global-search-section-label">${sectionLabel}</span>
                         <div class="global-search-option-list">
@@ -340,7 +382,7 @@
                         }
                     });
                 });
-                showSearchPopover();
+                });
                 return;
             }
 
@@ -349,16 +391,18 @@
                 const sectionLabel = (searchInput.value || "").trim() ? "Matching people" : "People in this CIO";
 
                 if (!suggestions.length) {
-                    searchPopover.innerHTML = `
+                    transitionSearchPopover(() => {
+                        searchPopover.innerHTML = `
                         <div class="global-search-empty">
                             <p>No people match that search.</p>
                         </div>
                     `;
-                    showSearchPopover();
+                    });
                     return;
                 }
 
-                searchPopover.innerHTML = `
+                transitionSearchPopover(() => {
+                    searchPopover.innerHTML = `
                     <div class="global-search-section">
                         <span class="global-search-section-label">${sectionLabel}</span>
                         <div class="global-search-option-list">
@@ -386,10 +430,7 @@
                         hideSearchPopover();
                     });
                 });
-                if (window.lucide) {
-                    window.lucide.createIcons();
-                }
-                showSearchPopover();
+                });
             }
         }
 
@@ -401,7 +442,8 @@
                 return;
             }
 
-            searchPopover.innerHTML = `
+            transitionSearchPopover(() => {
+                searchPopover.innerHTML = `
                 <div class="global-search-section">
                     <div class="global-search-option-list">
                         ${getNormalSearchOptions().map((option) => `
@@ -441,10 +483,7 @@
                     }
                 });
             });
-            showSearchPopover();
-            if (window.lucide) {
-                window.lucide.createIcons();
-            }
+            });
         }
 
         function clearGlobalSearchMode(reopenPopover = false) {
@@ -516,10 +555,6 @@
 
         if (searchInput && searchPopover) {
             searchInput.addEventListener("focus", () => {
-                renderGlobalSearchPopover();
-            });
-
-            searchInput.addEventListener("click", () => {
                 renderGlobalSearchPopover();
             });
 
