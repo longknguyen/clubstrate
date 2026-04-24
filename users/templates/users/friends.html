@@ -133,7 +133,7 @@
                         <div class="friends-list-header">
                             <div>
                                 <h2>All</h2>
-                                <p>{{ friend_count }} of {{ friend_limit }} friends</p>
+                                <p id="friendsCountLabel">{{ friend_count }} of {{ friend_limit }} friends</p>
                             </div>
                         </div>
 
@@ -252,6 +252,7 @@
         const friendSidebarItems = document.getElementById('friendSidebarItems');
         const friendsListRows = document.getElementById('friendsListRows');
         const friendRequestsCountLabel = document.getElementById('friendRequestsCountLabel');
+        const friendsCountLabel = document.getElementById('friendsCountLabel');
         const friendsAddNotice = document.querySelector('[data-friends-add-notice]');
         const friendsAddForm = document.querySelector('.friends-add-form');
         const friendsAddInputWrap = document.getElementById('friendsAddInputWrap');
@@ -450,6 +451,12 @@
             }
         }
 
+        function updateFriendsCountLabel() {
+            if (!friendsCountLabel || !friendsListRows) return;
+            const friendCount = friendsListRows.querySelectorAll('[data-friend-row]').length;
+            friendsCountLabel.textContent = `${friendCount} of {{ friend_limit }} friends`;
+        }
+
         function ensureFriendSidebarEmptyState() {
             if (!friendSidebarItems) return;
 
@@ -486,6 +493,7 @@
                 if (friendRows.length) {
                     renderFriendsPage(Math.min(friendsPage, Math.max(Math.ceil(friendRows.length / friendsPerPage) - 1, 0)));
                 }
+                updateFriendsCountLabel();
             }, 180);
         }
 
@@ -667,6 +675,7 @@
                             }
                             renderFriendsPage(0);
                             ensureFriendsListEmptyState();
+                            updateFriendsCountLabel();
                         }
                     }
 
@@ -694,6 +703,7 @@
         }
 
         updateRequestDot();
+        updateFriendsCountLabel();
 
         function scrollDmToLatest() {
             if (!directMessageList) return;

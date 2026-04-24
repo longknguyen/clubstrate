@@ -847,6 +847,15 @@ body {
     overflow: visible;
 }
 
+.friends-list-card > .discussion-empty-state,
+.friends-list-card #friendsListRows > .discussion-empty-state,
+.friends-list-card #friendRequestRows > .discussion-empty-state {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 22px;
+}
+
 .friends-list-row {
     display: flex;
     align-items: center;
@@ -857,6 +866,16 @@ body {
 
 .friends-list-row:last-child {
     border-bottom: none;
+}
+
+.friends-list-row:first-child {
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.friends-list-row:last-child {
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
 }
 
 .friends-list-row:hover {
