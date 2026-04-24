@@ -1,12 +1,14 @@
 {% if show_time_divider %}
-    <div class="chat-date-divider">
+    <div class="chat-date-divider" data-divider-day="{{ message.created_at|date:'Y-m-d' }}">
         <span>{{ time_divider_label }}</span>
     </div>
 {% endif %}
 <article
     class="chat-message {% if is_own %}chat-message-own{% endif %} {% if not show_header %}chat-message-grouped{% endif %}"
     data-message-sender-id="{{ message.author_id }}"
-    data-message-created-at="{{ message.created_at|date:'c' }}">
+    data-message-created-at="{{ message.created_at|date:'c' }}"
+    data-message-day="{{ message.created_at|date:'Y-m-d' }}"
+    data-search-text="{{ display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
     {% if show_avatar %}
         <img
             src="{{ message.author.profile.image.url }}"
@@ -32,7 +34,7 @@
                     {{ display_name }}
                 </button>
                 <span class="discussion-meta-dot">•</span>
-                <span>{{ timestamp_label }}</span>
+                <span class="post-timestamp" data-datetime="{{ message.created_at|date:'c' }}"></span>
             </div>
         {% endif %}
 

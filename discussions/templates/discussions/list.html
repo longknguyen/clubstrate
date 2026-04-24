@@ -132,7 +132,8 @@
 </div>
 
 <script>
-    document.querySelectorAll('.post-timestamp').forEach((el) => {
+    function formatPostTimestamp(el) {
+        if (!el || !el.dataset.datetime) return;
         const dt = new Date(el.dataset.datetime);
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -160,13 +161,15 @@
         });
 
         el.textContent = `${prefix} at ${timeLabel}`;
+    }
+
+    document.querySelectorAll('.post-timestamp').forEach((el) => {
+        formatPostTimestamp(el);
     });
 
     const chatAttachmentInput = document.getElementById('chatAttachmentInput');
     const chatAttachmentName = document.getElementById('chatAttachmentName');
     const chatMessageList = document.getElementById('chatMessageList');
-    const chatMessages = Array.from(document.querySelectorAll('[data-message-day]'));
-    const chatDividers = Array.from(document.querySelectorAll('[data-divider-day]'));
     const chatUserModal = document.getElementById('chatUserModal');
     const chatUserBanner = document.getElementById('chatUserBanner');
     const chatUserAvatar = document.getElementById('chatUserAvatar');
@@ -279,6 +282,8 @@
     window.filterDiscussionMessages = function filterDiscussionMessages(query) {
         const normalizedQuery = (query || '').trim().toLowerCase();
         let matchCount = 0;
+        const chatMessages = Array.from(document.querySelectorAll('#chatMessageList [data-message-day]'));
+        const chatDividers = Array.from(document.querySelectorAll('#chatMessageList [data-divider-day]'));
 
         chatMessages.forEach((messageEl) => {
             const haystack = (messageEl.dataset.searchText || '').toLowerCase();
@@ -400,10 +405,15 @@
             Array.from(wrapper.children).forEach((child) => {
                 chatMessageList.appendChild(child);
                 if (child.matches && child.matches('.chat-message')) {
+                    child.querySelectorAll('.post-timestamp').forEach(formatPostTimestamp);
                     child.querySelectorAll('.chat-user-trigger').forEach(bindChatUserTrigger);
                     child.querySelectorAll('[data-chat-image]').forEach(bindChatImageTrigger);
                 }
             });
+
+            if (typeof window.syncCioPageSearchState === 'function') {
+                window.syncCioPageSearchState();
+            }
             scrollToLatestMessage();
         });
 
