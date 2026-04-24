@@ -13,6 +13,7 @@
                             data-message-day="{{ message_day }}"
                             data-message-sender-id="{{ message.author_id }}"
                             data-message-created-at="{{ message.created_at|date:'c' }}"
+                            data-message-author="{{ message.display_name }} {{ message.author.username }}"
                             data-search-text="{{ message.display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
                         {% if message.show_avatar %}
                             <img
@@ -279,15 +280,18 @@
         });
     }
 
-    window.filterDiscussionMessages = function filterDiscussionMessages(query) {
+    window.filterDiscussionMessages = function filterDiscussionMessages(query, authorQuery = '') {
         const normalizedQuery = (query || '').trim().toLowerCase();
+        const normalizedAuthorQuery = (authorQuery || '').trim().toLowerCase();
         let matchCount = 0;
         const chatMessages = Array.from(document.querySelectorAll('#chatMessageList [data-message-day]'));
         const chatDividers = Array.from(document.querySelectorAll('#chatMessageList [data-divider-day]'));
 
         chatMessages.forEach((messageEl) => {
             const haystack = (messageEl.dataset.searchText || '').toLowerCase();
-            const matches = !normalizedQuery || haystack.includes(normalizedQuery);
+            const authorHaystack = (messageEl.dataset.messageAuthor || '').toLowerCase();
+            const matches = (!normalizedQuery || haystack.includes(normalizedQuery))
+                && (!normalizedAuthorQuery || authorHaystack.includes(normalizedAuthorQuery));
             messageEl.style.display = matches ? '' : 'none';
 
             if (matches) {

@@ -174,7 +174,6 @@
 
 <script>
     const cioEditForm = document.querySelector('.cio-form-body');
-    const disabledSearchInput = document.querySelector('.search-bar');
     const editCioIconInput = document.getElementById('editCioIconInput');
     const editCioIconPreview = document.getElementById('editCioIconPreview');
     const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
@@ -257,12 +256,6 @@
         } else {
             applyBannerPreviewBackground(bannerValue);
         }
-    }
-
-    if (disabledSearchInput) {
-        disabledSearchInput.value = '';
-        disabledSearchInput.placeholder = 'Search unavailable in settings';
-        disabledSearchInput.disabled = true;
     }
 
     if (editCioIconInput && editCioIconPreview) {

@@ -33,6 +33,7 @@
             {% for post in announcements %}
                 <article
                     class="announcement-card"
+                    data-announcement-author="{{ post.display_name|escape }} {{ post.author.username|escape }}"
                     data-announcement-search="{{ post.title|default:''|escape }} {{ post.content|default:''|escape }} {{ post.display_name|escape }}">
                     <div class="announcement-card-top">
                         <div>

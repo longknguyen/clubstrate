@@ -60,16 +60,9 @@
 </div>
 
 <script>
-    const disabledSearchInput = document.querySelector('.search-bar');
     const createCioIconInput = document.getElementById('createCioIconInput');
     const createCioIconPreview = document.getElementById('createCioIconPreview');
     const defaultCreateCioIcon = "{{ default_icon_data_uri|escapejs }}";
-
-    if (disabledSearchInput) {
-        disabledSearchInput.value = '';
-        disabledSearchInput.placeholder = 'Search unavailable while creating a CIO';
-        disabledSearchInput.disabled = true;
-    }
 
     if (createCioIconInput && createCioIconPreview) {
         createCioIconInput.addEventListener('change', (event) => {

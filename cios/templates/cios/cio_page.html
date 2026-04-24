@@ -288,13 +288,80 @@
             }
         }
 
-        function filterAnnouncementMessages(query) {
+        function getCioSearchUsers() {
+            const userMap = new Map();
+
+            document.querySelectorAll('[data-message-author], [data-announcement-author]').forEach((itemEl) => {
+                const authorValue = (itemEl.dataset.messageAuthor || itemEl.dataset.announcementAuthor || '').trim();
+                if (!authorValue) return;
+
+                const authorKey = authorValue.toLowerCase();
+                if (!userMap.has(authorKey)) {
+                    userMap.set(authorKey, {
+                        value: authorValue,
+                        label: authorValue,
+                    });
+                }
+            });
+
+            return Array.from(userMap.values());
+        }
+
+        window.getGlobalSearchFilterOptions = function getGlobalSearchFilterOptions() {
+            if (activeCioTab !== 'discussions' && activeCioTab !== 'announcements') {
+                return [];
+            }
+
+            return [{
+                id: 'cio-user',
+                icon: 'user',
+                label: 'Filter by user',
+            }];
+        };
+
+        window.getGlobalSearchFilterSuggestions = function getGlobalSearchFilterSuggestions(query, modeConfig) {
+            if (!modeConfig || modeConfig.id !== 'cio-user') {
+                return [];
+            }
+
+            const normalizedQuery = (query || '').trim().toLowerCase();
+            const userOptions = getCioSearchUsers();
+
+            if (!normalizedQuery) {
+                return userOptions.slice(0, 8);
+            }
+
+            return userOptions.filter((userOption) => userOption.value.toLowerCase().includes(normalizedQuery)).slice(0, 8);
+        };
+
+        window.applyGlobalSearchFilterOption = function applyGlobalSearchFilterOption(optionId, helpers) {
+            if (optionId !== 'cio-user') {
+                return false;
+            }
+
+            helpers.setGlobalSearchMode({
+                kind: 'user',
+                id: 'cio-user',
+                label: 'from:',
+                value: '',
+                queryValue: '',
+                placeholder: 'Search people in this CIO...',
+            });
+            helpers.renderGlobalSearchPopover();
+            helpers.searchInput.focus();
+            return true;
+        };
+
+        function filterAnnouncementMessages(query, authorQuery = '') {
             const announcementCards = Array.from(document.querySelectorAll('[data-announcement-search]'));
+            const normalizedAuthorQuery = (authorQuery || '').trim().toLowerCase();
             let matchCount = 0;
 
             announcementCards.forEach((cardEl) => {
                 const haystack = (cardEl.dataset.announcementSearch || '').toLowerCase();
-                const matches = !query || haystack.includes(query);
+                const authorHaystack = (cardEl.dataset.announcementAuthor || '').toLowerCase();
+                const matches = (!query || haystack.includes(query))
+                    && (!normalizedAuthorQuery || authorHaystack.includes(normalizedAuthorQuery));
                 cardEl.style.display = matches ? '' : 'none';
                 if (matches) matchCount += 1;
             });
@@ -305,8 +372,10 @@
         function renderSearchResults(query, discussionCount, announcementCount) {
             const resultsEl = document.getElementById('globalSearchResults');
             if (!resultsEl) return;
+            const activeSearchMode = typeof window.getActiveGlobalSearchMode === 'function' ? window.getActiveGlobalSearchMode() : null;
+            const hasAuthorFilter = !!(activeSearchMode && activeSearchMode.kind === 'user' && activeSearchMode.queryValue);
 
-            if (!query) {
+            if (!query && !hasAuthorFilter) {
                 resultsEl.innerHTML = '';
                 resultsEl.classList.add('joined-cio-hidden');
                 return;
@@ -352,13 +421,18 @@
         window.syncCioPageSearchState = function syncCioPageSearchState() {
             const searchInput = document.querySelector('.search-bar');
             if (!searchInput) return;
+            if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                return;
+            }
 
             const rawQuery = searchInput.value || '';
             const normalizedQuery = rawQuery.trim().toLowerCase();
+            const activeSearchMode = typeof window.getActiveGlobalSearchMode === 'function' ? window.getActiveGlobalSearchMode() : null;
+            const authorQuery = activeSearchMode && activeSearchMode.kind === 'user' ? (activeSearchMode.queryValue || '') : '';
             const discussionCount = typeof window.filterDiscussionMessages === 'function'
-                ? window.filterDiscussionMessages(normalizedQuery)
+                ? window.filterDiscussionMessages(normalizedQuery, authorQuery)
                 : 0;
-            const announcementCount = filterAnnouncementMessages(normalizedQuery);
+            const announcementCount = filterAnnouncementMessages(normalizedQuery, authorQuery);
 
             renderSearchResults(rawQuery.trim(), discussionCount, announcementCount);
 
@@ -384,6 +458,9 @@
         }
 
         window.onload = function () {
+            if (typeof window.recordRecentCioVisit === 'function') {
+                window.recordRecentCioVisit('{{ cio.id }}');
+            }
             const params = new URLSearchParams(window.location.search);
             const requestedTab = params.get('tab');
             const requestedQuery = params.get('q') || '';
@@ -413,9 +490,16 @@
                 searchInput.placeholder = 'Search messages and announcements...';
                 searchInput.value = requestedQuery;
                 searchInput.addEventListener('input', () => {
+                    if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                        return;
+                    }
                     syncCioPageSearchState();
                 });
             }
+
+            window.addEventListener('globalsearchmodechange', () => {
+                syncCioPageSearchState();
+            });
 
             if (titleButton && titleDropdown) {
                 titleButton.addEventListener('click', () => {

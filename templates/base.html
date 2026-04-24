@@ -92,7 +92,15 @@
 
         {% block top_right %}
             <div class="top-right search-shell">
-                <input type="text" placeholder="Search..." class="search-bar">
+                <div class="search-input-shell" id="globalSearchInputShell">
+                    <button type="button" class="search-filter-pill joined-cio-hidden" id="globalSearchFilterPill">
+                        <span id="globalSearchFilterPillLabel">to:</span>
+                        <span id="globalSearchFilterPillValue" class="joined-cio-hidden"></span>
+                        <i data-lucide="x"></i>
+                    </button>
+                    <input type="text" placeholder="Search..." class="search-bar">
+                </div>
+                <div id="globalSearchPopover" class="global-search-popover joined-cio-hidden"></div>
                 <div id="globalSearchResults" class="global-search-results joined-cio-hidden"></div>
             </div>
         {% endblock %}
@@ -178,6 +186,30 @@
             },
         {% endfor %}
     };
+    window.joinedCioSearchData = [
+        {% for cio in joined_cios %}
+            {
+                id: "{{ cio.id }}",
+                name: "{{ cio.name|escapejs }}",
+                icon: "{{ cio.display_icon_url|escapejs }}",
+                url: "{% url 'cio_detail' cio.id %}"
+            },
+        {% endfor %}
+    ];
+    window.getRecentCioVisits = function getRecentCioVisits() {
+        try {
+            return JSON.parse(window.localStorage.getItem('recentCioVisits') || '[]');
+        } catch (error) {
+            return [];
+        }
+    };
+    window.recordRecentCioVisit = function recordRecentCioVisit(cioId) {
+        if (!cioId) return;
+        const normalizedId = String(cioId);
+        const nextVisits = window.getRecentCioVisits().filter((item) => String(item) !== normalizedId);
+        nextVisits.unshift(normalizedId);
+        window.localStorage.setItem('recentCioVisits', JSON.stringify(nextVisits.slice(0, 12)));
+    };
     window.addEventListener("DOMContentLoaded", () => {
         const joinedCioStrip = document.getElementById("joinedCioStrip");
         const joinedCioLinks = Array.from(document.querySelectorAll("[data-joined-cio-index]"));
@@ -187,7 +219,253 @@
         const miniProfileTrigger = document.getElementById("miniProfileTrigger");
         const miniProfileCard = document.getElementById("miniProfileCard");
         const topNavFriendsDot = document.getElementById("topNavFriendsDot");
+        const searchInput = document.querySelector(".search-bar");
+        const searchInputShell = document.getElementById("globalSearchInputShell");
+        const searchFilterPill = document.getElementById("globalSearchFilterPill");
+        const searchFilterPillLabel = document.getElementById("globalSearchFilterPillLabel");
+        const searchFilterPillValue = document.getElementById("globalSearchFilterPillValue");
+        const searchPopover = document.getElementById("globalSearchPopover");
         let miniProfileHideTimeout = null;
+        let activeGlobalSearchMode = null;
+        let defaultSearchPlaceholder = searchInput ? searchInput.placeholder : "Search...";
+
+        window.getActiveGlobalSearchMode = function getActiveGlobalSearchMode() {
+            return activeGlobalSearchMode;
+        };
+
+        function notifyGlobalSearchModeChange() {
+            window.dispatchEvent(new CustomEvent("globalsearchmodechange", {detail: {mode: activeGlobalSearchMode}}));
+        }
+
+        function showSearchPopover() {
+            if (!searchPopover) return;
+            searchPopover.classList.remove("joined-cio-hidden");
+        }
+
+        function hideSearchPopover() {
+            if (!searchPopover) return;
+            searchPopover.classList.add("joined-cio-hidden");
+        }
+
+        function getJoinedCioSuggestions(queryValue) {
+            const joinedCios = Array.isArray(window.joinedCioSearchData) ? window.joinedCioSearchData : [];
+            const normalizedQuery = (queryValue || "").trim().toLowerCase();
+
+            if (normalizedQuery) {
+                return joinedCios.filter((cio) => cio.name.toLowerCase().includes(normalizedQuery));
+            }
+
+            const recentIds = window.getRecentCioVisits();
+            const recentCios = recentIds
+                .map((recentId) => joinedCios.find((cio) => String(cio.id) === String(recentId)))
+                .filter(Boolean);
+
+            if (recentCios.length) {
+                return recentCios.slice(0, 3);
+            }
+
+            return joinedCios.slice(0, 3);
+        }
+
+        function setGlobalSearchMode(modeConfig) {
+            activeGlobalSearchMode = modeConfig;
+            if (searchFilterPill) {
+                searchFilterPill.classList.remove("joined-cio-hidden");
+            }
+            if (searchInputShell) {
+                searchInputShell.classList.add("has-filter");
+            }
+            if (searchFilterPillLabel) {
+                searchFilterPillLabel.textContent = modeConfig.label || "";
+            }
+            if (searchFilterPillValue) {
+                searchFilterPillValue.textContent = modeConfig.value || "";
+                searchFilterPillValue.classList.toggle("joined-cio-hidden", !modeConfig.value);
+            }
+            defaultSearchPlaceholder = searchInput.placeholder || defaultSearchPlaceholder;
+            searchInput.placeholder = modeConfig.placeholder || "Search...";
+            searchInput.value = "";
+            notifyGlobalSearchModeChange();
+        }
+
+        function getNormalSearchOptions() {
+            const options = [{id: "cio", icon: "building-2", label: "Go to a specific CIO"}];
+            if (typeof window.getGlobalSearchFilterOptions === "function") {
+                return options.concat(window.getGlobalSearchFilterOptions() || []);
+            }
+            return options;
+        }
+
+        function renderSearchModeSuggestions(modeConfig) {
+            if (!searchPopover || !searchInput) return;
+
+            if (modeConfig.kind === "cio") {
+                const suggestions = getJoinedCioSuggestions(searchInput.value);
+                const sectionLabel = (searchInput.value || "").trim() ? "Matching CIOs" : "Recently visited";
+
+                if (!suggestions.length) {
+                    searchPopover.innerHTML = `
+                        <div class="global-search-empty">
+                            <p>No joined CIOs match that search.</p>
+                        </div>
+                    `;
+                    showSearchPopover();
+                    return;
+                }
+
+                searchPopover.innerHTML = `
+                    <div class="global-search-section">
+                        <span class="global-search-section-label">${sectionLabel}</span>
+                        <div class="global-search-option-list">
+                            ${suggestions.map((cio) => `
+                                <button type="button" class="global-search-option global-search-cio-option" data-search-cio-id="${cio.id}" data-search-cio-url="${cio.url}">
+                                    <img src="${cio.icon}" alt="${cio.name} icon" class="global-search-cio-option-icon">
+                                    <span>${cio.name}</span>
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+                `;
+
+                searchPopover.querySelectorAll("[data-search-cio-url]").forEach((buttonEl) => {
+                    buttonEl.addEventListener("click", () => {
+                        const cioId = buttonEl.dataset.searchCioId;
+                        const cioUrl = buttonEl.dataset.searchCioUrl;
+                        window.recordRecentCioVisit(cioId);
+                        if (cioUrl) {
+                            window.location.href = cioUrl;
+                        }
+                    });
+                });
+                showSearchPopover();
+                return;
+            }
+
+            if (modeConfig.kind === "user" && typeof window.getGlobalSearchFilterSuggestions === "function") {
+                const suggestions = window.getGlobalSearchFilterSuggestions(searchInput.value, modeConfig) || [];
+                const sectionLabel = (searchInput.value || "").trim() ? "Matching people" : "People in this CIO";
+
+                if (!suggestions.length) {
+                    searchPopover.innerHTML = `
+                        <div class="global-search-empty">
+                            <p>No people match that search.</p>
+                        </div>
+                    `;
+                    showSearchPopover();
+                    return;
+                }
+
+                searchPopover.innerHTML = `
+                    <div class="global-search-section">
+                        <span class="global-search-section-label">${sectionLabel}</span>
+                        <div class="global-search-option-list">
+                            ${suggestions.map((userOption) => `
+                                <button type="button" class="global-search-option" data-search-user-value="${String(userOption.value).replace(/"/g, '&quot;')}" data-search-user-label="${String(userOption.label).replace(/"/g, '&quot;')}">
+                                    <i data-lucide="user"></i>
+                                    <span>${userOption.label}</span>
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+                `;
+
+                searchPopover.querySelectorAll("[data-search-user-value]").forEach((buttonEl) => {
+                    buttonEl.addEventListener("click", () => {
+                        setGlobalSearchMode({
+                            kind: "user",
+                            id: modeConfig.id,
+                            label: "from:",
+                            value: buttonEl.dataset.searchUserLabel || "",
+                            queryValue: buttonEl.dataset.searchUserValue || "",
+                            placeholder: "Search within that person's messages...",
+                        });
+                        hideSearchPopover();
+                    });
+                });
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+                showSearchPopover();
+            }
+        }
+
+        function renderGlobalSearchPopover() {
+            if (!searchPopover || !searchInput) return;
+
+            if (activeGlobalSearchMode) {
+                renderSearchModeSuggestions(activeGlobalSearchMode);
+                return;
+            }
+
+            searchPopover.innerHTML = `
+                <div class="global-search-section">
+                    <div class="global-search-option-list">
+                        ${getNormalSearchOptions().map((option) => `
+                            <button type="button" class="global-search-option" data-global-search-option="${option.id}">
+                                <i data-lucide="${option.icon}"></i>
+                                <span>${option.label}</span>
+                            </button>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+            searchPopover.querySelectorAll("[data-global-search-option]").forEach((buttonEl) => {
+                buttonEl.addEventListener("click", () => {
+                    const optionId = buttonEl.dataset.globalSearchOption;
+
+                    if (optionId === "cio") {
+                        setGlobalSearchMode({
+                            kind: "cio",
+                            id: "cio",
+                            label: "to:",
+                            value: "",
+                            placeholder: "Search your joined CIOs...",
+                        });
+                        renderGlobalSearchPopover();
+                        searchInput.focus();
+                        return;
+                    }
+
+                    if (typeof window.applyGlobalSearchFilterOption === "function") {
+                        window.applyGlobalSearchFilterOption(optionId, {
+                            setGlobalSearchMode,
+                            renderGlobalSearchPopover,
+                            hideSearchPopover,
+                            searchInput,
+                        });
+                    }
+                });
+            });
+            showSearchPopover();
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        function clearGlobalSearchMode(reopenPopover = false) {
+            activeGlobalSearchMode = null;
+            if (searchFilterPill) {
+                searchFilterPill.classList.add("joined-cio-hidden");
+            }
+            if (searchInputShell) {
+                searchInputShell.classList.remove("has-filter");
+            }
+            if (searchFilterPillValue) {
+                searchFilterPillValue.textContent = "";
+                searchFilterPillValue.classList.add("joined-cio-hidden");
+            }
+            if (searchInput) {
+                searchInput.value = "";
+                searchInput.placeholder = defaultSearchPlaceholder || "Search...";
+            }
+            notifyGlobalSearchModeChange();
+            if (reopenPopover) {
+                renderGlobalSearchPopover();
+                showSearchPopover();
+            } else {
+                hideSearchPopover();
+            }
+        }
 
         if (joinedCioStrip && joinedCioPrev && joinedCioNext && joinedCioLinks.length > 0) {
             const pageSize = Number(joinedCioStrip.dataset.pageSize || 5);
@@ -220,6 +498,72 @@
 
             renderJoinedCioPage();
         }
+
+        joinedCioLinks.forEach((linkEl) => {
+            linkEl.addEventListener("click", () => {
+                const href = linkEl.getAttribute("href") || "";
+                const matchedCio = (window.joinedCioSearchData || []).find((cio) => cio.url === href);
+                if (matchedCio) {
+                    window.recordRecentCioVisit(matchedCio.id);
+                }
+            });
+        });
+
+        if (searchInput && searchPopover) {
+            searchInput.addEventListener("focus", () => {
+                renderGlobalSearchPopover();
+            });
+
+            searchInput.addEventListener("click", () => {
+                renderGlobalSearchPopover();
+            });
+
+            searchInput.addEventListener("input", () => {
+                if ((searchInput.value || "").trim()) {
+                    hideSearchPopover();
+                    return;
+                }
+                renderGlobalSearchPopover();
+            });
+
+            searchInput.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    if (activeGlobalSearchMode) {
+                        clearGlobalSearchMode(true);
+                    } else {
+                        hideSearchPopover();
+                    }
+                }
+
+                if (event.key === "Backspace" && activeGlobalSearchMode && !searchInput.value) {
+                    clearGlobalSearchMode(true);
+                }
+
+                if (event.key === "Enter" && activeGlobalSearchMode && activeGlobalSearchMode.kind === "cio") {
+                    const [firstMatch] = getJoinedCioSuggestions(searchInput.value);
+                    if (firstMatch) {
+                        event.preventDefault();
+                        window.recordRecentCioVisit(firstMatch.id);
+                        window.location.href = firstMatch.url;
+                    }
+                }
+            });
+        }
+
+        if (searchFilterPill) {
+            searchFilterPill.addEventListener("click", () => {
+                clearGlobalSearchMode(true);
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            });
+        }
+
+        document.addEventListener("click", (event) => {
+            if (!event.target.closest(".search-shell")) {
+                hideSearchPopover();
+            }
+        });
 
         if (miniProfileShell && miniProfileTrigger && miniProfileCard) {
             const closeMiniProfileCard = () => {

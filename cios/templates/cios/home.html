@@ -295,6 +295,9 @@
             if (searchInputEl) {
                 searchInputEl.placeholder = "Search CIOs...";
                 searchInputEl.addEventListener("input", (event) => {
+                    if (typeof window.getActiveGlobalSearchMode === "function" && window.getActiveGlobalSearchMode() === "cio") {
+                        return;
+                    }
                     applyCioSearchFilter(event.target.value || "");
                 });
             }

@@ -779,6 +779,9 @@
         if (dmSearchBar && directMessageShell) {
             dmSearchBar.placeholder = 'Search this DM...';
             dmSearchBar.addEventListener('input', () => {
+                if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                    return;
+                }
                 filterDirectMessages(dmSearchBar.value);
             });
         }
@@ -814,7 +817,9 @@
                 }
                 newDividerEls.forEach((dividerEl) => dmDividers.push(dividerEl));
                 if (dmSearchBar) {
-                    filterDirectMessages(dmSearchBar.value);
+                    if (!(typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio')) {
+                        filterDirectMessages(dmSearchBar.value);
+                    }
                 }
                 scrollDmToLatest();
             });
@@ -839,7 +844,9 @@
 
             updateDirectMessageCounter();
             if (dmSearchBar) {
-                filterDirectMessages(dmSearchBar.value);
+                if (!(typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio')) {
+                    filterDirectMessages(dmSearchBar.value);
+                }
             }
             scrollDmToLatest();
         }

@@ -110,7 +110,6 @@
 <script>
     const requestsPageSize = 5;
     let requestsPage = 0;
-    const disabledSearchInput = document.querySelector('.search-bar');
     const requestsPrevBtn = document.getElementById('requestsPrevBtn');
     const requestsNextBtn = document.getElementById('requestsNextBtn');
     const requestsPageLabel = document.getElementById('requestsPageLabel');
@@ -147,12 +146,6 @@
         }
         if (requestsPrevBtn) requestsPrevBtn.disabled = requestsPage === 0;
         if (requestsNextBtn) requestsNextBtn.disabled = requestsPage >= totalPages - 1;
-    }
-
-    if (disabledSearchInput) {
-        disabledSearchInput.value = '';
-        disabledSearchInput.placeholder = 'Search unavailable in settings';
-        disabledSearchInput.disabled = true;
     }
 
     if (requestsPrevBtn) {

@@ -8,6 +8,7 @@
     data-message-sender-id="{{ message.author_id }}"
     data-message-created-at="{{ message.created_at|date:'c' }}"
     data-message-day="{{ message.created_at|date:'Y-m-d' }}"
+    data-message-author="{{ display_name }} {{ message.author.username }}"
     data-search-text="{{ display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
     {% if show_avatar %}
         <img

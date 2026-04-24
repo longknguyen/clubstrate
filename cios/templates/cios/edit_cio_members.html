@@ -241,10 +241,12 @@
     const membersNextBtn = document.getElementById('membersNextBtn');
 
     if (membersSearchInput) {
-        membersSearchInput.disabled = false;
         membersSearchInput.value = '';
         membersSearchInput.placeholder = 'Search members by name or username...';
         membersSearchInput.addEventListener('input', () => {
+            if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                return;
+            }
             membersPage = 0;
             renderMembersTable(membersSearchInput.value);
         });
