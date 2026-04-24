@@ -328,7 +328,8 @@
                 `;
 
                 searchPopover.querySelectorAll("[data-search-cio-url]").forEach((buttonEl) => {
-                    buttonEl.addEventListener("click", () => {
+                    buttonEl.addEventListener("click", (event) => {
+                        event.stopPropagation();
                         const cioId = buttonEl.dataset.searchCioId;
                         const cioUrl = buttonEl.dataset.searchCioUrl;
                         window.recordRecentCioVisit(cioId);
@@ -370,7 +371,8 @@
                 `;
 
                 searchPopover.querySelectorAll("[data-search-user-value]").forEach((buttonEl) => {
-                    buttonEl.addEventListener("click", () => {
+                    buttonEl.addEventListener("click", (event) => {
+                        event.stopPropagation();
                         setGlobalSearchMode({
                             kind: "user",
                             id: modeConfig.id,
@@ -410,7 +412,8 @@
                 </div>
             `;
             searchPopover.querySelectorAll("[data-global-search-option]").forEach((buttonEl) => {
-                buttonEl.addEventListener("click", () => {
+                buttonEl.addEventListener("click", (event) => {
+                    event.stopPropagation();
                     const optionId = buttonEl.dataset.globalSearchOption;
 
                     if (optionId === "cio") {
@@ -519,6 +522,10 @@
             });
 
             searchInput.addEventListener("input", () => {
+                if (activeGlobalSearchMode && activeGlobalSearchMode.kind === "cio") {
+                    renderGlobalSearchPopover();
+                    return;
+                }
                 if ((searchInput.value || "").trim()) {
                     hideSearchPopover();
                     return;
