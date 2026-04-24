@@ -244,6 +244,13 @@
         avatarEl.replaceWith(spacerEl);
     }
 
+    function clearDiscussionEmptyState() {
+        if (!chatMessageList) return;
+        chatMessageList
+            .querySelectorAll('.chat-empty-state, .discussion-empty-state')
+            .forEach((emptyStateEl) => emptyStateEl.remove());
+    }
+
     function focusChatComposer() {
         if (chatComposerInput) {
             chatComposerInput.focus();
@@ -380,11 +387,7 @@
             const payload = JSON.parse(event.data);
             if (!chatMessageList || payload.type !== 'message') return;
 
-            const emptyState = chatMessageList.querySelector('.chat-empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
-
+            clearDiscussionEmptyState();
             const wrapper = document.createElement('div');
             wrapper.innerHTML = payload.html;
             const previousMessageEl = chatMessageList.querySelector('.chat-message:last-of-type');

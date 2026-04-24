@@ -744,6 +744,13 @@
             avatarEl.replaceWith(spacerEl);
         }
 
+        function clearDirectMessageEmptyState() {
+            if (!directMessageList) return;
+            directMessageList
+                .querySelectorAll('.chat-empty-state, .discussion-empty-state')
+                .forEach((emptyStateEl) => emptyStateEl.remove());
+        }
+
         function filterDirectMessages(query) {
             const normalizedQuery = (query || '').trim().toLowerCase();
 
@@ -790,6 +797,7 @@
                 const payload = JSON.parse(event.data);
                 if (!directMessageList || payload.type !== 'message') return;
 
+                clearDirectMessageEmptyState();
                 const previousMessageEl = directMessageList.querySelector('.chat-message:last-of-type');
                 const wrapper = document.createElement('div');
                 wrapper.innerHTML = payload.html;
