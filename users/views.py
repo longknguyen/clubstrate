@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth import logout, get_user_model, login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -8,9 +9,12 @@ from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.urls import reverse
+from django.template.loader import render_to_string
 from django.utils import timezone
 from datetime import timedelta
 from urllib.parse import quote_plus
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from image_utils import convert_upload_to_webp
 from .forms import (
     PROFILE_FIRST_NAME_MAX_LENGTH,
@@ -20,10 +24,11 @@ from .forms import (
 )
 import uuid
 
-from .models import Profile, Friendship, DirectMessage
+from .models import Profile, Friendship, FriendRequest, DirectMessage
 
 User = get_user_model()
 DM_GROUP_GAP = timedelta(minutes=5)
+FRIEND_LIMIT = 100
 
 
 def _display_name_for_user(user):
@@ -45,6 +50,140 @@ def _friendship_for_users(user, other_user):
 
 def _friend_count(user):
     return _friendship_queryset_for_user(user).count()
+
+
+def _create_friendship(user, other_user):
+    user_one_id, user_two_id = sorted([user.id, other_user.id])
+    friendship, _ = Friendship.objects.get_or_create(user_one_id=user_one_id, user_two_id=user_two_id)
+    return friendship
+
+
+def _pending_friend_requests_for_user(user):
+    return FriendRequest.objects.filter(
+        recipient=user,
+        status=FriendRequest.PENDING,
+    ).select_related('sender', 'sender__profile')
+
+
+def _sent_pending_friend_request(user, target_user):
+    return FriendRequest.objects.filter(
+        sender=user,
+        recipient=target_user,
+        status=FriendRequest.PENDING,
+    ).first()
+
+
+def _received_pending_friend_request(user, sender_user):
+    return FriendRequest.objects.filter(
+        sender=sender_user,
+        recipient=user,
+        status=FriendRequest.PENDING,
+    ).first()
+
+
+def _friend_request_row_context(friend_request):
+    sender = friend_request.sender
+    return {
+        'id': friend_request.id,
+        'display_name': _display_name_for_user(sender),
+        'username': sender.username,
+        'image_url': sender.profile.image.url,
+        'created_at': friend_request.created_at,
+    }
+
+
+def _friend_row_context(user):
+    return {
+        'id': user.id,
+        'display_name': _display_name_for_user(user),
+        'username': user.username,
+        'image_url': user.profile.image.url,
+    }
+
+
+def _friend_sidebar_item_context(friendship, viewer):
+    other_user = friendship.other_user(viewer)
+    return {
+        'friend_id': other_user.id,
+        'display_name': _display_name_for_user(other_user),
+        'image_url': other_user.profile.image.url,
+    }
+
+
+def _send_friend_request_event(user_id, event_type, payload):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"friend_requests_{user_id}",
+        {
+            'type': 'friend.request.event',
+            'event_type': event_type,
+            'payload': payload,
+        },
+    )
+
+
+def _send_friend_request_created(friend_request):
+    request_item = _friend_request_row_context(friend_request)
+    html = render_to_string(
+        'users/partials/friend_request_row.html',
+        {'request_item': request_item},
+    )
+    _send_friend_request_event(
+        friend_request.recipient_id,
+        'request_created',
+        {
+            'request_id': friend_request.id,
+            'html': html,
+        },
+    )
+
+
+def _send_friend_request_removed(user_id, request_id):
+    _send_friend_request_event(
+        user_id,
+        'request_removed',
+        {
+            'request_id': request_id,
+        },
+    )
+
+
+def _send_friend_added(user, other_user):
+    friendship = _friendship_for_users(user, other_user)
+    if not friendship:
+        return
+
+    friend_item = _friend_row_context(other_user)
+    friend_html = render_to_string(
+        'users/partials/friend_list_row.html',
+        {'friend': friend_item},
+    )
+    sidebar_html = render_to_string(
+        'users/partials/friend_sidebar_item.html',
+        {'item': _friend_sidebar_item_context(friendship, user)},
+    )
+    _send_friend_request_event(
+        user.id,
+        'friend_added',
+        {
+            'friend_id': other_user.id,
+            'friend_html': friend_html,
+            'sidebar_html': sidebar_html,
+        },
+    )
+
+
+def _send_friend_removed(user_id, friend_id):
+    _send_friend_request_event(
+        user_id,
+        'friend_removed',
+        {
+            'friend_id': friend_id,
+        },
+    )
 
 
 def _time_divider_label(created_at):
@@ -344,6 +483,7 @@ def friends_page(request):
     section = request.GET.get('section', 'all')
     dm_user_id = request.GET.get('dm')
     notice = request.GET.get('notice', '')
+    notice_type = request.GET.get('notice_type', '')
 
     friend_items = _friend_sidebar_items(request.user)
     accepted_friends = []
@@ -356,6 +496,11 @@ def friends_page(request):
             'image_url': friend.profile.image.url,
             'banner_colour': friend.banner_colour,
         })
+
+    received_requests = [
+        _friend_request_row_context(friend_request)
+        for friend_request in _pending_friend_requests_for_user(request.user)
+    ]
 
     selected_friend = None
     selected_friendship = None
@@ -381,8 +526,11 @@ def friends_page(request):
         'selected_friendship': selected_friendship,
         'direct_messages': direct_messages,
         'notice': notice,
+        'notice_type': notice_type,
         'friend_count': len(accepted_friends),
-        'friend_limit': 100,
+        'friend_limit': FRIEND_LIMIT,
+        'received_requests': received_requests,
+        'requests_count': len(received_requests),
     }
     return render(request, 'users/friends.html', context)
 
@@ -394,23 +542,114 @@ def add_friend(request):
 
     username = request.POST.get('username', '').strip().lstrip('@')
     redirect_url = f"{reverse('friends')}?section=add"
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def add_notice(message, notice_type='error'):
+        if wants_json:
+            status_code = 200 if notice_type == 'success' else 400
+            return JsonResponse({'notice': message, 'notice_type': notice_type}, status=status_code)
+        return redirect(f"{redirect_url}&notice={quote_plus(message)}&notice_type={notice_type}")
 
     if not username:
-        return redirect(f"{redirect_url}&notice={quote_plus('Enter a username to add.')}")
+        return add_notice('Enter a username to add.')
 
     try:
         target_user = User.objects.get(username__iexact=username)
     except User.DoesNotExist:
-        return redirect(f"{redirect_url}&notice={quote_plus('No user found with that username.')}")
+        return add_notice('No user found with that username.')
 
     if target_user == request.user:
-        return redirect(f"{redirect_url}&notice={quote_plus('You cannot add yourself.')}")
+        return add_notice('You cannot add yourself.')
 
     if _friendship_for_users(request.user, target_user):
-        return redirect(f"{redirect_url}&notice={quote_plus('You are already friends.')}")
+        return add_notice('You are already friends.')
 
-    if _friend_count(request.user) >= 100 or _friend_count(target_user) >= 100:
-        return redirect(f"{redirect_url}&notice={quote_plus('One of these accounts has reached the 100 friend limit.')}")
+    if _friend_count(request.user) >= FRIEND_LIMIT or _friend_count(target_user) >= FRIEND_LIMIT:
+        return add_notice('One of these accounts has reached the 100 friend limit.')
 
-    Friendship.objects.create(user_one=request.user, user_two=target_user)
+    existing_sent_request = _sent_pending_friend_request(request.user, target_user)
+    if existing_sent_request:
+        return add_notice('Friend request already sent.')
+
+    reverse_request = _received_pending_friend_request(request.user, target_user)
+    if reverse_request:
+        reverse_request.status = FriendRequest.ACCEPTED
+        reverse_request.save(update_fields=['status', 'updated_at'])
+        _create_friendship(request.user, target_user)
+        _send_friend_request_removed(request.user.id, reverse_request.id)
+        _send_friend_request_removed(target_user.id, reverse_request.id)
+        _send_friend_added(request.user, target_user)
+        _send_friend_added(target_user, request.user)
+        return redirect(f"{reverse('friends')}?section=all&notice={quote_plus('Friend added.')}")
+
+    friend_request, created = FriendRequest.objects.get_or_create(
+        sender=request.user,
+        recipient=target_user,
+        defaults={'status': FriendRequest.PENDING},
+    )
+
+    if not created:
+        friend_request.status = FriendRequest.PENDING
+        friend_request.save(update_fields=['status', 'updated_at'])
+
+    _send_friend_request_created(friend_request)
+    return add_notice('Friend request sent.', 'success')
+
+
+@login_required
+def accept_friend_request(request, request_id):
+    if request.method != 'POST':
+        return redirect(f"{reverse('friends')}?section=requests")
+
+    friend_request = get_object_or_404(
+        FriendRequest.objects.select_related('sender', 'recipient'),
+        id=request_id,
+        recipient=request.user,
+        status=FriendRequest.PENDING,
+    )
+
+    if _friend_count(request.user) >= FRIEND_LIMIT or _friend_count(friend_request.sender) >= FRIEND_LIMIT:
+        return redirect(f"{reverse('friends')}?section=requests&notice={quote_plus('Friend limit reached for one of these accounts.')}")
+
+    friend_request.status = FriendRequest.ACCEPTED
+    friend_request.save(update_fields=['status', 'updated_at'])
+    _create_friendship(request.user, friend_request.sender)
+    _send_friend_request_removed(request.user.id, friend_request.id)
+    _send_friend_request_removed(friend_request.sender_id, friend_request.id)
+    _send_friend_added(request.user, friend_request.sender)
+    _send_friend_added(friend_request.sender, request.user)
     return redirect(f"{reverse('friends')}?section=all&notice={quote_plus('Friend added.')}")
+
+
+@login_required
+def decline_friend_request(request, request_id):
+    if request.method != 'POST':
+        return redirect(f"{reverse('friends')}?section=requests")
+
+    friend_request = get_object_or_404(
+        FriendRequest,
+        id=request_id,
+        recipient=request.user,
+        status=FriendRequest.PENDING,
+    )
+    friend_request.status = FriendRequest.DECLINED
+    friend_request.save(update_fields=['status', 'updated_at'])
+    _send_friend_request_removed(request.user.id, friend_request.id)
+    _send_friend_request_removed(friend_request.sender_id, friend_request.id)
+    return redirect(f"{reverse('friends')}?section=requests")
+
+
+@login_required
+def remove_friend(request, friend_id):
+    if request.method != 'POST':
+        return redirect(f"{reverse('friends')}?section=all")
+
+    target_user = get_object_or_404(User.objects.select_related('profile'), id=friend_id)
+    friendship = _friendship_for_users(request.user, target_user)
+    if not friendship:
+        return redirect(f"{reverse('friends')}?section=all&notice={quote_plus('Friend not found.')}")
+
+    friendship.delete()
+    _send_friend_removed(request.user.id, target_user.id)
+    _send_friend_removed(target_user.id, request.user.id)
+    return redirect(f"{reverse('friends')}?section=all&notice={quote_plus('Friend removed.')}")

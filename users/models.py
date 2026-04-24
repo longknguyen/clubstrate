@@ -79,6 +79,40 @@ class Friendship(models.Model):
         return f'{self.user_one.username} ↔ {self.user_two.username}'
 
 
+class FriendRequest(models.Model):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    DECLINED = 'declined'
+    STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (ACCEPTED, 'Accepted'),
+        (DECLINED, 'Declined'),
+    ]
+
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_friend_requests',
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='received_friend_requests',
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['sender', 'recipient'], name='unique_friend_request_pair'),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.sender.username} → {self.recipient.username} ({self.status})'
+
+
 class DirectMessage(models.Model):
     friendship = models.ForeignKey(Friendship, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_direct_messages')

@@ -74,6 +74,7 @@
                class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'friends' %}active{% endif %}"
                data-tooltip="Friends">
                 <i data-lucide="users"></i>
+                <span class="top-nav-dot {% if pending_friend_requests_count == 0 %}joined-cio-hidden{% endif %}" id="topNavFriendsDot" aria-hidden="true"></span>
             </a>
 
             <a href="{% url 'home' %}"
@@ -185,6 +186,7 @@
         const miniProfileShell = document.getElementById("miniProfileShell");
         const miniProfileTrigger = document.getElementById("miniProfileTrigger");
         const miniProfileCard = document.getElementById("miniProfileCard");
+        const topNavFriendsDot = document.getElementById("topNavFriendsDot");
         let miniProfileHideTimeout = null;
 
         if (joinedCioStrip && joinedCioPrev && joinedCioNext && joinedCioLinks.length > 0) {
@@ -262,6 +264,31 @@
             document.addEventListener("keydown", (event) => {
                 if (event.key === "Escape") {
                     closeMiniProfileCard();
+                }
+            });
+        }
+
+        if (topNavFriendsDot && document.body.dataset.friendRequestsSocketBound !== "true") {
+            document.body.dataset.friendRequestsSocketBound = "true";
+            const requestSocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const requestSocket = new WebSocket(`${requestSocketProtocol}://${window.location.host}/ws/friends/requests/`);
+
+            const syncTopNavFriendsDot = (delta) => {
+                const currentCount = Number(topNavFriendsDot.dataset.count || "{{ pending_friend_requests_count|default:0 }}");
+                const nextCount = Math.max(0, currentCount + delta);
+                topNavFriendsDot.dataset.count = String(nextCount);
+                topNavFriendsDot.classList.toggle("joined-cio-hidden", nextCount === 0);
+            };
+
+            topNavFriendsDot.dataset.count = "{{ pending_friend_requests_count|default:0 }}";
+
+            requestSocket.addEventListener("message", (event) => {
+                const payload = JSON.parse(event.data);
+                if (payload.type === "request_created") {
+                    syncTopNavFriendsDot(1);
+                }
+                if (payload.type === "request_removed") {
+                    syncTopNavFriendsDot(-1);
                 }
             });
         }

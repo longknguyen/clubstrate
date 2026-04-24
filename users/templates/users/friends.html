@@ -49,16 +49,18 @@
     </a>
     <div class="sidebar-divider"></div>
     <p class="sidebar-section-label">Direct Messages</p>
-    {% for item in friend_items %}
-        <a href="{% url 'friends' %}?dm={{ item.friend.id }}" class="sidebar-item sidebar-dm-item {% if selected_friend and selected_friend.id == item.friend.id %}active{% endif %}">
-            <img src="{{ item.friend.profile.image.url }}" alt="{{ item.display_name }}" class="sidebar-dm-avatar">
-            <div class="sidebar-dm-copy">
-                <span class="sidebar-dm-name">{{ item.display_name }}</span>
-            </div>
-        </a>
-    {% empty %}
-        <p class="sidebar-section-empty">No direct messages yet.</p>
-    {% endfor %}
+    <div id="friendSidebarItems">
+        {% for item in friend_items %}
+            <a href="{% url 'friends' %}?dm={{ item.friend.id }}" class="sidebar-item sidebar-dm-item {% if selected_friend and selected_friend.id == item.friend.id %}active{% endif %}" data-sidebar-friend-id="{{ item.friend.id }}">
+                <img src="{{ item.friend.profile.image.url }}" alt="{{ item.display_name }}" class="sidebar-dm-avatar">
+                <div class="sidebar-dm-copy">
+                    <span class="sidebar-dm-name">{{ item.display_name }}</span>
+                </div>
+            </a>
+        {% empty %}
+            <p class="sidebar-section-empty" id="friendSidebarEmptyState">No direct messages yet.</p>
+        {% endfor %}
+    </div>
 {% endblock %}
 
 {% block content %}
@@ -115,33 +117,17 @@
         {% else %}
             <section class="friends-shell">
                 <div class="friends-tabs">
-                    <a href="{% url 'friends' %}?section=all" class="cio-subsection-link {% if section != 'add' %}active{% endif %}">All</a>
-                    <a href="{% url 'friends' %}?section=add" class="cio-subsection-link {% if section == 'add' %}active{% endif %}">Add Friend</a>
+                    <a href="{% url 'friends' %}?section=all" class="cio-subsection-link {% if section == 'all' %}active{% endif %}" data-friends-tab="all">All</a>
+                    <a href="{% url 'friends' %}?section=add" class="cio-subsection-link {% if section == 'add' %}active{% endif %}" data-friends-tab="add">Add Friend</a>
+                    <a href="{% url 'friends' %}?section=requests" class="cio-subsection-link {% if section == 'requests' %}active{% endif %}" data-friends-tab="requests">
+                        <span>Requests</span>
+                        <span class="friends-request-dot {% if requests_count == 0 %}joined-cio-hidden{% endif %}" id="friendsRequestDot" aria-hidden="true"></span>
+                    </a>
                 </div>
 
-                {% if section == 'add' %}
-                    <div class="friends-add-shell">
-                        <h2>Add friend</h2>
-                        <p>You can add friends with their Clubstrate usernames.</p>
-                        <form method="POST" action="{% url 'add_friend' %}" class="friends-add-form">
-                            {% csrf_token %}
-                            <div class="friends-add-input-wrap">
-                                <input
-                                    type="text"
-                                    name="username"
-                                    class="friends-add-input"
-                                    placeholder="You can add friends with their Clubstrate usernames."
-                                    maxlength="150">
-                                <button type="submit" class="friends-add-submit">Send Friend Request</button>
-                            </div>
-                            {% if notice %}
-                                <p class="friends-add-error">{{ notice }}</p>
-                            {% endif %}
-                        </form>
-                    </div>
-                {% else %}
+                <div class="friends-tab-panel {% if section == 'all' %}is-active{% endif %}" data-friends-panel="all">
                     <div class="friends-list-shell">
-                        {% if notice %}
+                        {% if notice and section == 'all' %}
                             <div class="friends-notice">{{ notice }}</div>
                         {% endif %}
                         <div class="friends-list-header">
@@ -154,15 +140,9 @@
                         <div class="friends-list-card">
                             <div id="friendsListRows">
                                 {% for friend in accepted_friends %}
-                                    <article class="friends-list-row" data-friend-row>
-                                        <img src="{{ friend.image_url }}" alt="{{ friend.display_name }}" class="friends-list-avatar">
-                                        <div class="friends-list-copy">
-                                            <span class="friends-list-name">{{ friend.display_name }}</span>
-                                            <span class="friends-list-username">@{{ friend.username }}</span>
-                                        </div>
-                                    </article>
+                                    {% include "users/partials/friend_list_row.html" %}
                                 {% empty %}
-                                    <div class="discussion-empty-state">
+                                    <div class="discussion-empty-state" id="friendsListEmptyState">
                                         <h3>No friends yet</h3>
                                         <p>Use Add Friend to connect with someone.</p>
                                     </div>
@@ -180,7 +160,52 @@
                             </button>
                         </div>
                     </div>
-                {% endif %}
+                </div>
+
+                <div class="friends-tab-panel {% if section == 'add' %}is-active{% endif %}" data-friends-panel="add">
+                    <div class="friends-add-shell">
+                        <h2>Add friend</h2>
+                        <p>You can add friends with their Clubstrate usernames.</p>
+                        <form method="POST" action="{% url 'add_friend' %}" class="friends-add-form">
+                            {% csrf_token %}
+                            <div class="friends-add-input-wrap {% if notice and section == 'add' and notice_type == 'success' %}is-success{% elif notice and section == 'add' %}is-error{% endif %}" id="friendsAddInputWrap">
+                                <input
+                                    type="text"
+                                    name="username"
+                                    class="friends-add-input"
+                                    id="friendsAddInput"
+                                    placeholder="You can add friends with their Clubstrate usernames."
+                                    maxlength="150">
+                                <button type="submit" class="friends-add-submit">Send Friend Request</button>
+                            </div>
+                            <p class="friends-add-error {% if notice_type == 'success' %}is-success{% endif %}{% if not notice or section != 'add' %} joined-cio-hidden{% endif %}" id="friendsAddNotice" {% if notice and section == 'add' %}data-friends-add-notice="{{ notice_type }}"{% endif %}>{% if notice and section == 'add' %}{{ notice }}{% endif %}</p>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="friends-tab-panel {% if section == 'requests' %}is-active{% endif %}" data-friends-panel="requests">
+                    <div class="friends-list-shell">
+                        <div class="friends-list-header">
+                            <div>
+                                <h2>Requests</h2>
+                                <p id="friendRequestsCountLabel">{{ requests_count }} pending requests</p>
+                            </div>
+                        </div>
+
+                        <div class="friends-list-card">
+                            <div id="friendRequestRows">
+                                {% for request_item in received_requests %}
+                                    {% include "users/partials/friend_request_row.html" %}
+                                {% empty %}
+                                    <div class="discussion-empty-state" id="friendRequestEmptyState">
+                                        <h3>No pending requests</h3>
+                                        <p>Incoming friend requests will appear here.</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
         {% endif %}
     </div>
@@ -218,6 +243,20 @@
         const friendsPageLabel = document.getElementById('friendsPageLabel');
         const friendsPerPage = 10;
         let friendsPage = 0;
+        const friendsShell = document.querySelector('.friends-shell');
+        const friendsTabLinks = Array.from(document.querySelectorAll('[data-friends-tab]'));
+        const friendsTabPanels = Array.from(document.querySelectorAll('[data-friends-panel]'));
+        const friendRequestRows = document.getElementById('friendRequestRows');
+        const directMessageShell = document.querySelector('[data-friendship-id]');
+        const friendsRequestDot = document.getElementById('friendsRequestDot');
+        const friendSidebarItems = document.getElementById('friendSidebarItems');
+        const friendsListRows = document.getElementById('friendsListRows');
+        const friendRequestsCountLabel = document.getElementById('friendRequestsCountLabel');
+        const friendsAddNotice = document.querySelector('[data-friends-add-notice]');
+        const friendsAddForm = document.querySelector('.friends-add-form');
+        const friendsAddInputWrap = document.getElementById('friendsAddInputWrap');
+        const friendsAddInput = document.getElementById('friendsAddInput');
+        const friendsAddNoticeEl = document.getElementById('friendsAddNotice');
 
         function renderFriendsPage(pageIndex) {
             if (!friendRows.length) return;
@@ -243,7 +282,42 @@
             renderFriendsPage(0);
         }
 
-        const directMessageShell = document.querySelector('[data-friendship-id]');
+        function activateFriendsSection(sectionName, shouldPushState = true) {
+            if (!friendsTabPanels.length) return;
+
+            friendsTabLinks.forEach((tabEl) => {
+                tabEl.classList.toggle('active', tabEl.dataset.friendsTab === sectionName);
+            });
+
+            friendsTabPanels.forEach((panelEl) => {
+                panelEl.classList.toggle('is-active', panelEl.dataset.friendsPanel === sectionName);
+            });
+
+            if (shouldPushState) {
+                const nextUrl = new URL(window.location.href);
+                nextUrl.searchParams.set('section', sectionName);
+                nextUrl.searchParams.delete('dm');
+                window.history.pushState({}, '', nextUrl.toString());
+            }
+        }
+
+        friendsTabLinks.forEach((tabEl) => {
+            tabEl.addEventListener('click', (event) => {
+                if (directMessageShell) return;
+                event.preventDefault();
+                activateFriendsSection(tabEl.dataset.friendsTab);
+            });
+        });
+
+        window.addEventListener('popstate', () => {
+            if (directMessageShell) return;
+            const url = new URL(window.location.href);
+            activateFriendsSection(url.searchParams.get('section') || 'all', false);
+        });
+
+        if (friendsShell && !directMessageShell) {
+            activateFriendsSection('{{ section|default:"all" }}', false);
+        }
         const directMessageList = document.getElementById('directMessageList');
         const directMessageForm = document.getElementById('directMessageForm');
         const directMessageInput = document.getElementById('directMessageInput');
@@ -251,6 +325,375 @@
         const dmSearchBar = document.querySelector('.search-bar');
         const dmMessages = Array.from(document.querySelectorAll('[data-message-day]'));
         const dmDividers = Array.from(document.querySelectorAll('[data-divider-day]'));
+
+        function getCsrfToken() {
+            const csrfCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('csrftoken='));
+            return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
+        }
+
+        function launchFriendsConfetti() {
+            const layer = document.createElement('div');
+            layer.className = 'friends-confetti-layer';
+
+            const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
+            for (let index = 0; index < 28; index += 1) {
+                const piece = document.createElement('span');
+                piece.className = 'friends-confetti-piece';
+                piece.style.left = `${45 + Math.random() * 10}%`;
+                piece.style.background = colors[index % colors.length];
+                piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * 260}px`);
+                piece.style.setProperty('--confetti-y', `${180 + Math.random() * 120}px`);
+                piece.style.setProperty('--confetti-rotate', `${140 + Math.random() * 280}deg`);
+                piece.style.animationDelay = `${Math.random() * 120}ms`;
+                layer.appendChild(piece);
+            }
+
+            document.body.appendChild(layer);
+            window.setTimeout(() => layer.remove(), 1200);
+        }
+
+        function setFriendsAddNotice(message, noticeType) {
+            if (!friendsAddInputWrap || !friendsAddNoticeEl) return;
+
+            friendsAddInputWrap.classList.remove('is-success', 'is-error');
+            friendsAddNoticeEl.classList.remove('is-success', 'joined-cio-hidden');
+            delete friendsAddNoticeEl.dataset.friendsAddNotice;
+
+            if (!message) {
+                friendsAddNoticeEl.textContent = '';
+                friendsAddNoticeEl.classList.add('joined-cio-hidden');
+                return;
+            }
+
+            friendsAddInputWrap.classList.add(noticeType === 'success' ? 'is-success' : 'is-error');
+            if (noticeType === 'success') {
+                friendsAddNoticeEl.classList.add('is-success');
+            }
+            friendsAddNoticeEl.dataset.friendsAddNotice = noticeType;
+            friendsAddNoticeEl.textContent = message;
+        }
+
+        if (friendsAddNotice && friendsAddNotice.dataset.friendsAddNotice === 'success') {
+            setFriendsAddNotice(friendsAddNotice.textContent, 'success');
+            history.replaceState({}, '', '{{ request.path }}?section=add');
+        }
+
+        if (friendsAddForm && friendsAddInput) {
+            friendsAddForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(friendsAddForm);
+                const response = await fetch(friendsAddForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                const payload = await response.json();
+                const noticeType = payload.notice_type || (response.ok ? 'success' : 'error');
+                setFriendsAddNotice(payload.notice || '', noticeType);
+
+                if (response.ok && noticeType === 'success') {
+                    friendsAddForm.reset();
+                    launchFriendsConfetti();
+                    friendsAddInput.focus();
+                }
+            });
+        }
+
+        function ensureFriendRequestEmptyState() {
+            if (!friendRequestRows) return;
+
+            const remainingRows = friendRequestRows.querySelectorAll('[data-request-row]');
+            const existingEmptyState = document.getElementById('friendRequestEmptyState');
+
+            if (remainingRows.length === 0 && !existingEmptyState) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'discussion-empty-state';
+                emptyState.id = 'friendRequestEmptyState';
+                emptyState.innerHTML = '<h3>No pending requests</h3><p>Incoming friend requests will appear here.</p>';
+                friendRequestRows.appendChild(emptyState);
+            } else if (remainingRows.length > 0 && existingEmptyState) {
+                existingEmptyState.remove();
+            }
+        }
+
+        function updateRequestDot() {
+            if (!friendsRequestDot || !friendRequestRows) return;
+            const requestCount = friendRequestRows.querySelectorAll('[data-request-row]').length;
+            friendsRequestDot.classList.toggle('joined-cio-hidden', requestCount === 0);
+            if (friendRequestsCountLabel) {
+                friendRequestsCountLabel.textContent = `${requestCount} pending request${requestCount === 1 ? '' : 's'}`;
+            }
+        }
+
+        function ensureFriendsListEmptyState() {
+            if (!friendsListRows) return;
+
+            const remainingFriends = friendsListRows.querySelectorAll('[data-friend-row]');
+            const emptyState = document.getElementById('friendsListEmptyState');
+
+            if (remainingFriends.length === 0 && !emptyState) {
+                const nextEmptyState = document.createElement('div');
+                nextEmptyState.className = 'discussion-empty-state';
+                nextEmptyState.id = 'friendsListEmptyState';
+                nextEmptyState.innerHTML = '<h3>No friends yet</h3><p>Use Add Friend to connect with someone.</p>';
+                friendsListRows.appendChild(nextEmptyState);
+            } else if (remainingFriends.length > 0 && emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function ensureFriendSidebarEmptyState() {
+            if (!friendSidebarItems) return;
+
+            const existingItems = friendSidebarItems.querySelectorAll('[data-sidebar-friend-id]');
+            const emptyState = document.getElementById('friendSidebarEmptyState');
+
+            if (existingItems.length === 0 && !emptyState) {
+                const nextEmptyState = document.createElement('p');
+                nextEmptyState.className = 'sidebar-section-empty';
+                nextEmptyState.id = 'friendSidebarEmptyState';
+                nextEmptyState.textContent = 'No direct messages yet.';
+                friendSidebarItems.appendChild(nextEmptyState);
+            } else if (existingItems.length > 0 && emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function removeFriendRow(friendId) {
+            if (!friendsListRows) return;
+            const rowEl = friendsListRows.querySelector(`[data-friend-id="${friendId}"]`);
+            if (!rowEl) {
+                ensureFriendsListEmptyState();
+                return;
+            }
+
+            rowEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                rowEl.remove();
+                const rowIndex = friendRows.indexOf(rowEl);
+                if (rowIndex >= 0) {
+                    friendRows.splice(rowIndex, 1);
+                }
+                ensureFriendsListEmptyState();
+                if (friendRows.length) {
+                    renderFriendsPage(Math.min(friendsPage, Math.max(Math.ceil(friendRows.length / friendsPerPage) - 1, 0)));
+                }
+            }, 180);
+        }
+
+        function removeSidebarFriend(friendId) {
+            if (!friendSidebarItems) return;
+            const itemEl = friendSidebarItems.querySelector(`[data-sidebar-friend-id="${friendId}"]`);
+            if (!itemEl) {
+                ensureFriendSidebarEmptyState();
+                return;
+            }
+
+            itemEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                itemEl.remove();
+                ensureFriendSidebarEmptyState();
+            }, 180);
+        }
+
+        function removeFriendRequestRow(rowEl) {
+            if (!rowEl) return;
+            rowEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                rowEl.remove();
+                ensureFriendRequestEmptyState();
+                updateRequestDot();
+            }, 180);
+        }
+
+        function bindFriendRequestActionForm(formEl) {
+            formEl.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const response = await fetch(formEl.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) return;
+
+                removeFriendRequestRow(formEl.closest('[data-request-row]'));
+            });
+        }
+
+        function closeAllFriendMenus(exceptMenu = null) {
+            document.querySelectorAll('[data-friend-menu]').forEach((menuEl) => {
+                if (menuEl === exceptMenu) return;
+                menuEl.classList.remove('is-open');
+                menuEl.classList.add('joined-cio-hidden');
+                const shell = menuEl.closest('.friends-row-menu-shell');
+                const triggerEl = shell ? shell.querySelector('[data-friend-menu-trigger]') : null;
+                if (triggerEl) {
+                    triggerEl.dataset.menuOpen = 'false';
+                }
+            });
+        }
+
+        function bindFriendRowActions(scope = document) {
+            scope.querySelectorAll('[data-friend-menu-trigger]').forEach((triggerEl) => {
+                if (triggerEl.dataset.boundMenuTrigger === 'true') return;
+                triggerEl.dataset.boundMenuTrigger = 'true';
+
+                triggerEl.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const shell = triggerEl.closest('.friends-row-menu-shell');
+                    const menuEl = shell ? shell.querySelector('[data-friend-menu]') : null;
+                    if (!menuEl) return;
+
+                    const willOpen = menuEl.classList.contains('joined-cio-hidden');
+                    closeAllFriendMenus(willOpen ? menuEl : null);
+
+                    if (willOpen) {
+                        triggerEl.dataset.menuOpen = 'true';
+                        menuEl.classList.remove('joined-cio-hidden');
+                        requestAnimationFrame(() => {
+                            menuEl.classList.add('is-open');
+                        });
+                    } else {
+                        triggerEl.dataset.menuOpen = 'false';
+                        menuEl.classList.remove('is-open');
+                        window.setTimeout(() => {
+                            menuEl.classList.add('joined-cio-hidden');
+                        }, 180);
+                    }
+                });
+            });
+
+            scope.querySelectorAll('[data-remove-friend-form]').forEach((formEl) => {
+                if (formEl.dataset.boundRemoveFriend === 'true') return;
+                formEl.dataset.boundRemoveFriend = 'true';
+
+                formEl.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const response = await fetch(formEl.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) return;
+
+                    const rowEl = formEl.closest('[data-friend-row]');
+                    const friendId = rowEl ? rowEl.dataset.friendId : null;
+                    if (!friendId) return;
+
+                    removeFriendRow(friendId);
+                    removeSidebarFriend(friendId);
+                });
+            });
+        }
+
+        document.querySelectorAll('[data-request-action-form]').forEach(bindFriendRequestActionForm);
+        bindFriendRowActions();
+
+        document.addEventListener('click', () => {
+            closeAllFriendMenus();
+        });
+
+        if (friendRequestRows) {
+            const requestSocketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const requestSocket = new WebSocket(`${requestSocketProtocol}://${window.location.host}/ws/friends/requests/`);
+
+            requestSocket.addEventListener('message', (event) => {
+                const payload = JSON.parse(event.data);
+
+                if (payload.type === 'request_created' && payload.html) {
+                    const existingEmptyState = document.getElementById('friendRequestEmptyState');
+                    if (existingEmptyState) {
+                        existingEmptyState.remove();
+                    }
+
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = payload.html;
+                    const rowEl = wrapper.firstElementChild;
+                    if (!rowEl) return;
+
+                    rowEl.classList.add('friends-row-enter');
+                    friendRequestRows.prepend(rowEl);
+                    rowEl.querySelectorAll('[data-request-action-form]').forEach(bindFriendRequestActionForm);
+                    updateRequestDot();
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                }
+
+                if (payload.type === 'request_removed' && payload.request_id) {
+                    const rowEl = friendRequestRows.querySelector(`[data-request-id="${payload.request_id}"]`);
+                    if (rowEl) {
+                        removeFriendRequestRow(rowEl);
+                    } else {
+                        ensureFriendRequestEmptyState();
+                    }
+                    updateRequestDot();
+                }
+
+                if (payload.type === 'friend_added') {
+                    if (payload.friend_html && friendsListRows) {
+                        const emptyState = document.getElementById('friendsListEmptyState');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = payload.friend_html;
+                        const rowEl = wrapper.firstElementChild;
+                        if (rowEl && !friendsListRows.querySelector(`[data-friend-id="${payload.friend_id}"]`)) {
+                            rowEl.classList.add('friends-row-enter');
+                            friendsListRows.prepend(rowEl);
+                            friendRows.push(rowEl);
+                            bindFriendRowActions(rowEl);
+                            if (window.lucide) {
+                                lucide.createIcons();
+                            }
+                            renderFriendsPage(0);
+                            ensureFriendsListEmptyState();
+                        }
+                    }
+
+                    if (payload.sidebar_html && friendSidebarItems) {
+                        const emptyState = document.getElementById('friendSidebarEmptyState');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = payload.sidebar_html;
+                        const linkEl = wrapper.firstElementChild;
+                        if (linkEl && !friendSidebarItems.querySelector(`[data-sidebar-friend-id="${payload.friend_id}"]`)) {
+                            linkEl.classList.add('friends-row-enter');
+                            friendSidebarItems.prepend(linkEl);
+                            ensureFriendSidebarEmptyState();
+                        }
+                    }
+                }
+
+                if (payload.type === 'friend_removed' && payload.friend_id) {
+                    removeFriendRow(payload.friend_id);
+                    removeSidebarFriend(payload.friend_id);
+                }
+            });
+        }
+
+        updateRequestDot();
 
         function scrollDmToLatest() {
             if (!directMessageList) return;

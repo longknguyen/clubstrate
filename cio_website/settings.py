@@ -173,9 +173,6 @@ AUTH_USER_MODEL = "users.CustomUser"
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/'
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',

@@ -1,0 +1,6 @@
+<a href="{% url 'friends' %}?dm={{ item.friend_id }}" class="sidebar-item sidebar-dm-item" data-sidebar-friend-id="{{ item.friend_id }}">
+    <img src="{{ item.image_url }}" alt="{{ item.display_name }}" class="sidebar-dm-avatar">
+    <div class="sidebar-dm-copy">
+        <span class="sidebar-dm-name">{{ item.display_name }}</span>
+    </div>
+</a>

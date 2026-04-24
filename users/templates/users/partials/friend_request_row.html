@@ -1,0 +1,21 @@
+<article class="friends-list-row friends-request-row" data-request-row data-request-id="{{ request_item.id }}">
+    <img src="{{ request_item.image_url }}" alt="{{ request_item.display_name }}" class="friends-list-avatar">
+    <div class="friends-list-copy">
+        <span class="friends-list-name">{{ request_item.display_name }}</span>
+        <span class="friends-list-username">@{{ request_item.username }}</span>
+    </div>
+    <div class="friends-request-actions">
+        <form method="POST" action="{% url 'accept_friend_request' request_item.id %}" class="friends-request-form" data-request-action-form data-request-action="accept">
+            {% csrf_token %}
+            <button type="submit" class="friends-request-btn friends-request-btn-accept" aria-label="Accept friend request">
+                <i data-lucide="check"></i>
+            </button>
+        </form>
+        <form method="POST" action="{% url 'decline_friend_request' request_item.id %}" class="friends-request-form" data-request-action-form data-request-action="decline">
+            {% csrf_token %}
+            <button type="submit" class="friends-request-btn friends-request-btn-decline" aria-label="Decline friend request">
+                <i data-lucide="x"></i>
+            </button>
+        </form>
+    </div>
+</article>
