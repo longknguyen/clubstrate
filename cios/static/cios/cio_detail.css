@@ -63,6 +63,37 @@
     text-decoration: none;
 }
 
+.cio-preview-join-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cio-preview-cancel-btn {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cio-preview-cancel-btn:hover {
+    background: #f3f4f6;
+}
+
+.cio-request-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
 .cio-info-shell {
     display: flex;
     flex-direction: column;

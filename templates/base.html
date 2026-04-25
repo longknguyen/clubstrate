@@ -182,6 +182,7 @@
                 joined: {{ cio.is_joined|yesno:"true,false" }},
                 pendingRequest: {{ cio.has_pending_request|yesno:"true,false" }},
                 requestUrl: "{% url 'request-to-join' cio.id %}",
+                cancelRequestUrl: "{% url 'cancel-join-request' cio.id %}",
                 detailUrl: "{% url 'cio_detail' cio.id %}"
             },
         {% endfor %}
@@ -209,6 +210,26 @@
         const nextVisits = window.getRecentCioVisits().filter((item) => String(item) !== normalizedId);
         nextVisits.unshift(normalizedId);
         window.localStorage.setItem('recentCioVisits', JSON.stringify(nextVisits.slice(0, 12)));
+    };
+    window.launchCioJoinConfetti = function launchCioJoinConfetti() {
+        const layer = document.createElement('div');
+        layer.className = 'friends-confetti-layer';
+
+        const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
+        for (let index = 0; index < 28; index += 1) {
+            const piece = document.createElement('span');
+            piece.className = 'friends-confetti-piece';
+            piece.style.left = `${45 + Math.random() * 10}%`;
+            piece.style.background = colors[index % colors.length];
+            piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * 260}px`);
+            piece.style.setProperty('--confetti-y', `${180 + Math.random() * 120}px`);
+            piece.style.setProperty('--confetti-rotate', `${140 + Math.random() * 280}deg`);
+            piece.style.animationDelay = `${Math.random() * 120}ms`;
+            layer.appendChild(piece);
+        }
+
+        document.body.appendChild(layer);
+        window.setTimeout(() => layer.remove(), 1200);
     };
     window.addEventListener("DOMContentLoaded", () => {
         const joinedCioStrip = document.getElementById("joinedCioStrip");

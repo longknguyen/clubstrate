@@ -20,9 +20,7 @@
     <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
         <i data-lucide="inbox"></i>
         <span>Requests</span>
-        {% if pending_requests_count %}
-            <span class="notification-badge">{{ pending_requests_count }}</span>
-        {% endif %}
+        <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
     </a>
     <div class="sidebar-divider"></div>
     <div class="sidebar-danger-form">
@@ -409,5 +407,22 @@
     syncRemoveIconButton();
     syncRemoveBannerButton();
     syncCioDirtyState();
+
+    const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+    const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+    cioRequestSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+        if (payload.type !== 'request_created' && payload.type !== 'request_removed') {
+            return;
+        }
+        const nextCount = Number(payload.pending_requests_count || 0);
+        cioRequestBadges.forEach((badgeEl) => {
+            badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+        });
+    });
 </script>
 {% endblock %}

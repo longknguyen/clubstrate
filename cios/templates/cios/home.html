@@ -78,7 +78,10 @@
 
             <p id="modalDescription"></p>
 
-            <button id="modalActionBtn" class="cio-join-btn"></button>
+            <div class="cio-modal-actions">
+                <button id="modalActionBtn" class="cio-join-btn"></button>
+                <button id="modalCancelBtn" class="cio-modal-cancel-btn joined-cio-hidden" type="button">Cancel Request</button>
+            </div>
 
         </div>
     </div>
@@ -94,6 +97,7 @@
         const modalDateEl = document.getElementById("modalDate");
         const modalDescriptionEl = document.getElementById("modalDescription");
         const modalActionBtnEl = document.getElementById("modalActionBtn");
+        const modalCancelBtnEl = document.getElementById("modalCancelBtn");
         const searchEmptyStateEl = document.getElementById("cioSearchEmptyState");
         const cioGridPaginationEl = document.getElementById("cioGridPagination");
         const cioGridPrevEl = document.getElementById("cioGridPrev");
@@ -171,6 +175,8 @@
             modalActionBtnEl.disabled = false;
 
             if (cio.joined) {
+                modalCancelBtnEl.classList.add("joined-cio-hidden");
+                modalCancelBtnEl.onclick = null;
                 modalActionBtnEl.textContent = "Go To";
                 modalActionBtnEl.onclick = () => {
                     window.location.href = cio.detailUrl;
@@ -183,9 +189,13 @@
                 modalActionBtnEl.classList.add("cio-join-btn-pending");
                 modalActionBtnEl.disabled = true;
                 modalActionBtnEl.onclick = null;
+                modalCancelBtnEl.classList.remove("joined-cio-hidden");
+                modalCancelBtnEl.onclick = () => cancelJoinRequest(cioId);
                 return;
             }
 
+            modalCancelBtnEl.classList.add("joined-cio-hidden");
+            modalCancelBtnEl.onclick = null;
             modalActionBtnEl.textContent = "Request to Join";
             modalActionBtnEl.onclick = () => requestToJoinCio(cioId);
         }
@@ -220,10 +230,42 @@
                 const payload = await response.json();
                 cio.joined = !!payload.joined;
                 cio.pendingRequest = !!payload.pending;
+                if (cio.pendingRequest && typeof window.launchCioJoinConfetti === "function") {
+                    window.launchCioJoinConfetti();
+                }
                 renderModalAction(cioId);
             } catch (error) {
                 modalActionBtnEl.disabled = false;
                 modalActionBtnEl.textContent = "Request to Join";
+            }
+        }
+
+        async function cancelJoinRequest(cioId) {
+            const cio = window.cioData[cioId];
+            if (!cio || !cio.cancelRequestUrl) return;
+
+            modalCancelBtnEl.disabled = true;
+
+            try {
+                const response = await fetch(cio.cancelRequestUrl, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCsrfToken(),
+                        "X-Requested-With": "XMLHttpRequest",
+                    },
+                    credentials: "same-origin",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Cancel failed");
+                }
+
+                const payload = await response.json();
+                cio.joined = !!payload.joined;
+                cio.pendingRequest = !!payload.pending;
+                renderModalAction(cioId);
+            } catch (error) {
+                modalCancelBtnEl.disabled = false;
             }
         }
 
@@ -342,6 +384,23 @@
             });
 
             applyCioSearchFilter(searchInputEl ? (searchInputEl.value || "") : "");
+
+            const cioRequestProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+            cioRequestSocket.addEventListener("message", (event) => {
+                const payload = JSON.parse(event.data);
+                const cioId = String(payload.cio_id || "");
+                const cio = window.cioData[cioId];
+                if (!cio) return;
+
+                if (payload.type === "request_state") {
+                    cio.pendingRequest = !!payload.pending;
+                    cio.joined = !!payload.joined;
+                    if (activeCioId && String(activeCioId) === cioId) {
+                        renderModalAction(cioId);
+                    }
+                }
+            });
         });
     </script>
 

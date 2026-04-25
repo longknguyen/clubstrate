@@ -3,12 +3,15 @@ from django.core.files.base import ContentFile
 from django.db.models import Count, Exists, OuterRef
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.template.loader import render_to_string
 from django.utils import timezone
 from datetime import timedelta
 import random
 from urllib.parse import quote
 import uuid
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from discussions.models import Post
 from image_utils import convert_upload_to_webp
 from .forms import CIOAboutForm, CIOCreateForm
@@ -40,6 +43,98 @@ def _settings_sidebar_context(cio):
         'cio': cio,
         'pending_requests_count': JoinRequest.objects.filter(cio=cio, status='pending').count(),
     }
+
+
+def _send_cio_request_event_to_user(user_id, event_type, payload):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"cio_requests_user_{user_id}",
+        {
+            "type": "cio.request.event",
+            "event_type": event_type,
+            "payload": payload,
+        },
+    )
+
+
+def _send_cio_request_event_to_officers(cio_id, event_type, payload):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"cio_requests_officers_{cio_id}",
+        {
+            "type": "cio.request.event",
+            "event_type": event_type,
+            "payload": payload,
+        },
+    )
+
+
+def _join_request_row_context(join_request):
+    return {
+        "id": join_request.id,
+        "cio_id": join_request.cio_id,
+        "display_name": _display_name_for_user(join_request.user),
+        "username": join_request.user.username,
+        "image_url": join_request.user.profile.image.url,
+        "created_label": timezone.localtime(join_request.created_at).strftime("%-d %B %Y"),
+    }
+
+
+def _send_join_request_created(join_request):
+    html = render_to_string(
+        "cios/partials/join_request_row.html",
+        {"join_request": _join_request_row_context(join_request)},
+    )
+    pending_count = JoinRequest.objects.filter(cio_id=join_request.cio_id, status="pending").count()
+
+    _send_cio_request_event_to_user(
+        join_request.user_id,
+        "request_state",
+        {
+            "cio_id": join_request.cio_id,
+            "pending": True,
+            "joined": False,
+        },
+    )
+    _send_cio_request_event_to_officers(
+        join_request.cio_id,
+        "request_created",
+        {
+            "cio_id": join_request.cio_id,
+            "request_id": join_request.id,
+            "pending_requests_count": pending_count,
+            "html": html,
+        },
+    )
+
+
+def _send_join_request_removed(join_request, *, approved=False):
+    pending_count = JoinRequest.objects.filter(cio_id=join_request.cio_id, status="pending").count()
+
+    _send_cio_request_event_to_user(
+        join_request.user_id,
+        "request_state",
+        {
+            "cio_id": join_request.cio_id,
+            "pending": False,
+            "joined": approved,
+        },
+    )
+    _send_cio_request_event_to_officers(
+        join_request.cio_id,
+        "request_removed",
+        {
+            "cio_id": join_request.cio_id,
+            "request_id": join_request.id,
+            "pending_requests_count": pending_count,
+        },
+    )
 
 
 CHAT_GROUP_GAP = timedelta(minutes=5)
@@ -435,6 +530,9 @@ def edit_cio_requests(request, cio_id):
     )
     for join_request in join_requests:
         join_request.display_name = _display_name_for_user(join_request.user)
+        join_request.username = join_request.user.username
+        join_request.image_url = join_request.user.profile.image.url
+        join_request.created_label = timezone.localtime(join_request.created_at).strftime("%-d %B %Y")
 
     context = _settings_sidebar_context(cio)
     context['join_requests'] = join_requests
@@ -476,17 +574,19 @@ def request_to_join(request, cio_id):
 
         if membership is None:
             if join_request is None:
-                JoinRequest.objects.create(
+                join_request = JoinRequest.objects.create(
                     user=request.user,
                     cio=cio,
                     status='pending'
                 )
+                _send_join_request_created(join_request)
                 pending = True
             elif join_request.status == 'pending':
                 pending = True
             else:
                 join_request.status = 'pending'
                 join_request.save(update_fields=['status'])
+                _send_join_request_created(join_request)
                 pending = True
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -494,6 +594,32 @@ def request_to_join(request, cio_id):
                 'ok': True,
                 'joined': membership is not None,
                 'pending': pending,
+            })
+
+    return redirect(f'/{cio.id}/')
+
+
+@login_required
+def cancel_join_request(request, cio_id):
+    cio = get_object_or_404(CIO, pk=cio_id)
+
+    if request.method == 'POST':
+        join_request = JoinRequest.objects.filter(
+            user=request.user,
+            cio=cio,
+            status='pending',
+        ).first()
+
+        if join_request is not None:
+            join_request.status = 'denied'
+            join_request.save(update_fields=['status'])
+            _send_join_request_removed(join_request, approved=False)
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'ok': True,
+                'joined': False,
+                'pending': False,
             })
 
     return redirect(f'/{cio.id}/')
@@ -516,6 +642,14 @@ def accept_request(request, request_id):
             )
 
         join_request.status = 'approved'
-        join_request.save()
+        join_request.save(update_fields=['status'])
+        _send_join_request_removed(join_request, approved=True)
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'ok': True,
+                'request_id': join_request.id,
+                'cio_id': join_request.cio_id,
+            })
 
     return redirect('discussions:edit_cio_requests', cio_id=join_request.cio.id)
