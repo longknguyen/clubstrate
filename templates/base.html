@@ -211,26 +211,35 @@
         nextVisits.unshift(normalizedId);
         window.localStorage.setItem('recentCioVisits', JSON.stringify(nextVisits.slice(0, 12)));
     };
-    window.launchCioJoinConfetti = function launchCioJoinConfetti() {
+    window.launchSuccessConfetti = function launchSuccessConfetti() {
+        const targetPanel = document.querySelector('.content-panel') || document.body;
+        const panelHeight = Math.max(targetPanel.clientHeight || 0, window.innerHeight || 0);
+        const panelWidth = Math.max(targetPanel.clientWidth || 0, window.innerWidth || 0);
         const layer = document.createElement('div');
         layer.className = 'friends-confetti-layer';
 
         const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
-        for (let index = 0; index < 28; index += 1) {
+        for (let index = 0; index < 88; index += 1) {
             const piece = document.createElement('span');
             piece.className = 'friends-confetti-piece';
-            piece.style.left = `${45 + Math.random() * 10}%`;
+            const size = 9 + Math.random() * 11;
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.top = '-24px';
+            piece.style.width = `${size}px`;
+            piece.style.height = `${Math.max(12, size * 1.45)}px`;
             piece.style.background = colors[index % colors.length];
-            piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * 260}px`);
-            piece.style.setProperty('--confetti-y', `${180 + Math.random() * 120}px`);
-            piece.style.setProperty('--confetti-rotate', `${140 + Math.random() * 280}deg`);
-            piece.style.animationDelay = `${Math.random() * 120}ms`;
+            piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * Math.min(280, panelWidth * 0.28)}px`);
+            piece.style.setProperty('--confetti-y', `${panelHeight + 120 + Math.random() * 140}px`);
+            piece.style.setProperty('--confetti-rotate', `${260 + Math.random() * 520}deg`);
+            piece.style.animationDelay = `${Math.random() * 220}ms`;
+            piece.style.animationDuration = `${1500 + Math.random() * 650}ms`;
             layer.appendChild(piece);
         }
 
-        document.body.appendChild(layer);
-        window.setTimeout(() => layer.remove(), 1200);
+        targetPanel.appendChild(layer);
+        window.setTimeout(() => layer.remove(), 2600);
     };
+    window.launchCioJoinConfetti = window.launchSuccessConfetti;
     window.addEventListener("DOMContentLoaded", () => {
         const joinedCioStrip = document.getElementById("joinedCioStrip");
         const joinedCioLinks = Array.from(document.querySelectorAll("[data-joined-cio-index]"));

@@ -334,27 +334,6 @@
             return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
         }
 
-        function launchFriendsConfetti() {
-            const layer = document.createElement('div');
-            layer.className = 'friends-confetti-layer';
-
-            const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
-            for (let index = 0; index < 28; index += 1) {
-                const piece = document.createElement('span');
-                piece.className = 'friends-confetti-piece';
-                piece.style.left = `${45 + Math.random() * 10}%`;
-                piece.style.background = colors[index % colors.length];
-                piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * 260}px`);
-                piece.style.setProperty('--confetti-y', `${180 + Math.random() * 120}px`);
-                piece.style.setProperty('--confetti-rotate', `${140 + Math.random() * 280}deg`);
-                piece.style.animationDelay = `${Math.random() * 120}ms`;
-                layer.appendChild(piece);
-            }
-
-            document.body.appendChild(layer);
-            window.setTimeout(() => layer.remove(), 1200);
-        }
-
         function setFriendsAddNotice(message, noticeType) {
             if (!friendsAddInputWrap || !friendsAddNoticeEl) return;
 
@@ -402,7 +381,9 @@
 
                 if (response.ok && noticeType === 'success') {
                     friendsAddForm.reset();
-                    launchFriendsConfetti();
+                    if (typeof window.launchSuccessConfetti === 'function') {
+                        window.launchSuccessConfetti();
+                    }
                     friendsAddInput.focus();
                 }
             });

@@ -368,6 +368,16 @@
     white-space: nowrap;
 }
 
+.cio-request-actions-cell .request-action-group {
+    justify-content: flex-end;
+}
+
+.cio-request-actions-cell .request-action-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: none;
+}
+
 .cio-member-avatar {
     width: 44px;
     height: 44px;

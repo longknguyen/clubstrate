@@ -109,10 +109,10 @@
         return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
     }
 
-    function bindRequestAcceptForms(scope = document) {
-        scope.querySelectorAll('[data-cio-request-accept-form]').forEach((formEl) => {
-            if (formEl.dataset.boundAcceptForm === 'true') return;
-            formEl.dataset.boundAcceptForm = 'true';
+    function bindRequestActionForms(scope = document) {
+        scope.querySelectorAll('[data-cio-request-action-form]').forEach((formEl) => {
+            if (formEl.dataset.boundRequestAction === 'true') return;
+            formEl.dataset.boundRequestAction = 'true';
 
             formEl.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -210,7 +210,7 @@
         });
     }
 
-    bindRequestAcceptForms();
+    bindRequestActionForms();
     renderRequestsTable();
 
     const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -229,7 +229,10 @@
                 const rowEl = wrapper.firstElementChild;
                 if (rowEl) {
                     requestsTableBody.prepend(rowEl);
-                    bindRequestAcceptForms(rowEl);
+                    bindRequestActionForms(rowEl);
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
                     renderRequestsTable();
                 }
             }

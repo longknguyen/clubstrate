@@ -653,3 +653,22 @@ def accept_request(request, request_id):
             })
 
     return redirect('discussions:edit_cio_requests', cio_id=join_request.cio.id)
+
+
+@login_required
+def deny_request(request, request_id):
+    join_request = get_object_or_404(JoinRequest, pk=request_id)
+
+    if request.method == 'POST' and _get_cio_officer_membership(request.user, join_request.cio):
+        join_request.status = 'denied'
+        join_request.save(update_fields=['status'])
+        _send_join_request_removed(join_request, approved=False)
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'ok': True,
+                'request_id': join_request.id,
+                'cio_id': join_request.cio_id,
+            })
+
+    return redirect('discussions:edit_cio_requests', cio_id=join_request.cio.id)

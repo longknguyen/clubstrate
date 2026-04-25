@@ -4,16 +4,16 @@
         <span class="friends-list-name">{{ request_item.display_name }}</span>
         <span class="friends-list-username">@{{ request_item.username }}</span>
     </div>
-    <div class="friends-request-actions">
-        <form method="POST" action="{% url 'accept_friend_request' request_item.id %}" class="friends-request-form" data-request-action-form data-request-action="accept">
+    <div class="friends-request-actions request-action-group">
+        <form method="POST" action="{% url 'accept_friend_request' request_item.id %}" class="friends-request-form request-action-form" data-request-action-form data-request-action="accept">
             {% csrf_token %}
-            <button type="submit" class="friends-request-btn friends-request-btn-accept" aria-label="Accept friend request">
+            <button type="submit" class="friends-request-btn friends-request-btn-accept request-action-btn request-action-btn-accept" aria-label="Accept friend request">
                 <i data-lucide="check"></i>
             </button>
         </form>
-        <form method="POST" action="{% url 'decline_friend_request' request_item.id %}" class="friends-request-form" data-request-action-form data-request-action="decline">
+        <form method="POST" action="{% url 'decline_friend_request' request_item.id %}" class="friends-request-form request-action-form" data-request-action-form data-request-action="decline">
             {% csrf_token %}
-            <button type="submit" class="friends-request-btn friends-request-btn-decline" aria-label="Decline friend request">
+            <button type="submit" class="friends-request-btn friends-request-btn-decline request-action-btn request-action-btn-decline" aria-label="Decline friend request">
                 <i data-lucide="x"></i>
             </button>
         </form>
