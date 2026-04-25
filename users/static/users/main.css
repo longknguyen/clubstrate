@@ -867,6 +867,7 @@ body {
     background: #ffffff;
     overflow-y: auto;
     min-height: 0;
+    position: relative;
 }
 
 .friends-shell,
@@ -1221,7 +1222,7 @@ body {
 }
 
 .friends-confetti-layer {
-    position: fixed;
+    position: absolute;
     inset: 0;
     pointer-events: none;
     overflow: hidden;
@@ -1230,12 +1231,12 @@ body {
 
 .friends-confetti-piece {
     position: absolute;
-    top: -12px;
     width: 10px;
     height: 14px;
     border-radius: 3px;
     opacity: 0.95;
-    animation: friendsConfettiFall 900ms ease-out forwards;
+    animation: friendsConfettiFall 1200ms cubic-bezier(0.18, 0.8, 0.22, 1) forwards;
+    will-change: transform, opacity;
 }
 
 @keyframes friendsConfettiFall {
@@ -1335,11 +1336,21 @@ body {
     flex-shrink: 0;
 }
 
-.friends-request-form {
+.request-action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.friends-request-form,
+.request-action-form {
     margin: 0;
 }
 
-.friends-request-btn {
+.friends-request-btn,
+.request-action-btn {
     width: 34px;
     height: 34px;
     border: none;
@@ -1353,29 +1364,35 @@ body {
     padding: 0;
 }
 
-.friends-request-btn:hover {
+.friends-request-btn:hover,
+.request-action-btn:hover {
     background: #e5e7eb;
 }
 
-.friends-request-btn-accept {
+.friends-request-btn-accept,
+.request-action-btn-accept {
     background: #dcfce7;
     color: #166534;
 }
 
-.friends-request-btn-accept:hover {
+.friends-request-btn-accept:hover,
+.request-action-btn-accept:hover {
     background: #bbf7d0;
 }
 
-.friends-request-btn-decline {
+.friends-request-btn-decline,
+.request-action-btn-decline {
     background: #fee2e2;
     color: #b91c1c;
 }
 
-.friends-request-btn-decline:hover {
+.friends-request-btn-decline:hover,
+.request-action-btn-decline:hover {
     background: #fecaca;
 }
 
-.friends-request-btn svg {
+.friends-request-btn svg,
+.request-action-btn svg {
     width: 16px;
     height: 16px;
 }

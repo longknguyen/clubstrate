@@ -1,0 +1,28 @@
+<tr class="cio-request-row" data-request-id="{{ join_request.id }}">
+    <td>
+        <div class="cio-member-name-cell">
+            <img src="{{ join_request.image_url }}" alt="{{ join_request.display_name }}" class="cio-member-avatar">
+            <div class="cio-member-identity">
+                <span class="cio-member-full-name">{{ join_request.display_name }}</span>
+                <span class="cio-member-username">@{{ join_request.username }}</span>
+            </div>
+        </div>
+    </td>
+    <td>{{ join_request.created_label }}</td>
+    <td class="cio-request-actions-cell">
+        <div class="request-action-group">
+            <form method="POST" action="{% url 'accept-request' join_request.id %}" class="request-action-form" data-cio-request-action-form data-cio-request-action="accept">
+                {% csrf_token %}
+                <button type="submit" class="request-action-btn request-action-btn-accept" aria-label="Accept join request">
+                    <i data-lucide="check"></i>
+                </button>
+            </form>
+            <form method="POST" action="{% url 'deny-request' join_request.id %}" class="request-action-form" data-cio-request-action-form data-cio-request-action="decline">
+                {% csrf_token %}
+                <button type="submit" class="request-action-btn request-action-btn-decline" aria-label="Decline join request">
+                    <i data-lucide="x"></i>
+                </button>
+            </form>
+        </div>
+    </td>
+</tr>

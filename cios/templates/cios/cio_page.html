@@ -11,8 +11,8 @@
             id="cioTitleButton"
             {% if role != 'officer' %}disabled{% endif %}>
             <span class="page-title cio-page-title">{{ cio.name }}</span>
-            {% if role == 'officer' and pending_requests_count %}
-                <span class="notification-badge notification-badge-inline">{{ pending_requests_count }}</span>
+            {% if role == 'officer' %}
+                <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
             {% endif %}
             {% if role == 'officer' %}
                 <i data-lucide="chevron-down"></i>
@@ -22,9 +22,7 @@
             <div class="cio-title-dropdown joined-cio-hidden" id="cioTitleDropdown">
                 <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="cio-title-dropdown-link">
                     <span>CIO Settings</span>
-                    {% if pending_requests_count %}
-                        <span class="notification-badge">{{ pending_requests_count }}</span>
-                    {% endif %}
+                    <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
                 </a>
             </div>
         {% endif %}
@@ -66,14 +64,23 @@
         <div class="sidebar-divider"></div>
         <div class="cio-preview-callout">
             <p class="cio-preview-copy">You are in preview mode. Request access to this CIO to join in on the discussions.</p>
-            <button
-                type="button"
-                class="discussion-action-btn cio-preview-join-btn {% if has_pending_request %}is-pending{% endif %}"
-                id="cioPreviewJoinButton"
-                data-request-url="{% url 'request-to-join' cio.id %}"
-                {% if has_pending_request %}disabled{% endif %}>
-                {% if has_pending_request %}Pending Request...{% else %}Request to Join{% endif %}
-            </button>
+            <div class="cio-preview-join-actions">
+                <button
+                    type="button"
+                    class="discussion-action-btn cio-preview-join-btn {% if has_pending_request %}is-pending{% endif %}"
+                    id="cioPreviewJoinButton"
+                    data-request-url="{% url 'request-to-join' cio.id %}"
+                    data-cancel-url="{% url 'cancel-join-request' cio.id %}"
+                    {% if has_pending_request %}disabled{% endif %}>
+                    {% if has_pending_request %}Pending Request...{% else %}Request to Join{% endif %}
+                </button>
+                <button
+                    type="button"
+                    class="cio-preview-cancel-btn {% if not has_pending_request %}joined-cio-hidden{% endif %}"
+                    id="cioPreviewCancelButton">
+                    Cancel Request
+                </button>
+            </div>
         </div>
     {% endif %}
 
@@ -470,6 +477,34 @@
             const titleButton = document.getElementById('cioTitleButton');
             const titleDropdown = document.getElementById('cioTitleDropdown');
             const previewJoinButton = document.getElementById('cioPreviewJoinButton');
+            const previewCancelButton = document.getElementById('cioPreviewCancelButton');
+            const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+
+            function updatePreviewJoinState(payload) {
+                if (!previewJoinButton) return;
+
+                const isJoined = !!payload.joined;
+                const isPending = !!payload.pending;
+                previewJoinButton.dataset.joined = isJoined ? 'true' : 'false';
+                previewJoinButton.classList.toggle('is-pending', isPending);
+                previewJoinButton.disabled = isPending;
+                previewJoinButton.textContent = isJoined ? 'Go To' : (isPending ? 'Pending Request...' : 'Request to Join');
+
+                if (isJoined) {
+                    previewJoinButton.disabled = false;
+                }
+
+                if (previewCancelButton) {
+                    previewCancelButton.classList.toggle('joined-cio-hidden', !isPending);
+                    previewCancelButton.disabled = false;
+                }
+            }
+
+            function updateCioRequestBadges(nextCount) {
+                cioRequestBadges.forEach((badgeEl) => {
+                    badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+                });
+            }
 
             const availableTabs = {
                 events: true,
@@ -514,6 +549,10 @@
 
             if (previewJoinButton) {
                 previewJoinButton.addEventListener('click', async () => {
+                    if (previewJoinButton.dataset.joined === 'true') {
+                        window.location.href = '{% url "cio_detail" cio.id %}';
+                        return;
+                    }
                     const requestUrl = previewJoinButton.dataset.requestUrl;
                     if (!requestUrl || previewJoinButton.disabled) return;
 
@@ -536,8 +575,10 @@
                         const payload = await response.json();
 
                         if (payload && payload.pending) {
-                            previewJoinButton.textContent = 'Pending Request...';
-                            previewJoinButton.classList.add('is-pending');
+                            if (typeof window.launchCioJoinConfetti === 'function') {
+                                window.launchCioJoinConfetti();
+                            }
+                            updatePreviewJoinState(payload);
                         } else {
                             previewJoinButton.disabled = false;
                         }
@@ -546,6 +587,52 @@
                     }
                 });
             }
+
+            if (previewCancelButton && previewJoinButton) {
+                updatePreviewJoinState({joined: false, pending: {{ has_pending_request|yesno:"true,false" }}});
+                previewCancelButton.addEventListener('click', async () => {
+                    const cancelUrl = previewJoinButton.dataset.cancelUrl;
+                    if (!cancelUrl || previewCancelButton.disabled) return;
+
+                    previewCancelButton.disabled = true;
+
+                    try {
+                        const response = await fetch(cancelUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': getCsrfToken(),
+                            },
+                            credentials: 'same-origin',
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Cancel failed');
+                        }
+
+                        updatePreviewJoinState({joined: false, pending: false});
+                    } catch (error) {
+                        previewCancelButton.disabled = false;
+                    }
+                });
+            }
+
+            const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+            cioRequestSocket.addEventListener('message', (event) => {
+                const payload = JSON.parse(event.data);
+                if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+                    return;
+                }
+
+                if (payload.type === 'request_state') {
+                    updatePreviewJoinState(payload);
+                }
+
+                if (payload.type === 'request_created' || payload.type === 'request_removed') {
+                    updateCioRequestBadges(Number(payload.pending_requests_count || 0));
+                }
+            });
 
             syncCioPageSearchState();
         };
