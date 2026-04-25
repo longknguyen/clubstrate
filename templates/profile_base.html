@@ -19,7 +19,7 @@
 
         <div class="sidebar-top">
             <img class="sidebar-avatar" src="{{ profile_image }}">
-            <div>
+            <div class="sidebar-top-copy">
                 <h3>{{ username }}</h3>
                 <a href="{% url 'profile_edit' %}">Edit Profile</a>
             </div>
@@ -88,6 +88,41 @@
     </div>
 
 </div>
+
+<script>
+    window.launchSuccessConfetti = function launchSuccessConfetti(options = {}) {
+        const fullScreen = !!options.fullScreen;
+        const targetPanel = fullScreen ? document.body : (document.querySelector('.main-content') || document.body);
+        const targetRect = fullScreen
+            ? {height: window.innerHeight, width: window.innerWidth}
+            : targetPanel.getBoundingClientRect();
+        const panelHeight = Math.max(targetRect.height || 0, window.innerHeight || 0);
+        const panelWidth = Math.max(targetRect.width || 0, window.innerWidth || 0);
+        const layer = document.createElement('div');
+        layer.className = `friends-confetti-layer${fullScreen ? ' is-fullscreen' : ''}`;
+
+        const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
+        for (let index = 0; index < 88; index += 1) {
+            const piece = document.createElement('span');
+            piece.className = 'friends-confetti-piece';
+            const size = 9 + Math.random() * 11;
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.top = '-24px';
+            piece.style.width = `${size}px`;
+            piece.style.height = `${Math.max(12, size * 1.45)}px`;
+            piece.style.background = colors[index % colors.length];
+            piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * Math.min(280, panelWidth * 0.28)}px`);
+            piece.style.setProperty('--confetti-y', `${panelHeight + 120 + Math.random() * 140}px`);
+            piece.style.setProperty('--confetti-rotate', `${260 + Math.random() * 520}deg`);
+            piece.style.animationDelay = `${Math.random() * 220}ms`;
+            piece.style.animationDuration = `${1500 + Math.random() * 650}ms`;
+            layer.appendChild(piece);
+        }
+
+        targetPanel.appendChild(layer);
+        window.setTimeout(() => layer.remove(), 2600);
+    };
+</script>
 
 </body>
 </html>

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm
 from .models import CustomUser, Profile
 
 PROFILE_FIRST_NAME_MAX_LENGTH = 50
@@ -51,3 +52,20 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['image']
+
+
+class PasswordChangePopupForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['old_password'].widget.attrs.update({
+            'placeholder': 'Current password',
+            'autocomplete': 'current-password',
+        })
+        self.fields['new_password1'].widget.attrs.update({
+            'placeholder': 'New password',
+            'autocomplete': 'new-password',
+        })
+        self.fields['new_password2'].widget.attrs.update({
+            'placeholder': 'Confirm new password',
+            'autocomplete': 'new-password',
+        })

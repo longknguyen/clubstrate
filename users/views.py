@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from django.contrib.auth import logout, get_user_model, login, authenticate
+from django.contrib.auth import logout, get_user_model, login, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import View
@@ -19,6 +19,7 @@ from image_utils import convert_upload_to_webp
 from .forms import (
     PROFILE_FIRST_NAME_MAX_LENGTH,
     PROFILE_LAST_NAME_MAX_LENGTH,
+    PasswordChangePopupForm,
     UserUpdateForm,
     ProfileUpdateForm,
 )
@@ -326,6 +327,27 @@ class ProfileView(LoginRequiredMixin, View):
             profile.image = convert_upload_to_webp(request.FILES['image'], stem='profile')
             profile.save()
         return redirect('/users/profile/')
+
+
+@login_required
+def change_password(request):
+    if request.method != 'POST':
+        return redirect('profile')
+
+    form = PasswordChangePopupForm(request.user, request.POST)
+    if form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        return JsonResponse({
+            'ok': True,
+            'message': 'Password changed successfully.',
+        })
+
+    return JsonResponse({
+        'ok': False,
+        'errors': form.errors.get_json_data(),
+        'non_field_errors': form.non_field_errors(),
+    }, status=400)
 
 
 @method_decorator(never_cache, name='dispatch')

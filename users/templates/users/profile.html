@@ -55,4 +55,60 @@
 
     </div>
 
+    <div class="account-page-divider" aria-hidden="true"></div>
+
+    <section class="account-security-section">
+        <div class="account-section-heading">
+            <h3>Password and Authentication</h3>
+            <p>Manage the password you use to sign in to Clubstrate.</p>
+        </div>
+
+        <div class="account-security-card">
+            <div class="detail-item">
+                <div class="detail-label">Password</div>
+                <div class="detail-value-row">
+                    <span>Keep your account secure by updating your password regularly.</span>
+                    <button type="button" class="edit-btn" id="open-password-modal">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="construction-backdrop" id="password-backdrop"></div>
+
+    <div class="construction-modal password-modal" id="password-modal" aria-hidden="true">
+        <button type="button" class="construction-close" id="password-close">×</button>
+        <div class="password-modal-copy">
+            <h2>Change Password</h2>
+            <p>Update your password with your current credentials to keep your account protected.</p>
+        </div>
+        <form class="password-modal-form" id="password-form" action="{% url 'change_password' %}" method="post">
+            {% csrf_token %}
+            <div class="password-modal-error-banner joined-cio-hidden" id="password-error-banner"></div>
+
+            <div class="password-modal-field">
+                <label for="password-old">Current Password</label>
+                <input type="password" id="password-old" name="old_password" placeholder="Current password" autocomplete="current-password">
+                <p class="password-field-error joined-cio-hidden" data-password-error-for="old_password"></p>
+            </div>
+
+            <div class="password-modal-field">
+                <label for="password-new-1">New Password</label>
+                <input type="password" id="password-new-1" name="new_password1" placeholder="New password" autocomplete="new-password">
+                <p class="password-field-error joined-cio-hidden" data-password-error-for="new_password1"></p>
+            </div>
+
+            <div class="password-modal-field">
+                <label for="password-new-2">Confirm New Password</label>
+                <input type="password" id="password-new-2" name="new_password2" placeholder="Confirm new password" autocomplete="new-password">
+                <p class="password-field-error joined-cio-hidden" data-password-error-for="new_password2"></p>
+            </div>
+
+            <div class="password-modal-actions">
+                <button type="button" class="password-cancel-btn" id="password-cancel">Cancel</button>
+                <button type="submit" class="password-done-btn" id="password-done">Done</button>
+            </div>
+        </form>
+    </div>
+
 {% endblock %}

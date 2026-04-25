@@ -9,6 +9,7 @@ urlpatterns = [
     path("friends/<int:friend_id>/remove/", remove_friend, name="remove_friend"),
     path("friends/requests/<int:request_id>/accept/", accept_friend_request, name="accept_friend_request"),
     path("friends/requests/<int:request_id>/decline/", decline_friend_request, name="decline_friend_request"),
+    path("profile/password/", change_password, name="change_password"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("change-role/<int:user_id>/", ChangeRoleView.as_view(), name="change-role"),
     path("register/", RegisterView.as_view(), name="register"),
