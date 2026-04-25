@@ -269,6 +269,9 @@
             if (!searchPopover) return;
             if (searchPopover.classList.contains("joined-cio-hidden")) {
                 renderFn();
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
                 showSearchPopover();
                 return;
             }
