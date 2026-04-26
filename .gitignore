@@ -20,6 +20,8 @@ media/cio_about_images/
 media/post_images/
 /media/profile_pics/*
 !media/profile_pics/default.jpg
+/media/comment_images/*
+/media/direct_message_images/*
 
 # Testing
 .coverage
