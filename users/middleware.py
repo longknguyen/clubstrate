@@ -1,15 +1,11 @@
 from django.shortcuts import redirect
 
-print("USERS MIDDLEWARE FILE LOADED")
 
 class UserAdminLockMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-
-        print("MIDDLEWARE ACTIVE:", request.path)
-
         response = self.get_response(request)
 
         user = request.user
