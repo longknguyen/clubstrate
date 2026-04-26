@@ -367,7 +367,9 @@
             announcementCards.forEach((cardEl) => {
                 const haystack = (cardEl.dataset.announcementSearch || '').toLowerCase();
                 const authorHaystack = (cardEl.dataset.announcementAuthor || '').toLowerCase();
-                const matches = (!query || haystack.includes(query))
+                const tagMatches = cardEl.dataset.announcementTagMatch !== 'false';
+                const matches = tagMatches
+                    && (!query || haystack.includes(query))
                     && (!normalizedAuthorQuery || authorHaystack.includes(normalizedAuthorQuery));
                 cardEl.style.display = matches ? '' : 'none';
                 if (matches) matchCount += 1;

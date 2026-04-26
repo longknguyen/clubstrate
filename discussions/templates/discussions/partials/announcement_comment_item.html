@@ -5,23 +5,32 @@
 {% endif %}
 <article
     class="chat-message {% if is_own %}chat-message-own{% endif %} {% if not show_header %}chat-message-grouped{% endif %}"
-    data-message-sender-id="{{ message.sender_id }}"
+    data-message-sender-id="{{ message.author_id }}"
     data-message-created-at="{{ message.created_at|date:'c' }}"
     data-message-day="{{ message.created_at|date:'Y-m-d' }}"
-    data-search-text="{{ display_name }} {{ message.sender.username }} {{ message.content|default:''|escape }}">
+    data-message-author="{{ display_name }} {{ message.author.username }}"
+    data-message-author-name="{{ display_name }}"
+    data-search-text="{{ display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
     {% if show_avatar %}
-        <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.username }}" class="chat-message-avatar">
+        <img
+            src="{{ message.author.profile.image.url }}"
+            alt="{{ message.author.username }} profile image"
+            class="chat-message-avatar">
     {% else %}
         <div class="chat-message-avatar-spacer" aria-hidden="true"></div>
     {% endif %}
+
     <div class="chat-message-content">
         {% if show_header %}
             <div class="chat-message-meta">
-                <span class="chat-message-author">{{ display_name }}</span>
+                <span class="chat-message-author">
+                    {{ display_name }}
+                </span>
                 <span class="discussion-meta-dot">•</span>
-                <span>{{ timestamp_label }}</span>
+                <span class="post-timestamp" data-datetime="{{ message.created_at|date:'c' }}"></span>
             </div>
         {% endif %}
+
         {% if message.content %}
             <div class="chat-message-bubble">
                 <p>{{ message.content }}</p>
@@ -34,8 +43,8 @@
                     type="button"
                     class="chat-message-image-btn"
                     data-chat-image="{{ message.image.url }}"
-                    data-chat-image-alt="Direct message upload preview">
-                    <img src="{{ message.image.url }}" alt="Direct message upload" class="chat-message-image">
+                    data-chat-image-alt="Announcement reply upload preview">
+                    <img src="{{ message.image.url }}" alt="Announcement reply upload" class="chat-message-image">
                 </button>
             </div>
         {% endif %}

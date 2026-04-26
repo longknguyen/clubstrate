@@ -303,6 +303,23 @@ def _attach_author_metadata(cio, items):
     return items
 
 
+def _relative_time_label(created_at):
+    delta = timezone.now() - created_at
+    total_seconds = max(0, int(delta.total_seconds()))
+
+    if total_seconds < 45:
+        return "a few seconds ago"
+    if total_seconds < 3600:
+        minutes = max(1, total_seconds // 60)
+        return f"{minutes} min{'s' if minutes != 1 else ''} ago"
+    if total_seconds < 86400:
+        hours = max(1, total_seconds // 3600)
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+
+    days = max(1, total_seconds // 86400)
+    return f"{days} day{'s' if days != 1 else ''} ago"
+
+
 def _attach_chat_grouping(cio, messages):
     messages = _attach_author_metadata(cio, messages)
 
@@ -422,6 +439,10 @@ def cio_detail(request, cio_id):
         .order_by('-created_at')
     )
     _attach_author_metadata(cio, announcement_posts)
+    for post in announcement_posts:
+        post.comment_count = post.comments.count()
+        post.relative_created_label = _relative_time_label(post.created_at)
+        post.announcement_tags_list = list(post.announcement_tags or [])[:3]
 
     recent_discussion_messages = list(
         cio.posts.filter(kind=Post.DISCUSSION)

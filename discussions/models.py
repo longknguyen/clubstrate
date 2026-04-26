@@ -17,6 +17,7 @@ class Post(models.Model):
     content = models.TextField()
     kind = models.CharField(max_length=20, choices=KIND_CHOICES, default=ANNOUNCEMENT)
     likes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='liked_posts', blank=True)
+    announcement_tags = models.JSONField(default=list, blank=True)
 
     image = models.ImageField(upload_to='post_images/', blank=True, null=True)
 

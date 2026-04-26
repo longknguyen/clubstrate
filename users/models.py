@@ -117,6 +117,7 @@ class DirectMessage(models.Model):
     friendship = models.ForeignKey(Friendship, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_direct_messages')
     content = models.TextField()
+    image = models.ImageField(upload_to='direct_message_images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

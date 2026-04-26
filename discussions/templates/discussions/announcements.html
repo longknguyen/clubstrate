@@ -1,24 +1,49 @@
-<section class="announcements-shell">
-    <div class="announcements-header">
-        <div>
-            <span class="announcements-eyebrow">Club Updates</span>
-            <h2>Announcements</h2>
-            <p>Important updates, reminders, and official posts for {{ cio.name }}.</p>
+<section class="announcements-shell" data-cio-announcements-id="{{ cio.id }}">
+    <div class="announcement-controls-row">
+        <div class="announcement-toolbar">
+            <button type="button" class="announcement-filter-pill" id="announcementSortButton">
+                Sort &amp; View
+                <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="announcement-sort-menu joined-cio-hidden" id="announcementSortMenu">
+                <button type="button" data-announcement-sort="newest">Newest first</button>
+                <button type="button" data-announcement-sort="oldest">Oldest first</button>
+            </div>
         </div>
+        <div class="announcement-controls-divider" aria-hidden="true"></div>
+        <div class="announcement-tag-strip-wrap">
+            <div class="announcement-tag-strip" id="announcementTagStrip"></div>
+            <div class="announcement-tag-popover joined-cio-hidden" id="announcementTagPopover"></div>
+        </div>
+        <span class="discussion-meta-dot announcement-filter-summary-dot" aria-hidden="true">•</span>
+        <div class="announcement-tag-filter-summary" id="announcementTagSummary">All announcements</div>
     </div>
 
     {% if role == "officer" %}
-        <section class="announcement-composer-card">
+        <div class="announcement-create-actions">
+            <button type="button" class="announcement-filter-pill" id="announcementComposerToggle">
+                Create Post
+                <i data-lucide="plus"></i>
+            </button>
+        </div>
+
+        <section class="announcement-composer-card joined-cio-hidden" id="announcementComposerCard">
             <div class="discussion-section-heading">
                 <h3>Create an announcement</h3>
                 <p>Only officers can post here. Use announcements for updates that should be easy for everyone to find later.</p>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_post' cio.id %}" class="discussion-form">
+            <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_post' cio.id %}" class="discussion-form" id="announcementComposerForm">
                 {% csrf_token %}
 
                 <input type="text" name="title" placeholder="Announcement title" class="discussion-input">
-                <textarea name="content" placeholder="Share an update..." class="discussion-textarea discussion-textarea-lg"></textarea>
+                <textarea name="content" placeholder="Share an update..." class="discussion-textarea discussion-textarea-lg" maxlength="2000"></textarea>
+
+                <div class="announcement-tag-editor" data-tag-editor>
+                    <div class="announcement-tag-editor-pills" data-tag-pills></div>
+                    <input type="text" class="announcement-tag-editor-input" data-tag-input placeholder="Add up to 3 tags">
+                    <input type="hidden" name="tags" data-tag-hidden>
+                </div>
 
                 <div class="discussion-form-footer">
                     <input type="file" name="image" class="discussion-file-input" accept="image/*">
@@ -29,81 +54,285 @@
     {% endif %}
 
     {% if announcements %}
-        <div class="announcement-feed">
+        <div class="announcement-feed" id="announcementFeed">
             {% for post in announcements %}
-                <article
-                    class="announcement-card"
-                    data-announcement-author="{{ post.display_name|escape }} {{ post.author.username|escape }}"
-                    data-announcement-author-name="{{ post.display_name|escape }}"
-                    data-announcement-search="{{ post.title|default:''|escape }} {{ post.content|default:''|escape }} {{ post.display_name|escape }}">
-                    <div class="announcement-card-top">
-                        <div>
-                            <h3>{{ post.title }}</h3>
-                            <p class="discussion-meta">
-                                <span>{{ post.display_name }}</span>
-                                <span class="discussion-meta-dot">•</span>
-                                <span class="post-timestamp" data-datetime="{{ post.created_at|date:'c' }}"></span>
-                            </p>
-                        </div>
-                        <span class="announcement-thread-pill">Officer Announcement</span>
-                    </div>
-
-                    <p class="announcement-body">{{ post.content }}</p>
-
-                    {% if post.image %}
-                        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="discussion-post-image">
-                    {% endif %}
-
-                    {% if role != "viewer" %}
-                        <div class="announcement-actions">
-                            <form method="POST" action="{% url 'discussions:toggle_post_like' post.id %}">
-                                {% csrf_token %}
-                                <button type="submit" class="discussion-like-btn">
-                                    <span>Like</span>
-                                    <span class="discussion-like-count">{{ post.likes.count }}</span>
-                                </button>
-                            </form>
-                        </div>
-                    {% endif %}
-                </article>
+                {% include "discussions/partials/announcement_card.html" with post=post %}
             {% endfor %}
         </div>
     {% else %}
-        <div class="discussion-empty-state">
+        <div class="discussion-empty-state" id="announcementEmptyState">
             <h3>No announcements yet</h3>
             <p>Updates from this CIO will appear here once someone publishes the first announcement.</p>
         </div>
+        <div class="announcement-feed joined-cio-hidden" id="announcementFeed"></div>
     {% endif %}
 </section>
 
 <script>
-    document.querySelectorAll('.post-timestamp').forEach((el) => {
-        const dt = new Date(el.dataset.datetime);
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const messageDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    (function () {
+        const announcementShell = document.querySelector('[data-cio-announcements-id="{{ cio.id }}"]');
+        if (!announcementShell) return;
 
-        let prefix;
-        if (messageDay.getTime() === today.getTime()) {
-            prefix = 'Today';
-        } else if (messageDay.getTime() === yesterday.getTime()) {
-            prefix = 'Yesterday';
-        } else {
-            prefix = dt.toLocaleDateString(undefined, {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
+        const announcementFeed = document.getElementById('announcementFeed');
+        const announcementEmptyState = document.getElementById('announcementEmptyState');
+        const tagStrip = document.getElementById('announcementTagStrip');
+        const tagPopover = document.getElementById('announcementTagPopover');
+        const tagSummary = document.getElementById('announcementTagSummary');
+        const sortButton = document.getElementById('announcementSortButton');
+        const sortMenu = document.getElementById('announcementSortMenu');
+        const composerForm = document.getElementById('announcementComposerForm');
+        const composerToggle = document.getElementById('announcementComposerToggle');
+        const composerCard = document.getElementById('announcementComposerCard');
+        let activeAnnouncementTag = '';
+        let activeAnnouncementSort = 'newest';
+
+        function openFloatingMenu(menuEl) {
+            if (!menuEl) return;
+            menuEl.classList.remove('joined-cio-hidden', 'is-closing');
+            requestAnimationFrame(() => {
+                menuEl.classList.add('is-open');
             });
         }
 
-        const timeLabel = dt.toLocaleTimeString(undefined, {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
+        function closeFloatingMenu(menuEl) {
+            if (!menuEl || menuEl.classList.contains('joined-cio-hidden')) return;
+            menuEl.classList.remove('is-open');
+            menuEl.classList.add('is-closing');
+            window.setTimeout(() => {
+                menuEl.classList.add('joined-cio-hidden');
+                menuEl.classList.remove('is-closing');
+            }, 180);
+        }
+
+        function mountTagEditor(scope) {
+            scope.querySelectorAll('[data-tag-editor]').forEach((editorEl) => {
+                if (editorEl.dataset.boundTagEditor === 'true') return;
+                editorEl.dataset.boundTagEditor = 'true';
+                const inputEl = editorEl.querySelector('[data-tag-input]');
+                const hiddenEl = editorEl.querySelector('[data-tag-hidden]');
+                const pillsEl = editorEl.querySelector('[data-tag-pills]');
+                const tags = [];
+
+                function syncTags() {
+                    hiddenEl.value = tags.join(',');
+                    pillsEl.innerHTML = tags.map((tag, index) => `
+                        <button type="button" class="announcement-tag-pill announcement-tag-pill-editable" data-tag-remove="${index}">
+                            <span>${tag}</span>
+                            <i data-lucide="x"></i>
+                        </button>
+                    `).join('');
+                    if (window.lucide) window.lucide.createIcons();
+                    pillsEl.querySelectorAll('[data-tag-remove]').forEach((buttonEl) => {
+                        buttonEl.addEventListener('click', () => {
+                            tags.splice(Number(buttonEl.dataset.tagRemove), 1);
+                            syncTags();
+                        });
+                    });
+                }
+
+                function pushTag(rawTag) {
+                    const cleaned = rawTag.trim().replace(/\s+/g, ' ').slice(0, 24);
+                    if (!cleaned || tags.length >= 3 || tags.some((tag) => tag.toLowerCase() === cleaned.toLowerCase())) return;
+                    tags.push(cleaned);
+                    syncTags();
+                }
+
+                inputEl.addEventListener('keydown', (event) => {
+                    if ((event.key === 'Enter' || event.key === ',') && inputEl.value.trim()) {
+                        event.preventDefault();
+                        pushTag(inputEl.value);
+                        inputEl.value = '';
+                    }
+                    if (event.key === 'Backspace' && !inputEl.value && tags.length) {
+                        tags.pop();
+                        syncTags();
+                    }
+                });
+
+                inputEl.addEventListener('blur', () => {
+                    if (inputEl.value.trim()) {
+                        pushTag(inputEl.value);
+                        inputEl.value = '';
+                    }
+                });
+            });
+        }
+
+        function getAnnouncementCards() {
+            return Array.from(announcementFeed.querySelectorAll('[data-announcement-id]'));
+        }
+
+        function announcementTags(cardEl) {
+            return (cardEl.dataset.announcementTags || '').split('|').filter(Boolean);
+        }
+
+        function syncTagOptions() {
+            const counts = new Map();
+            getAnnouncementCards().forEach((cardEl) => {
+                announcementTags(cardEl).forEach((tag) => {
+                    counts.set(tag, (counts.get(tag) || 0) + 1);
+                });
+            });
+
+            const sortedTags = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+            const leadingTags = sortedTags.slice(0, 3);
+
+            tagStrip.innerHTML = '';
+            leadingTags.forEach(([tag]) => {
+                const buttonEl = document.createElement('button');
+                buttonEl.type = 'button';
+                buttonEl.className = `announcement-tag-filter-btn ${activeAnnouncementTag === tag ? 'is-active' : ''}`;
+                buttonEl.textContent = tag;
+                buttonEl.addEventListener('click', () => {
+                    activeAnnouncementTag = activeAnnouncementTag === tag ? '' : tag;
+                    applyAnnouncementFilters();
+                });
+                tagStrip.appendChild(buttonEl);
+            });
+
+            if (sortedTags.length > 3) {
+                const allButton = document.createElement('button');
+                allButton.type = 'button';
+                allButton.className = 'announcement-tag-filter-btn announcement-tag-filter-btn-all';
+                allButton.textContent = 'All';
+                allButton.addEventListener('click', () => {
+                    if (tagPopover.classList.contains('joined-cio-hidden')) {
+                        closeFloatingMenu(sortMenu);
+                        openFloatingMenu(tagPopover);
+                    } else {
+                        closeFloatingMenu(tagPopover);
+                    }
+                });
+                tagStrip.appendChild(allButton);
+            }
+
+            tagPopover.innerHTML = sortedTags.map(([tag, count]) => `
+                <button type="button" class="announcement-tag-popover-item ${activeAnnouncementTag === tag ? 'is-active' : ''}" data-popover-tag="${tag}">
+                    <span>${tag}</span>
+                    <span>${count}</span>
+                </button>
+            `).join('');
+            tagPopover.querySelectorAll('[data-popover-tag]').forEach((buttonEl) => {
+                buttonEl.addEventListener('click', () => {
+                    activeAnnouncementTag = activeAnnouncementTag === buttonEl.dataset.popoverTag ? '' : buttonEl.dataset.popoverTag;
+                    closeFloatingMenu(tagPopover);
+                    applyAnnouncementFilters();
+                });
+            });
+        }
+
+        function applyAnnouncementFilters() {
+            const cards = getAnnouncementCards();
+            cards.forEach((cardEl) => {
+                const tagMatch = !activeAnnouncementTag || announcementTags(cardEl).includes(activeAnnouncementTag);
+                cardEl.dataset.announcementTagMatch = tagMatch ? 'true' : 'false';
+            });
+
+            const sortedCards = [...cards].sort((leftEl, rightEl) => {
+                const leftTime = new Date(leftEl.dataset.announcementCreatedAt || '').getTime() || 0;
+                const rightTime = new Date(rightEl.dataset.announcementCreatedAt || '').getTime() || 0;
+                return activeAnnouncementSort === 'newest' ? rightTime - leftTime : leftTime - rightTime;
+            });
+            sortedCards.forEach((cardEl) => announcementFeed.appendChild(cardEl));
+
+            if (typeof window.syncCioPageSearchState !== 'function') {
+                cards.forEach((cardEl) => {
+                    cardEl.style.display = cardEl.dataset.announcementTagMatch === 'false' ? 'none' : '';
+                });
+            }
+
+            const visibleCards = cards.filter((cardEl) => cardEl.dataset.announcementTagMatch !== 'false').length;
+            tagSummary.textContent = activeAnnouncementTag ? `Filtering by ${activeAnnouncementTag}` : 'All announcements';
+            if (announcementEmptyState) {
+                announcementEmptyState.classList.toggle('joined-cio-hidden', visibleCards > 0);
+            }
+            announcementFeed.classList.toggle('joined-cio-hidden', cards.length === 0);
+
+            syncTagOptions();
+            if (typeof window.syncCioPageSearchState === 'function') {
+                window.syncCioPageSearchState();
+            }
+        }
+
+        if (sortButton && sortMenu) {
+            sortButton.addEventListener('click', () => {
+                if (sortMenu.classList.contains('joined-cio-hidden')) {
+                    closeFloatingMenu(tagPopover);
+                    openFloatingMenu(sortMenu);
+                } else {
+                    closeFloatingMenu(sortMenu);
+                }
+            });
+            sortMenu.querySelectorAll('[data-announcement-sort]').forEach((buttonEl) => {
+                buttonEl.addEventListener('click', () => {
+                    activeAnnouncementSort = buttonEl.dataset.announcementSort;
+                    closeFloatingMenu(sortMenu);
+                    applyAnnouncementFilters();
+                });
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.announcement-toolbar') && !event.target.closest('.announcement-tag-strip-wrap')) {
+                    closeFloatingMenu(sortMenu);
+                    closeFloatingMenu(tagPopover);
+                }
+            });
+        }
+
+        if (composerToggle && composerCard) {
+            composerToggle.addEventListener('click', () => {
+                composerCard.classList.toggle('joined-cio-hidden');
+                if (!composerCard.classList.contains('joined-cio-hidden')) {
+                    const firstField = composerCard.querySelector('input[name="title"]');
+                    if (firstField) firstField.focus();
+                }
+            });
+        }
+
+        mountTagEditor(document);
+        applyAnnouncementFilters();
+
+        const feedProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const feedSocket = new WebSocket(`${feedProtocol}://${window.location.host}/ws/cios/{{ cio.id }}/announcements/`);
+        feedSocket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            if (!announcementFeed) return;
+
+            if (payload.type === 'announcement_created' && payload.html) {
+                if (announcementEmptyState) announcementEmptyState.classList.add('joined-cio-hidden');
+                announcementFeed.classList.remove('joined-cio-hidden');
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = payload.html.trim();
+                const cardEl = wrapper.firstElementChild;
+                if (cardEl) {
+                    const existingCard = announcementFeed.querySelector(`[data-announcement-id="${payload.post_id}"]`);
+                    if (!existingCard) {
+                        announcementFeed.prepend(cardEl);
+                        if (window.lucide) window.lucide.createIcons();
+                        applyAnnouncementFilters();
+                    }
+                }
+            }
+
+            if (payload.type === 'announcement_updated' && payload.html) {
+                const existingCard = announcementFeed.querySelector(`[data-announcement-id="${payload.post_id}"]`);
+                if (existingCard) {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = payload.html.trim();
+                    const nextCard = wrapper.firstElementChild;
+                    if (nextCard) {
+                        existingCard.replaceWith(nextCard);
+                        if (window.lucide) window.lucide.createIcons();
+                        applyAnnouncementFilters();
+                    }
+                }
+            }
         });
 
-        el.textContent = `${prefix} at ${timeLabel}`;
-    });
+        if (composerForm) {
+            composerForm.addEventListener('submit', () => {
+                closeFloatingMenu(tagPopover);
+                closeFloatingMenu(sortMenu);
+            });
+        }
+    })();
 </script>

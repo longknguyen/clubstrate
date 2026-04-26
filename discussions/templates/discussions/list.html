@@ -74,28 +74,33 @@
             {% endfor %}
         </div>
 
-        <form method="POST"
-              enctype="multipart/form-data"
-              action="{% url 'discussions:create_message' cio.id %}"
-              onsubmit="return validateMessageForm(this);"
-              class="chat-composer-bar"
-              id="chatComposerForm">
-            {% csrf_token %}
+        <div class="chat-composer-stack">
+            <div class="chat-attachment-pill-row joined-cio-hidden" id="chatAttachmentPills"></div>
+            <form method="POST"
+                  enctype="multipart/form-data"
+                  action="{% url 'discussions:create_message' cio.id %}"
+                  onsubmit="return validateMessageForm(this);"
+                  class="chat-composer-bar"
+                  id="chatComposerForm">
+                {% csrf_token %}
 
-            <label for="chatAttachmentInput" class="chat-attachment-btn" aria-label="Attach a file">
-                <i data-lucide="paperclip"></i>
-            </label>
-            <input id="chatAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
+                <label for="chatAttachmentInput" class="chat-attachment-btn" aria-label="Attach a file">
+                    <i data-lucide="paperclip"></i>
+                </label>
+                <input id="chatAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
 
-            <textarea name="content" placeholder="Type a message..." class="chat-composer-input"
-                      id="chatComposerInput" maxlength="2000"></textarea>
+                <textarea name="content" placeholder="Type a message..." class="chat-composer-input"
+                          id="chatComposerInput" maxlength="2000"></textarea>
 
-            <div class="chat-composer-actions">
-                <span class="chat-character-counter" id="chatComposerCounter">0 / 2000</span>
+                <button type="submit" class="chat-send-btn" aria-label="Send message">
+                    <i data-lucide="send-horizontal"></i>
+                </button>
+            </form>
+            <div class="chat-composer-meta">
                 <span class="chat-attachment-name" id="chatAttachmentName">No file selected</span>
-                <button type="submit" class="discussion-action-btn chat-send-btn">Send</button>
+                <span class="chat-character-counter" id="chatComposerCounter">0 / 2000</span>
             </div>
-        </form>
+        </div>
 </section>
 
 <div class="chat-user-modal" id="chatUserModal">
@@ -171,6 +176,7 @@
 
     const chatAttachmentInput = document.getElementById('chatAttachmentInput');
     const chatAttachmentName = document.getElementById('chatAttachmentName');
+    const chatAttachmentPills = document.getElementById('chatAttachmentPills');
     const chatMessageList = document.getElementById('chatMessageList');
     const chatUserModal = document.getElementById('chatUserModal');
     const chatUserBanner = document.getElementById('chatUserBanner');
@@ -183,6 +189,9 @@
     const chatComposerForm = document.getElementById('chatComposerForm');
     const chatComposerInput = document.getElementById('chatComposerInput');
     const chatComposerCounter = document.getElementById('chatComposerCounter');
+    const chatComposerSendBtn = chatComposerForm ? chatComposerForm.querySelector('.chat-send-btn') : null;
+    const chatComposerAttachBtn = chatComposerForm ? chatComposerForm.querySelector('.chat-attachment-btn') : null;
+    const MAX_CHAT_UPLOAD_BYTES = 8 * 1024 * 1024;
     const chatImageModal = document.getElementById('chatImageModal');
     const chatImagePreview = document.getElementById('chatImagePreview');
     const chatImageClose = document.getElementById('chatImageClose');
@@ -192,10 +201,34 @@
         if (!chatComposerInput || !chatComposerCounter) return;
         chatComposerCounter.textContent = `${chatComposerInput.value.length} / 2000`;
     }
+
+    function renderAttachmentPills() {
+        if (!chatAttachmentInput || !chatAttachmentPills || !chatAttachmentName) return;
+        const file = chatAttachmentInput.files && chatAttachmentInput.files[0];
+        if (!file) {
+            chatAttachmentPills.innerHTML = '';
+            chatAttachmentPills.classList.add('joined-cio-hidden');
+            chatAttachmentName.textContent = 'No file selected';
+            return;
+        }
+
+        chatAttachmentPills.innerHTML = `
+            <span class="chat-attachment-pill" title="${file.name}">
+                ${file.name}
+            </span>
+        `;
+        chatAttachmentPills.classList.remove('joined-cio-hidden');
+        chatAttachmentName.textContent = file.name;
+    }
+
     if (chatAttachmentInput && chatAttachmentName) {
         chatAttachmentInput.addEventListener('change', () => {
             const file = chatAttachmentInput.files && chatAttachmentInput.files[0];
-            chatAttachmentName.textContent = file ? file.name : 'No file selected';
+            if (file && file.size > MAX_CHAT_UPLOAD_BYTES) {
+                alert('Please choose an image under 8 MB.');
+                chatAttachmentInput.value = '';
+            }
+            renderAttachmentPills();
         });
     }
 
@@ -388,6 +421,19 @@
         return true;
     }
 
+    function setDiscussionComposerPending(isPending) {
+        if (chatComposerForm) {
+            chatComposerForm.dataset.isSending = isPending ? 'true' : 'false';
+        }
+        if (chatComposerSendBtn) {
+            chatComposerSendBtn.disabled = isPending;
+        }
+        if (chatComposerAttachBtn) {
+            chatComposerAttachBtn.style.pointerEvents = isPending ? 'none' : '';
+            chatComposerAttachBtn.style.opacity = isPending ? '0.6' : '';
+        }
+    }
+
     if (discussionChatPage && chatComposerForm && chatComposerInput) {
         const cioId = discussionChatPage.dataset.cioDiscussionId;
         const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
@@ -423,11 +469,31 @@
         });
 
         chatComposerForm.addEventListener('submit', (event) => {
+            if (chatComposerForm.dataset.isSending === 'true') {
+                event.preventDefault();
+                return;
+            }
             const file = chatAttachmentInput && chatAttachmentInput.files && chatAttachmentInput.files[0];
             if (file) {
-                if (!validateMessageForm(chatComposerForm)) {
-                    event.preventDefault();
-                }
+                event.preventDefault();
+                if (!validateMessageForm(chatComposerForm)) return;
+                setDiscussionComposerPending(true);
+                fetch(chatComposerForm.action, {
+                    method: 'POST',
+                    body: new FormData(chatComposerForm),
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin',
+                }).then((response) => {
+                    if (!response.ok) return;
+                    chatComposerInput.value = '';
+                    if (chatAttachmentInput) {
+                        chatAttachmentInput.value = '';
+                    }
+                    updateComposerCounter();
+                    renderAttachmentPills();
+                }).finally(() => {
+                    setDiscussionComposerPending(false);
+                });
                 return;
             }
 

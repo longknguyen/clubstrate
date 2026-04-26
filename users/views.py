@@ -8,6 +8,7 @@ from django.contrib.auth.models import Group
 from django.db.models import Q
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -555,6 +556,46 @@ def friends_page(request):
         'requests_count': len(received_requests),
     }
     return render(request, 'users/friends.html', context)
+
+
+@login_required
+@require_POST
+def send_direct_message(request, friendship_id):
+    friendship = get_object_or_404(
+        Friendship.objects.select_related('user_one__profile', 'user_two__profile'),
+        pk=friendship_id,
+    )
+    if request.user.id not in {friendship.user_one_id, friendship.user_two_id}:
+        return redirect('friends')
+
+    content = request.POST.get('content', '').strip()[:2000]
+    image = request.FILES.get('image')
+    if not content and not image:
+        recipient = friendship.user_two if friendship.user_one_id == request.user.id else friendship.user_one
+        return redirect(f"{reverse('friends')}?dm={recipient.id}")
+
+    message = DirectMessage.objects.create(
+        friendship=friendship,
+        sender=request.user,
+        content=content,
+        image=convert_upload_to_webp(image, stem='direct-message') if image else None,
+    )
+
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f'friendship_{friendship.id}',
+            {
+                'type': 'direct.message',
+                'message_id': message.id,
+            },
+        )
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'ok': True, 'message_id': message.id})
+
+    recipient = friendship.user_two if friendship.user_one_id == request.user.id else friendship.user_one
+    return redirect(f"{reverse('friends')}?dm={recipient.id}")
 
 
 @login_required

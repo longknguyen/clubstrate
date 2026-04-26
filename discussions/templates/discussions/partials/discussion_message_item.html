@@ -45,5 +45,17 @@
                 <p>{{ message.content }}</p>
             </div>
         {% endif %}
+
+        {% if message.image %}
+            <div class="chat-message-attachment">
+                <button
+                    type="button"
+                    class="chat-message-image-btn"
+                    data-chat-image="{{ message.image.url }}"
+                    data-chat-image-alt="Chat upload preview">
+                    <img src="{{ message.image.url }}" alt="Chat upload" class="chat-message-image">
+                </button>
+            </div>
+        {% endif %}
     </div>
 </article>

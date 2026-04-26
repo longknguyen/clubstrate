@@ -1,0 +1,772 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block page_title_block %}
+    <div class="cio-title-menu">
+        <button
+            type="button"
+            class="cio-title-button {% if role != 'officer' %}cio-title-button-static{% endif %}"
+            id="cioTitleButton"
+            {% if role != 'officer' %}disabled{% endif %}>
+            <span class="page-title cio-page-title">{{ cio.name }}</span>
+            {% if role == 'officer' %}
+                <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
+                <i data-lucide="chevron-down"></i>
+            {% endif %}
+        </button>
+        {% if role == 'officer' %}
+            <div class="cio-title-dropdown joined-cio-hidden" id="cioTitleDropdown">
+                <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="cio-title-dropdown-link">
+                    <span>CIO Settings</span>
+                    <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
+                </a>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <div class="sidebar-cio-banner"
+         style="
+                 {% if cio.banner_type == 'image' and cio.banner_image %}
+                     background-image: url('{{ cio.banner_image.url }}');
+                 {% else %}
+                     background: {{ cio.gradient|default:'#dbeafe' }};
+                 {% endif %}
+                 ">
+    </div>
+    <a href="{% url 'cio_detail' cio.id %}?tab=events" class="sidebar-item">
+        <i data-lucide="calendar-days"></i>
+        <span>Events</span>
+    </a>
+    <a href="{% url 'cio_detail' cio.id %}?tab=info" class="sidebar-item">
+        <i data-lucide="circle-help"></i>
+        <span>Info</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'cio_detail' cio.id %}?tab=announcements" class="sidebar-item active">
+        <i data-lucide="megaphone"></i>
+        <span>Announcements</span>
+    </a>
+    {% if role == 'viewer' %}
+        <div class="sidebar-divider"></div>
+        <div class="cio-preview-callout">
+            <p class="cio-preview-copy">You are in preview mode. Request access to this CIO to join in on the discussions.</p>
+            <div class="cio-preview-join-actions">
+                <button
+                    type="button"
+                    class="discussion-action-btn cio-preview-join-btn {% if has_pending_request %}is-pending{% endif %}"
+                    id="cioPreviewJoinButton"
+                    data-request-url="{% url 'request-to-join' cio.id %}"
+                    data-cancel-url="{% url 'cancel-join-request' cio.id %}"
+                    {% if has_pending_request %}disabled{% endif %}>
+                    {% if has_pending_request %}Pending Request...{% else %}Request to Join{% endif %}
+                </button>
+                <button
+                    type="button"
+                    class="cio-preview-cancel-btn {% if not has_pending_request %}joined-cio-hidden{% endif %}"
+                    id="cioPreviewCancelButton">
+                    Cancel Request
+                </button>
+            </div>
+        </div>
+    {% endif %}
+    {% if role != 'viewer' %}
+        <a href="{% url 'cio_detail' cio.id %}?tab=discussions" class="sidebar-item">
+            <i data-lucide="messages-square"></i>
+            <span>Discussions</span>
+        </a>
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="announcement-thread-page" data-announcement-thread-id="{{ announcement.id }}">
+    {% if role == 'officer' %}
+        <div class="announcement-edit-backdrop" id="announcementEditBackdrop"></div>
+        <section class="announcement-edit-card" id="announcementEditCard" aria-hidden="true">
+            <button type="button" class="announcement-edit-close" id="announcementEditClose" aria-label="Close edit announcement modal">
+                <i data-lucide="x"></i>
+            </button>
+            <div class="discussion-section-heading">
+                <h3>Edit announcement</h3>
+                <p>Update the title, description, and tags for this announcement.</p>
+            </div>
+
+            <form method="POST" action="{% url 'discussions:update_announcement' announcement.id %}" enctype="multipart/form-data" class="discussion-form" id="announcementEditForm">
+                {% csrf_token %}
+                <input type="text" name="title" value="{{ announcement.title }}" placeholder="Announcement title" class="discussion-input">
+                <textarea name="content" placeholder="Share an update..." class="discussion-textarea discussion-textarea-lg" maxlength="2000">{{ announcement.content }}</textarea>
+                <div class="announcement-tag-editor" data-tag-editor data-tag-initial="{% for tag in announcement.announcement_tags_list %}{{ tag }}{% if not forloop.last %}|{% endif %}{% endfor %}">
+                    <div class="announcement-tag-editor-pills" data-tag-pills></div>
+                    <input type="text" class="announcement-tag-editor-input" data-tag-input placeholder="Add up to 3 tags">
+                    <input type="hidden" name="tags" data-tag-hidden value="{{ announcement.announcement_tags_list|join:',' }}">
+                </div>
+                <div class="discussion-form-footer">
+                    <input type="file" name="image" class="discussion-file-input" accept="image/*">
+                    <div class="announcement-edit-actions">
+                        <button type="button" class="discussion-action-btn" id="announcementEditCancel">Cancel</button>
+                        <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Save</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+    {% endif %}
+
+    {% if role != 'viewer' %}
+        <section class="discussion-chat-page announcement-thread-chat" data-announcement-comment-thread="{{ announcement.id }}">
+            <div class="announcement-thread-scroll" id="announcementThreadScroll">
+                <div class="announcement-thread-summary-shell" id="announcementSummaryShell">
+                    {% include "discussions/partials/announcement_detail_summary.html" with announcement=announcement display_name=announcement.display_name comment_count=announcement.comment_count relative_created_label=announcement.relative_created_label announcement_tags_list=announcement.announcement_tags_list %}
+                    {% if role == 'officer' %}
+                        <div class="announcement-thread-more">
+                            <button type="button"
+                                    class="announcement-thread-more-btn tooltip-bottom"
+                                    id="announcementMoreButton"
+                                    data-tooltip="More"
+                                    aria-label="More announcement actions">
+                                <i data-lucide="ellipsis"></i>
+                            </button>
+                            <div class="announcement-thread-more-menu joined-cio-hidden" id="announcementMoreMenu">
+                                <button type="button" id="announcementEditToggle">Edit Announcement</button>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="chat-message-list" id="announcementCommentList">
+                    {% for message in announcement_comments %}
+                        {% include "discussions/partials/announcement_comment_item.html" with message=message is_own=message.is_own show_header=message.show_header show_avatar=message.show_avatar show_time_divider=message.show_time_divider time_divider_label=message.time_divider_label display_name=message.display_name cio_role_label=message.cio_role_label %}
+                    {% empty %}
+                        <div class="discussion-empty-state chat-empty-state" id="announcementCommentEmptyState">
+                            <h3>No messages yet</h3>
+                            <p>This announcement does not have any replies yet. Start the conversation below.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="chat-composer-stack">
+                <div class="chat-attachment-pill-row joined-cio-hidden" id="announcementAttachmentPills"></div>
+                <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_comment' announcement.id %}" class="chat-composer-bar" id="announcementCommentForm">
+                    {% csrf_token %}
+                    <label for="announcementAttachmentInput" class="chat-attachment-btn" aria-label="Attach a file">
+                        <i data-lucide="paperclip"></i>
+                    </label>
+                    <input id="announcementAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
+                    <textarea name="content" placeholder="Type a message..." class="chat-composer-input" id="announcementCommentInput" maxlength="2000"></textarea>
+                    <button type="submit" class="chat-send-btn" aria-label="Send message">
+                        <i data-lucide="send-horizontal"></i>
+                    </button>
+                </form>
+                <div class="chat-composer-meta">
+                    <span class="chat-attachment-name" id="announcementAttachmentName">No file selected</span>
+                    <span class="chat-character-counter" id="announcementCommentCounter">0 / 2000</span>
+                </div>
+            </div>
+        </section>
+    {% else %}
+        <div class="discussion-empty-state">
+            <h3>Preview mode</h3>
+            <p>Join this CIO to take part in the announcement thread.</p>
+        </div>
+    {% endif %}
+</section>
+
+<div class="chat-image-modal" id="announcementImageModal">
+    <button type="button" class="chat-image-close" id="announcementImageClose" aria-label="Close image preview">
+        <i data-lucide="x"></i>
+    </button>
+    <img src="" alt="" class="chat-image-modal-preview" id="announcementImagePreview">
+</div>
+
+<script>
+    (function () {
+        const threadShell = document.querySelector('[data-announcement-thread-id="{{ announcement.id }}"]');
+        if (!threadShell) return;
+
+        function formatPostTimestamp(el) {
+            if (!el || !el.dataset.datetime) return;
+            const dt = new Date(el.dataset.datetime);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const messageDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+            let prefix;
+            if (messageDay.getTime() === today.getTime()) {
+                prefix = 'Today';
+            } else if (messageDay.getTime() === yesterday.getTime()) {
+                prefix = 'Yesterday';
+            } else {
+                prefix = dt.toLocaleDateString(undefined, {day: 'numeric', month: 'long', year: 'numeric'});
+            }
+            const timeLabel = dt.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit', hour12: true});
+            el.textContent = `${prefix} at ${timeLabel}`;
+        }
+
+        document.querySelectorAll('.post-timestamp').forEach(formatPostTimestamp);
+
+        const messageList = document.getElementById('announcementCommentList');
+        const emptyState = document.getElementById('announcementCommentEmptyState');
+        const composerForm = document.getElementById('announcementCommentForm');
+        const composerInput = document.getElementById('announcementCommentInput');
+        const composerCounter = document.getElementById('announcementCommentCounter');
+        const composerSendBtn = composerForm ? composerForm.querySelector('.chat-send-btn') : null;
+        const composerAttachBtn = composerForm ? composerForm.querySelector('.chat-attachment-btn') : null;
+        const MAX_ANNOUNCEMENT_UPLOAD_BYTES = 8 * 1024 * 1024;
+        const attachmentInput = document.getElementById('announcementAttachmentInput');
+        const attachmentName = document.getElementById('announcementAttachmentName');
+        const attachmentPills = document.getElementById('announcementAttachmentPills');
+        const editToggle = document.getElementById('announcementEditToggle');
+        const moreButton = document.getElementById('announcementMoreButton');
+        const moreMenu = document.getElementById('announcementMoreMenu');
+        const editCard = document.getElementById('announcementEditCard');
+        const editBackdrop = document.getElementById('announcementEditBackdrop');
+        const editCancel = document.getElementById('announcementEditCancel');
+        const editClose = document.getElementById('announcementEditClose');
+        const editForm = document.getElementById('announcementEditForm');
+        const imageModal = document.getElementById('announcementImageModal');
+        const imagePreview = document.getElementById('announcementImagePreview');
+        const imageClose = document.getElementById('announcementImageClose');
+        const threadScroll = document.getElementById('announcementThreadScroll');
+        const titleButton = document.getElementById('cioTitleButton');
+        const titleDropdown = document.getElementById('cioTitleDropdown');
+        const searchInput = document.querySelector('.search-bar');
+        const previewJoinButton = document.getElementById('cioPreviewJoinButton');
+        const previewCancelButton = document.getElementById('cioPreviewCancelButton');
+        const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+
+        function mountTagEditor(scope) {
+            scope.querySelectorAll('[data-tag-editor]').forEach((editorEl) => {
+                if (editorEl.dataset.boundTagEditor === 'true') return;
+                editorEl.dataset.boundTagEditor = 'true';
+                const inputEl = editorEl.querySelector('[data-tag-input]');
+                const hiddenEl = editorEl.querySelector('[data-tag-hidden]');
+                const pillsEl = editorEl.querySelector('[data-tag-pills]');
+                const tags = (editorEl.dataset.tagInitial || '').split('|').filter(Boolean);
+
+                function syncTags() {
+                    hiddenEl.value = tags.join(',');
+                    pillsEl.innerHTML = tags.map((tag, index) => `
+                        <button type="button" class="announcement-tag-pill announcement-tag-pill-editable" data-tag-remove="${index}">
+                            <span>${tag}</span>
+                            <i data-lucide="x"></i>
+                        </button>
+                    `).join('');
+                    if (window.lucide) window.lucide.createIcons();
+                    pillsEl.querySelectorAll('[data-tag-remove]').forEach((buttonEl) => {
+                        buttonEl.addEventListener('click', () => {
+                            tags.splice(Number(buttonEl.dataset.tagRemove), 1);
+                            syncTags();
+                        });
+                    });
+                }
+
+                function pushTag(rawTag) {
+                    const cleaned = rawTag.trim().replace(/\s+/g, ' ').slice(0, 24);
+                    if (!cleaned || tags.length >= 3 || tags.some((tag) => tag.toLowerCase() === cleaned.toLowerCase())) return;
+                    tags.push(cleaned);
+                    syncTags();
+                }
+
+                inputEl.addEventListener('keydown', (event) => {
+                    if ((event.key === 'Enter' || event.key === ',') && inputEl.value.trim()) {
+                        event.preventDefault();
+                        pushTag(inputEl.value);
+                        inputEl.value = '';
+                    }
+                    if (event.key === 'Backspace' && !inputEl.value && tags.length) {
+                        tags.pop();
+                        syncTags();
+                    }
+                });
+
+                inputEl.addEventListener('blur', () => {
+                    if (inputEl.value.trim()) {
+                        pushTag(inputEl.value);
+                        inputEl.value = '';
+                    }
+                });
+
+                syncTags();
+            });
+        }
+
+        mountTagEditor(document);
+
+        function openEditModal() {
+            if (!editCard || !editBackdrop) return;
+            editBackdrop.classList.add('show');
+            editCard.classList.add('show');
+            editCard.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('announcement-edit-modal-open');
+        }
+
+        function closeEditModal() {
+            if (!editCard || !editBackdrop) return;
+            editBackdrop.classList.remove('show');
+            editCard.classList.remove('show');
+            editCard.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('announcement-edit-modal-open');
+        }
+
+        if (editToggle && editCard) {
+            editToggle.addEventListener('click', () => {
+                if (moreMenu) {
+                    moreMenu.classList.add('joined-cio-hidden');
+                }
+                openEditModal();
+            });
+        }
+
+        if (moreButton && moreMenu) {
+            moreButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                moreMenu.classList.toggle('joined-cio-hidden');
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!moreMenu.contains(event.target) && event.target !== moreButton && !moreButton.contains(event.target)) {
+                    moreMenu.classList.add('joined-cio-hidden');
+                }
+            });
+        }
+
+        if (editCancel) {
+            editCancel.addEventListener('click', closeEditModal);
+        }
+
+        if (editClose) {
+            editClose.addEventListener('click', closeEditModal);
+        }
+
+        if (editBackdrop) {
+            editBackdrop.addEventListener('click', closeEditModal);
+        }
+
+        if (editForm) {
+            editForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const response = await fetch(editForm.action, {
+                    method: 'POST',
+                    body: new FormData(editForm),
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) return;
+                closeEditModal();
+            });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (imageModal && imageModal.classList.contains('is-open')) {
+                    imageModal.classList.remove('is-open');
+                    return;
+                }
+                if (editCard && editCard.classList.contains('show')) {
+                    closeEditModal();
+                }
+            }
+        });
+
+        if (composerInput && composerCounter) {
+            const syncCounter = () => {
+                composerCounter.textContent = `${composerInput.value.length} / 2000`;
+            };
+            composerInput.addEventListener('input', syncCounter);
+            composerInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey && composerForm) {
+                    event.preventDefault();
+                    composerForm.requestSubmit();
+                }
+            });
+            syncCounter();
+        }
+
+        function renderAttachmentPills() {
+            if (!attachmentInput || !attachmentPills || !attachmentName) return;
+            const file = attachmentInput.files && attachmentInput.files[0];
+            if (!file) {
+                attachmentPills.innerHTML = '';
+                attachmentPills.classList.add('joined-cio-hidden');
+                attachmentName.textContent = 'No file selected';
+                return;
+            }
+
+            attachmentPills.innerHTML = `
+                <span class="chat-attachment-pill" title="${file.name}">
+                    ${file.name}
+                </span>
+            `;
+            attachmentPills.classList.remove('joined-cio-hidden');
+            attachmentName.textContent = file.name;
+        }
+
+        if (attachmentInput) {
+            attachmentInput.addEventListener('change', () => {
+                const file = attachmentInput.files && attachmentInput.files[0];
+                if (file && file.size > MAX_ANNOUNCEMENT_UPLOAD_BYTES) {
+                    alert('Please choose an image under 8 MB.');
+                    attachmentInput.value = '';
+                }
+                renderAttachmentPills();
+            });
+        }
+
+        function clearEmptyState() {
+            if (emptyState) emptyState.remove();
+        }
+
+        function filterAnnouncementThreadMessages(query, authorQuery = '') {
+            const normalizedQuery = (query || '').trim().toLowerCase();
+            const normalizedAuthorQuery = (authorQuery || '').trim().toLowerCase();
+            let matchCount = 0;
+            const threadMessages = Array.from(document.querySelectorAll('#announcementCommentList [data-message-day]'));
+            const threadDividers = Array.from(document.querySelectorAll('#announcementCommentList [data-divider-day]'));
+
+            threadMessages.forEach((messageEl) => {
+                const haystack = (messageEl.dataset.searchText || '').toLowerCase();
+                const authorHaystack = (messageEl.dataset.messageAuthor || '').toLowerCase();
+                const matches = (!normalizedQuery || haystack.includes(normalizedQuery))
+                    && (!normalizedAuthorQuery || authorHaystack.includes(normalizedAuthorQuery));
+                messageEl.style.display = matches ? '' : 'none';
+                if (matches) {
+                    matchCount += 1;
+                }
+            });
+
+            threadDividers.forEach((dividerEl) => {
+                let hasVisibleMessages = false;
+                let sibling = dividerEl.nextElementSibling;
+                while (sibling && !sibling.hasAttribute('data-divider-day')) {
+                    if (sibling.hasAttribute('data-message-day') && sibling.style.display !== 'none') {
+                        hasVisibleMessages = true;
+                        break;
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+                dividerEl.style.display = hasVisibleMessages ? '' : 'none';
+            });
+
+            return matchCount;
+        }
+
+        function getCsrfToken() {
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) return csrfInput.value;
+            const csrfCookie = document.cookie.split('; ').find((entry) => entry.startsWith('csrftoken='));
+            return csrfCookie ? csrfCookie.split('=')[1] : '';
+        }
+
+        function updatePreviewJoinState(payload) {
+            if (!previewJoinButton) return;
+            const isJoined = Boolean(payload && payload.joined);
+            const isPending = Boolean(payload && payload.pending);
+            previewJoinButton.dataset.joined = isJoined ? 'true' : 'false';
+            previewJoinButton.disabled = isPending;
+            previewJoinButton.classList.toggle('is-pending', isPending);
+            previewJoinButton.textContent = isJoined ? 'Go To' : (isPending ? 'Pending Request...' : 'Request to Join');
+
+            if (previewCancelButton) {
+                previewCancelButton.classList.toggle('joined-cio-hidden', !isPending);
+                previewCancelButton.disabled = false;
+            }
+        }
+
+        function updateCioRequestBadges(nextCount) {
+            cioRequestBadges.forEach((badgeEl) => {
+                badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+            });
+        }
+
+        function shouldGroupMessages(previousMessageEl, nextMessageEl) {
+            if (!previousMessageEl || !nextMessageEl) return false;
+
+            const previousSenderId = previousMessageEl.dataset.messageSenderId;
+            const nextSenderId = nextMessageEl.dataset.messageSenderId;
+            if (!previousSenderId || previousSenderId !== nextSenderId) return false;
+
+            const previousCreatedAt = new Date(previousMessageEl.dataset.messageCreatedAt || '');
+            const nextCreatedAt = new Date(nextMessageEl.dataset.messageCreatedAt || '');
+            if (Number.isNaN(previousCreatedAt.getTime()) || Number.isNaN(nextCreatedAt.getTime())) return false;
+
+            const sameDay =
+                previousCreatedAt.getFullYear() === nextCreatedAt.getFullYear()
+                && previousCreatedAt.getMonth() === nextCreatedAt.getMonth()
+                && previousCreatedAt.getDate() === nextCreatedAt.getDate();
+            const withinFiveMinutes = (nextCreatedAt - previousCreatedAt) <= (5 * 60 * 1000);
+
+            return sameDay && withinFiveMinutes;
+        }
+
+        function updateGroupedAvatar(previousMessageEl) {
+            if (!previousMessageEl) return;
+
+            const avatarEl = previousMessageEl.querySelector('.chat-message-avatar');
+            if (!avatarEl) return;
+
+            const spacerEl = document.createElement('div');
+            spacerEl.className = 'chat-message-avatar-spacer';
+            spacerEl.setAttribute('aria-hidden', 'true');
+            avatarEl.replaceWith(spacerEl);
+            previousMessageEl.classList.add('chat-message-grouped');
+        }
+
+        function scrollToLatest() {
+            const scrollTarget = threadScroll || messageList;
+            if (!scrollTarget) return;
+            requestAnimationFrame(() => {
+                scrollTarget.scrollTop = scrollTarget.scrollHeight;
+            });
+        }
+
+        function bindChatImageTrigger(triggerEl) {
+            triggerEl.addEventListener('click', () => {
+                if (!imageModal || !imagePreview) return;
+                imagePreview.src = triggerEl.dataset.chatImage || '';
+                imagePreview.alt = triggerEl.dataset.chatImageAlt || 'Announcement reply image preview';
+                imageModal.classList.add('is-open');
+            });
+        }
+
+        document.querySelectorAll('[data-chat-image]').forEach(bindChatImageTrigger);
+
+        if (imageClose) {
+            imageClose.addEventListener('click', () => {
+                imageModal.classList.remove('is-open');
+            });
+        }
+
+        if (imageModal) {
+            imageModal.addEventListener('click', (event) => {
+                if (event.target === imageModal) {
+                    imageModal.classList.remove('is-open');
+                }
+            });
+        }
+
+        function validateCommentForm() {
+            const text = composerInput ? composerInput.value.trim() : '';
+            const file = attachmentInput && attachmentInput.files ? attachmentInput.files.length : 0;
+            if (!text && !file) {
+                alert('Please enter a message or select an image.');
+                return false;
+            }
+            return true;
+        }
+
+        function setAnnouncementComposerPending(isPending) {
+            if (composerForm) {
+                composerForm.dataset.isSending = isPending ? 'true' : 'false';
+            }
+            if (composerSendBtn) {
+                composerSendBtn.disabled = isPending;
+            }
+            if (composerAttachBtn) {
+                composerAttachBtn.style.pointerEvents = isPending ? 'none' : '';
+                composerAttachBtn.style.opacity = isPending ? '0.6' : '';
+            }
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${window.location.host}/ws/announcements/{{ announcement.id }}/thread/`);
+        const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+
+        if (searchInput) {
+            searchInput.placeholder = 'Search replies in this announcement...';
+            searchInput.addEventListener('input', () => {
+                if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                    return;
+                }
+                const activeMode = typeof window.getActiveGlobalSearchMode === 'function' ? window.getActiveGlobalSearchMode() : null;
+                const authorQuery = activeMode && activeMode.kind === 'author' ? activeMode.query || '' : '';
+                filterAnnouncementThreadMessages(searchInput.value, authorQuery);
+            });
+            window.addEventListener('globalsearchmodechange', () => {
+                const activeMode = typeof window.getActiveGlobalSearchMode === 'function' ? window.getActiveGlobalSearchMode() : null;
+                const authorQuery = activeMode && activeMode.kind === 'author' ? activeMode.query || '' : '';
+                filterAnnouncementThreadMessages(searchInput.value, authorQuery);
+            });
+        }
+
+        if (typeof window.recordRecentCioVisit === 'function') {
+            window.recordRecentCioVisit('{{ cio.id }}');
+        }
+
+        if (titleButton && titleDropdown) {
+            titleButton.addEventListener('click', () => {
+                titleDropdown.classList.toggle('joined-cio-hidden');
+            });
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.cio-title-menu')) {
+                    titleDropdown.classList.add('joined-cio-hidden');
+                }
+            });
+        }
+
+        if (previewJoinButton) {
+            previewJoinButton.addEventListener('click', async () => {
+                const requestUrl = previewJoinButton.dataset.requestUrl;
+                if (!requestUrl || previewJoinButton.disabled) return;
+
+                previewJoinButton.disabled = true;
+                try {
+                    const response = await fetch(requestUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        credentials: 'same-origin',
+                    });
+                    if (!response.ok) throw new Error('Request failed');
+                    const payload = await response.json();
+                    if (payload && payload.pending) {
+                        if (typeof window.launchCioJoinConfetti === 'function') {
+                            window.launchCioJoinConfetti();
+                        }
+                        updatePreviewJoinState(payload);
+                    } else {
+                        previewJoinButton.disabled = false;
+                    }
+                } catch (error) {
+                    previewJoinButton.disabled = false;
+                }
+            });
+        }
+
+        if (previewCancelButton && previewJoinButton) {
+            updatePreviewJoinState({joined: false, pending: {{ has_pending_request|yesno:"true,false" }}});
+            previewCancelButton.addEventListener('click', async () => {
+                const cancelUrl = previewJoinButton.dataset.cancelUrl;
+                if (!cancelUrl || previewCancelButton.disabled) return;
+
+                previewCancelButton.disabled = true;
+                try {
+                    const response = await fetch(cancelUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        credentials: 'same-origin',
+                    });
+                    if (!response.ok) throw new Error('Cancel failed');
+                    updatePreviewJoinState({joined: false, pending: false});
+                } catch (error) {
+                    previewCancelButton.disabled = false;
+                }
+            });
+        }
+
+        if (composerForm && composerInput) {
+            composerForm.addEventListener('submit', (event) => {
+                if (composerForm.dataset.isSending === 'true') {
+                    event.preventDefault();
+                    return;
+                }
+                const file = attachmentInput && attachmentInput.files && attachmentInput.files[0];
+                if (file) {
+                    event.preventDefault();
+                    if (!validateCommentForm()) return;
+                    setAnnouncementComposerPending(true);
+                    fetch(composerForm.action, {
+                        method: 'POST',
+                        body: new FormData(composerForm),
+                        headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        credentials: 'same-origin',
+                    }).then((response) => {
+                        if (!response.ok) return;
+                        composerInput.value = '';
+                        composerCounter.textContent = '0 / 2000';
+                        if (attachmentInput) {
+                            attachmentInput.value = '';
+                        }
+                        renderAttachmentPills();
+                    }).finally(() => {
+                        setAnnouncementComposerPending(false);
+                    });
+                    return;
+                }
+
+                event.preventDefault();
+                const content = composerInput.value.trim();
+                if (!content || socket.readyState !== WebSocket.OPEN) return;
+                socket.send(JSON.stringify({content}));
+                composerInput.value = '';
+                composerCounter.textContent = '0 / 2000';
+                if (attachmentInput) {
+                    attachmentInput.value = '';
+                }
+                renderAttachmentPills();
+            });
+
+            scrollToLatest();
+        }
+
+        socket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            if (payload.type === 'message' && payload.html && messageList) {
+                clearEmptyState();
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = payload.html.trim();
+                const previousMessageEl = messageList.querySelector('.chat-message:last-of-type');
+                const newMessageEl = wrapper.querySelector('.chat-message');
+
+                if (shouldGroupMessages(previousMessageEl, newMessageEl)) {
+                    updateGroupedAvatar(previousMessageEl);
+                }
+
+                Array.from(wrapper.children).forEach((node) => {
+                    messageList.appendChild(node);
+                    if (node.matches && node.matches('.chat-message')) {
+                        node.querySelectorAll('[data-chat-image]').forEach(bindChatImageTrigger);
+                    }
+                });
+                document.querySelectorAll('.post-timestamp').forEach(formatPostTimestamp);
+                if (window.lucide) window.lucide.createIcons();
+                setThreadCount(payload.comment_count);
+                scrollToLatest();
+            }
+
+            if (payload.type === 'announcement_updated' && payload.summary_html) {
+                const summaryCard = document.querySelector('[data-announcement-summary-card]');
+                if (summaryCard) {
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = payload.summary_html.trim();
+                    const nextSummary = wrapper.firstElementChild;
+                    if (nextSummary) {
+                        summaryCard.replaceWith(nextSummary);
+                        document.querySelectorAll('.post-timestamp').forEach(formatPostTimestamp);
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                }
+                setThreadCount(payload.comment_count);
+            }
+        });
+
+        cioRequestSocket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+                return;
+            }
+            if (payload.type === 'request_state') {
+                updatePreviewJoinState(payload);
+            }
+            if (payload.type === 'request_created' || payload.type === 'request_removed') {
+                updateCioRequestBadges(Number(payload.pending_requests_count || 0));
+            }
+        });
+    })();
+</script>
+{% endblock %}
+        function setThreadCount(nextCount) {
+            const countEl = document.getElementById('announcementThreadCount');
+            if (countEl && typeof nextCount !== 'undefined') {
+                countEl.textContent = nextCount;
+            }
+        }

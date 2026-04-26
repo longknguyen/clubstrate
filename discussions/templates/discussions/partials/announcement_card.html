@@ -1,0 +1,40 @@
+<a
+    href="{% url 'discussions:announcement_detail' post.id %}"
+    class="announcement-card"
+    data-announcement-id="{{ post.id }}"
+    data-announcement-created-at="{{ post.created_at|date:'c' }}"
+    data-announcement-tag-match="true"
+    data-announcement-author="{{ post.display_name|escape }} {{ post.author.username|escape }}"
+    data-announcement-author-name="{{ post.display_name|escape }}"
+    data-announcement-tags="{% for tag in post.announcement_tags_list %}{{ tag|escape }}{% if not forloop.last %}|{% endif %}{% endfor %}"
+    data-announcement-search="{{ post.title|default:''|escape }} {{ post.content|default:''|escape }} {{ post.display_name|escape }} {% for tag in post.announcement_tags_list %}{{ tag|escape }} {% endfor %}">
+    <div class="announcement-card-content">
+        <div class="announcement-card-headline">
+            <div class="announcement-card-title-wrap">
+                <h3>{{ post.title|default:"Untitled announcement" }}</h3>
+                {% if post.announcement_tags_list %}
+                    <div class="announcement-tag-row">
+                        {% for tag in post.announcement_tags_list %}
+                            <span class="announcement-tag-pill">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="announcement-preview-line">
+            <span class="announcement-author">{{ post.display_name }}</span>
+            <span class="announcement-preview-separator">:</span>
+            <span class="announcement-preview-copy">{{ post.content|default:"No description yet." }}</span>
+        </p>
+
+        <div class="announcement-footer-meta">
+            <span class="announcement-footer-item">
+                <i data-lucide="message-circle-more"></i>
+                <span data-announcement-count>{{ post.comment_count|default:0 }}</span>
+            </span>
+            <span class="discussion-meta-dot">•</span>
+            <span class="announcement-footer-item">{{ post.relative_created_label }}</span>
+        </div>
+    </div>
+</a>
