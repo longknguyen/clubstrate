@@ -37,9 +37,27 @@
     </div>
 
     <div class="main-container">
-        <main class="content-panel" style="width:100%;">
+
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+
+                <a href="{% url 'user_list' %}" class="sidebar-item">
+                    <i data-lucide="users"></i>
+                    <span>User Search</span>
+                </a>
+
+                <a href="{% url 'cio_list' %}" class="sidebar-item">
+                    <i data-lucide="club"></i>
+                    <span>CIO List</span>
+                </a>
+
+            </div>
+        </aside>
+
+        <main class="content-panel">
             {% block content %}{% endblock %}
         </main>
+
     </div>
 
 </div>

@@ -462,6 +462,33 @@ class RoleAdminView(LoginRequiredMixin, View):
             "query": query,
         })
 
+class UserRoleListView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        query = request.GET.get("q", "")
+
+        users = User.objects.all()
+
+        if query:
+            users = users.filter(
+                username__icontains=query
+            ) | users.filter(
+                first_name__icontains=query
+            ) | users.filter(
+                last_name__icontains=query
+            )
+
+        return render(request, "users/user_search.html", {
+            "users": users,
+            "query": query,
+        })
+
 class UserRoleDetailView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
@@ -477,7 +504,7 @@ class UserRoleDetailView(LoginRequiredMixin, View):
             user=target_user
         ).select_related("cio")
 
-        return render(request, "users/user_role_detail.html", {
+        return render(request, "users/user_detail.html", {
             "target_user": target_user,
             "memberships": memberships,
         })
@@ -495,6 +522,24 @@ class CIORoleDetailView(LoginRequiredMixin, View):
             "memberships": memberships,
         })
 
+class CIORoleListView(LoginRequiredMixin, View):
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        query = request.GET.get("q", "")
+
+        cios = CIO.objects.all()
+
+        if query:
+            cios = cios.filter(name__icontains=query)
+
+        return render(request, "users/cio_list.html", {
+            "cios": cios,
+            "query": query,
+        })
 
 @method_decorator(never_cache, name='dispatch')
 class ProfileEditView(LoginRequiredMixin, View):
