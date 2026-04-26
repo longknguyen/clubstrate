@@ -26,6 +26,8 @@ from .forms import (
 import uuid
 
 from .models import Profile, Friendship, FriendRequest, DirectMessage
+from cios.models import Membership, CIO
+
 
 User = get_user_model()
 DM_GROUP_GAP = timedelta(minutes=5)
@@ -402,24 +404,29 @@ class RegisterView(View):
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
-    def post(self, request, user_id):
+    def post(self, request, membership_id):
         profile, _ = Profile.objects.get_or_create(user=request.user)
+
         if profile.user_type != "user_admin":
-            return redirect('/users/profile/')
+            return redirect('/')
 
-        target_profile = get_object_or_404(Profile, user_id=user_id)
+        membership = get_object_or_404(Membership, id=membership_id)
 
-        if target_profile.user_type == "user_admin":
-            return redirect('/users/role-admin/')
+        # Never modify viewers
+        if membership.role == "viewer":
+            return redirect(
+                f'/users/role-admin/{membership.user.id}/'
+            )
 
-        new_role = request.POST.get("user_type")
+        new_role = request.POST.get("role")
 
-        if new_role in ["student", "officer"]:
-            target_profile.user_type = new_role
-            target_profile.save()
+        if new_role in ["member", "officer"]:
+            membership.role = new_role
+            membership.save()
 
-        return redirect('/users/role-admin/')
-
+        return redirect(
+            f'/users/role-admin/{membership.user.id}/'
+        )
 
 @method_decorator(never_cache, name='dispatch')
 class RoleAdminView(LoginRequiredMixin, View):
@@ -427,29 +434,47 @@ class RoleAdminView(LoginRequiredMixin, View):
 
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
+
         if profile.user_type != "user_admin":
             return redirect('/')
 
         query = request.GET.get("q", "")
-        role = request.GET.get("role", "")
 
-        users = Profile.objects.exclude(user_type="user_admin")
+        memberships = Membership.objects.select_related(
+            "user",
+            "cio"
+        )
 
         if query:
-            users = users.filter(
+            memberships = memberships.filter(
                 Q(user__username__icontains=query) |
                 Q(user__email__icontains=query)
             )
 
-        if role:
-            users = users.filter(user_type=role)
-
         return render(request, "users/role_admin.html", {
-            "users": users,
+            "memberships": memberships,
             "query": query,
-            "role": role,
         })
 
+class UserRoleDetailView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request, user_id):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        target_user = get_object_or_404(User, id=user_id)
+
+        memberships = Membership.objects.filter(
+            user=target_user
+        ).select_related("cio")
+
+        return render(request, "users/user_role_detail.html", {
+            "target_user": target_user,
+            "memberships": memberships,
+        })
 
 @method_decorator(never_cache, name='dispatch')
 class ProfileEditView(LoginRequiredMixin, View):

@@ -2,45 +2,51 @@
 
 {% block content %}
 <div class="container" style="margin-top: 40px;">
-    <h2>User Role Management</h2>
-    <p>Only User Administrators can access this page.</p>
+    <h2>User Role Management (CIO-Based)</h2>
 
-    <table class="table table-bordered table-striped" style="margin-top: 20px;">
+    <table class="table table-bordered table-striped">
         <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Current Role</th>
-                <th>Change Role</th>
-                <th>Action</th>
-            </tr>
+        <tr>
+            <th>User</th>
+            <th>CIO</th>
+            <th>Role</th>
+            <th>Change Role</th>
+        </tr>
         </thead>
+
         <tbody>
-            {% for profile in users %}
-            <tr>
-                <td>{{ profile.user.username }}</td>
-                <td>{{ profile.user.email }}</td>
-                <td>{{ profile.user_type }}</td>
-                <td>
-                    <form method="POST" action="{% url 'change-role' profile.user.id %}">
-                        {% csrf_token %}
-                        <select name="user_type" class="form-control">
-                            <option value="student" {% if profile.user_type == "student" %}selected{% endif %}>
-                                Student
-                            </option>
-                            <option value="officer" {% if profile.user_type == "officer" %}selected{% endif %}>
-                                CIO Officer
-                            </option>
-                        </select>
-                </td>
-                <td>
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            Update
-                        </button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
+        {% for membership in memberships %}
+        <tr>
+            <td>{{ membership.user.username }}</td>
+            <td>{{ membership.cio.name }}</td>
+            <td>{{ membership.get_role_display }}</td>
+
+            <td>
+                <form method="POST"
+                      action="{% url 'change_role' membership.id %}">
+                    {% csrf_token %}
+
+                    <select name="role">
+                        <option value="member"
+                                {% if membership.role == "member" %}selected{% endif %}>
+                        Member
+                        </option>
+
+                        <option value="officer"
+                                {% if membership.role == "officer" %}selected{% endif %}>
+                        Officer
+                        </option>
+                    </select>
+
+                    <button type="submit">Update</button>
+                </form>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No CIO memberships found.</td>
+        </tr>
+        {% endfor %}
         </tbody>
     </table>
 </div>

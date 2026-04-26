@@ -15,4 +15,6 @@ urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path('profile/edit/', ProfileEditView.as_view(), name='profile_edit'),
     path("role-admin/", RoleAdminView.as_view(), name="role-admin"),
+    path('role-admin/user/<int:user_id>/', UserRoleDetailView.as_view(), name='user_role_detail'),
+    path('role-admin/membership/<int:membership_id>/change/', ChangeRoleView.as_view(), name='change_role'),
 ]
