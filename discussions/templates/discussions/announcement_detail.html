@@ -114,39 +114,39 @@
         </section>
     {% endif %}
 
-    {% if role != 'viewer' %}
-        <section class="discussion-chat-page announcement-thread-chat" data-announcement-comment-thread="{{ announcement.id }}">
-            <div class="announcement-thread-scroll" id="announcementThreadScroll">
-                <div class="announcement-thread-summary-shell" id="announcementSummaryShell">
-                    {% include "discussions/partials/announcement_detail_summary.html" with announcement=announcement display_name=announcement.display_name comment_count=announcement.comment_count relative_created_label=announcement.relative_created_label announcement_tags_list=announcement.announcement_tags_list %}
-                    {% if role == 'officer' %}
-                        <div class="announcement-thread-more">
-                            <button type="button"
-                                    class="announcement-thread-more-btn tooltip-bottom"
-                                    id="announcementMoreButton"
-                                    data-tooltip="More"
-                                    aria-label="More announcement actions">
-                                <i data-lucide="ellipsis"></i>
-                            </button>
-                            <div class="announcement-thread-more-menu joined-cio-hidden" id="announcementMoreMenu">
-                                <button type="button" id="announcementEditToggle">Edit Announcement</button>
-                            </div>
+    <section class="discussion-chat-page announcement-thread-chat" data-announcement-comment-thread="{{ announcement.id }}">
+        <div class="announcement-thread-scroll" id="announcementThreadScroll">
+            <div class="announcement-thread-summary-shell" id="announcementSummaryShell">
+                {% include "discussions/partials/announcement_detail_summary.html" with announcement=announcement display_name=announcement.display_name comment_count=announcement.comment_count relative_created_label=announcement.relative_created_label announcement_tags_list=announcement.announcement_tags_list %}
+                {% if role == 'officer' %}
+                    <div class="announcement-thread-more">
+                        <button type="button"
+                                class="announcement-thread-more-btn tooltip-bottom"
+                                id="announcementMoreButton"
+                                data-tooltip="More"
+                                aria-label="More announcement actions">
+                            <i data-lucide="ellipsis"></i>
+                        </button>
+                        <div class="announcement-thread-more-menu joined-cio-hidden" id="announcementMoreMenu">
+                            <button type="button" id="announcementEditToggle">Edit Announcement</button>
                         </div>
-                    {% endif %}
-                </div>
-
-                <div class="chat-message-list" id="announcementCommentList">
-                    {% for message in announcement_comments %}
-                        {% include "discussions/partials/announcement_comment_item.html" with message=message is_own=message.is_own show_header=message.show_header show_avatar=message.show_avatar show_time_divider=message.show_time_divider time_divider_label=message.time_divider_label display_name=message.display_name cio_role_label=message.cio_role_label %}
-                    {% empty %}
-                        <div class="discussion-empty-state chat-empty-state" id="announcementCommentEmptyState">
-                            <h3>No messages yet</h3>
-                            <p>This announcement does not have any replies yet. Start the conversation below.</p>
-                        </div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% endif %}
             </div>
 
+            <div class="chat-message-list" id="announcementCommentList">
+                {% for message in announcement_comments %}
+                    {% include "discussions/partials/announcement_comment_item.html" with message=message is_own=message.is_own show_header=message.show_header show_avatar=message.show_avatar show_time_divider=message.show_time_divider time_divider_label=message.time_divider_label display_name=message.display_name cio_role_label=message.cio_role_label %}
+                {% empty %}
+                    <div class="discussion-empty-state chat-empty-state" id="announcementCommentEmptyState">
+                        <h3>No messages yet</h3>
+                        <p>This announcement does not have any replies yet. Start the conversation below.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if role != 'viewer' %}
             <div class="chat-composer-stack">
                 <div class="chat-attachment-pill-row joined-cio-hidden" id="announcementAttachmentPills"></div>
                 <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_comment' announcement.id %}" class="chat-composer-bar" id="announcementCommentForm">
@@ -165,13 +165,8 @@
                     <span class="chat-character-counter" id="announcementCommentCounter">0 / 2000</span>
                 </div>
             </div>
-        </section>
-    {% else %}
-        <div class="discussion-empty-state">
-            <h3>Preview mode</h3>
-            <p>Join this CIO to take part in the announcement thread.</p>
-        </div>
-    {% endif %}
+        {% endif %}
+    </section>
 </section>
 
 <div class="chat-image-modal" id="announcementImageModal">
