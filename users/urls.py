@@ -3,6 +3,7 @@ from .views import *
 
 urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
+    path("login-redirect/", login_redirect, name="login_redirect"),
     path("profile/", ProfileView.as_view(), name="profile"),
     path("friends/", friends_page, name="friends"),
     path("friends/add/", add_friend, name="add_friend"),
@@ -14,7 +15,8 @@ urlpatterns = [
     path("change-role/<int:user_id>/", ChangeRoleView.as_view(), name="change-role"),
     path("register/", RegisterView.as_view(), name="register"),
     path('profile/edit/', ProfileEditView.as_view(), name='profile_edit'),
-    path("role-admin/", RoleAdminView.as_view(), name="role-admin"),
+    path('role-admin/', RoleAdminView.as_view(), name='role_admin'),
     path('role-admin/user/<int:user_id>/', UserRoleDetailView.as_view(), name='user_role_detail'),
+    path('role-admin/cio/<int:cio_id>/', CIORoleDetailView.as_view(), name='cio_role_detail'),
     path('role-admin/membership/<int:membership_id>/change/', ChangeRoleView.as_view(), name='change_role'),
 ]
