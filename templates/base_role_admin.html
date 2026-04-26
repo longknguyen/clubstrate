@@ -1,52 +1,47 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet"
           href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 
     <link rel="stylesheet" href="{% static 'users/main.css' %}">
+
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <title>Role Admin</title>
 </head>
-
 <body>
 
-<div class="app-layout role-admin-layout">
+<div class="app-layout">
 
     <div class="top-bar">
 
         <div class="top-left">
-            <h1 class="page-title">
-                {% block page_title %}Role Admin{% endblock %}
-            </h1>
+            <h1 class="page-title">Role Management</h1>
         </div>
 
-        <div class="top-center">
-            {% block top_center %}{% endblock %}
-        </div>
-
-        <div class="top-nav-actions">
-            <!-- Empty on purpose -->
-        </div>
-
-        <div class="top-right">
-            {% block top_right %}{% endblock %}
+        <div class="top-nav-actions ml-auto">
+            <form method="POST" action="{% url 'logout' %}" class="ml-auto">
+                {% csrf_token %}
+                <button type="submit" class="nav-btn tooltip-bottom" data-tooltip="Logout"
+                        style="border:none; background:none;">
+                    <i data-lucide="log-out"></i>
+                </button>
+            </form>
         </div>
 
     </div>
 
     <div class="main-container">
-
-        <main class="content-panel role-admin-content">
+        <main class="content-panel" style="width:100%;">
             {% block content %}{% endblock %}
         </main>
-
     </div>
+
 </div>
 
 <script>
