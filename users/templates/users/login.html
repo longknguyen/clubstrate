@@ -41,7 +41,7 @@
     <!-- Google login button -->
     <div class="google-wrapper">
         <!-- see: https://stackoverflow.com/questions/20984434/bypass-signup-form-using-allauth to get rid of intermediate pages -->
-        <form method="post" action="{% provider_login_url 'google' %}">
+        <form method="post" action="{% provider_login_url 'google' process='login' next='/home/' %}">
             {% csrf_token %}
             <button type="submit" class="google-icon-btn">
                 <img src="{% static 'users/google_logo.png' %}" alt="Google">

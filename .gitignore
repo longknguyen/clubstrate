@@ -14,7 +14,14 @@ env/
 local_settings.py
 db.sqlite3
 staticfiles/
-media/
+media/cio_icons/
+media/cio_banners/
+media/cio_about_images/
+media/post_images/
+/media/profile_pics/*
+!media/profile_pics/default.jpg
+/media/comment_images/*
+/media/direct_message_images/*
 
 # Testing
 .coverage

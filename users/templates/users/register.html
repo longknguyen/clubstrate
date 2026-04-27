@@ -21,14 +21,14 @@
     <div class="email-text">Sign up with your email</div>
     <form method="POST">
         {% csrf_token %}
-        <input type="text" name="name" value="{{ name }}" placeholder="Name" required class="input-field">
-        <input type="email" name="email" placeholder="Email" required class="input-field">
+        <input type="text" name="name" value="{{ name }}" placeholder="Name" required class="input-field" maxlength="101">
+        <input type="email" name="email" value="{{ email }}" placeholder="Email" required class="input-field">
         <input type="password" name="password" value="{{ password }}" placeholder="Password" required class="input-field">
         <button class="continue-btn">Continue</button>
     </form>
     <div class="divider">or continue with</div>
     <div class="google-wrapper">
-        <form method="post" action="{% provider_login_url 'google' %}">
+        <form method="post" action="{% provider_login_url 'google' process='login' next='/home/' %}">
             {% csrf_token %}
             <button type="submit" class="google-icon-btn">
                 <img src="{% static 'users/google_logo.png' %}" alt="Google">

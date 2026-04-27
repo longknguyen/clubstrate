@@ -1,94 +1,511 @@
-<hr>
-<h2>Discussions</h2>
+<section class="discussion-chat-page" data-cio-discussion-id="{{ cio.id }}">
+        <div class="chat-message-list" id="chatMessageList">
+            {% for message in discussion_messages %}
+                {% with message_day=message.created_at|date:"Y-m-d" %}
+                    {% if message.show_time_divider %}
+                        <div class="chat-date-divider" data-divider-day="{{ message_day }}">
+                            <span>{{ message.time_divider_label }}</span>
+                        </div>
+                    {% endif %}
 
-{% if role != "viewer" %}
-    <div class="content-section">
-        <form method="POST" enctype="multipart/form-data" action="{% url 'discussions:create_post' cio.id %}">
-            {% csrf_token %}
+                    <article
+                            class="chat-message {% if message.author == user %}chat-message-own{% endif %} {% if not message.show_header %}chat-message-grouped{% endif %}"
+                            data-message-day="{{ message_day }}"
+                            data-message-sender-id="{{ message.author_id }}"
+                            data-message-created-at="{{ message.created_at|date:'c' }}"
+                            data-message-author="{{ message.display_name }} {{ message.author.username }}"
+                            data-message-author-name="{{ message.display_name }}"
+                            data-search-text="{{ message.display_name }} {{ message.author.username }} {{ message.content|default:''|escape }}">
+                        {% if message.show_avatar %}
+                            <img
+                                    src="{{ message.author.profile.image.url }}"
+                                    alt="{{ message.author.username }} profile image"
+                                    class="chat-message-avatar">
+                        {% else %}
+                            <div class="chat-message-avatar-spacer" aria-hidden="true"></div>
+                        {% endif %}
 
-            <input type="text" name="title" placeholder="Post title" class="form-control mb-2">
+                        <div class="chat-message-content">
+                            {% if message.show_header %}
+                                <div class="chat-message-meta">
+                                    <button
+                                            type="button"
+                                            class="chat-message-author chat-user-trigger"
+                                            title="View profile"
+                                            data-user-name="{{ message.display_name }}"
+                                            data-user-username="@{{ message.author.username }}"
+                                            data-user-pronouns="{{ message.author.pronouns|default:'No pronouns listed' }}"
+                                            data-user-role="{{ message.cio_role_label }}"
+                                            data-user-image="{{ message.author.profile.image.url }}"
+                                            data-user-banner="{{ message.author.banner_colour|default:'#111827' }}">
+                                        {{ message.display_name }}
+                                    </button>
+                                    <span class="discussion-meta-dot">•</span>
+                                    <span class="post-timestamp"
+                                          data-datetime="{{ message.created_at|date:'c' }}"></span>
+                                </div>
+                            {% endif %}
 
-            <textarea name="content" placeholder="Write something..." class="form-control mb-2"></textarea>
+                            {% if message.content %}
+                                <div class="chat-message-bubble">
+                                    <p>{{ message.content }}</p>
+                                </div>
+                            {% endif %}
 
-            <input type="file" name="image" class="form-control mb-2">
-
-            <button type="submit" class="btn btn-primary">Post</button>
-        </form>
-    </div>
-{% endif %}
-
-{% for post in posts %}
-    <div class="content-section">
-
-        <h3>{{ post.title }}</h3>
-
-        <div class="article-metadata">
-            <small>
-                By {{ post.author.username }} •
-                <span class="post-timestamp" data-datetime="{{ post.created_at|date:'c' }}"></span>
-            </small>
+                            {% if message.image %}
+                                <div class="chat-message-attachment">
+                                    <button
+                                            type="button"
+                                            class="chat-message-image-btn"
+                                            data-chat-image="{{ message.image.url }}"
+                                            data-chat-image-alt="Chat upload preview">
+                                        <img src="{{ message.image.url }}" alt="Chat upload" class="chat-message-image">
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% endwith %}
+            {% empty %}
+                <div class="discussion-empty-state chat-empty-state">
+                    <h3>No messages yet</h3>
+                    <p>The chat is empty right now. Start the conversation with the first message.</p>
+                </div>
+            {% endfor %}
         </div>
 
-        <p class="article-content">{{ post.content }}</p>
-
-        {% if post.image %}
-            <img src="{{ post.image.url }}" style="max-width: 300px;">
-        {% endif %}
-
-        <form method="POST" action="{% url 'discussions:toggle_post_like' post.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-                👍 {{ post.likes.count }}
-            </button>
-        </form>
-
-        <hr>
-
-        <h5>Comments</h5>
-
-        {% for comment in post.comments.all %}
-            {% include "discussions/comment.html" with comment=comment level=level|add:25 role=role %}
-        {% empty %}
-            <p>No comments yet</p>
-        {% endfor %}
-
-        {% if role != "viewer" %}
-            <form method="POST" enctype="multipart/form-data"
-                  action="{% url 'discussions:create_comment' post.id %}"
-                  onsubmit="return validateCommentForm(this);"
-            >
+        <div class="chat-composer-stack">
+            <div class="chat-attachment-pill-row joined-cio-hidden" id="chatAttachmentPills"></div>
+            <form method="POST"
+                  enctype="multipart/form-data"
+                  action="{% url 'discussions:create_message' cio.id %}"
+                  onsubmit="return validateMessageForm(this);"
+                  class="chat-composer-bar"
+                  id="chatComposerForm">
                 {% csrf_token %}
-                <textarea name="content" placeholder="Add a comment..." class="form-control mb-2"></textarea>
-                <input type="file" name="image" class="form-control mb-2">
-                <button type="submit" class="btn btn-secondary btn-sm">Comment</button>
+
+                <label for="chatAttachmentInput" class="chat-attachment-btn" aria-label="Attach a file">
+                    <i data-lucide="paperclip"></i>
+                </label>
+                <input id="chatAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
+
+                <textarea name="content" placeholder="Type a message..." class="chat-composer-input"
+                          id="chatComposerInput" maxlength="2000"></textarea>
+
+                <button type="submit" class="chat-send-btn" aria-label="Send message">
+                    <i data-lucide="send-horizontal"></i>
+                </button>
             </form>
-        {% endif %}
+            <div class="chat-composer-meta">
+                <span class="chat-attachment-name" id="chatAttachmentName">No file selected</span>
+                <span class="chat-character-counter" id="chatComposerCounter">0 / 2000</span>
+            </div>
+        </div>
+</section>
 
+<div class="chat-user-modal" id="chatUserModal">
+    <div class="chat-user-card">
+        <div class="chat-user-card-banner" id="chatUserBanner"></div>
+        <button type="button" class="chat-user-close" id="chatUserClose" aria-label="Close profile">
+            <i data-lucide="x"></i>
+        </button>
+
+        <div class="chat-user-card-body">
+            <img src="" alt="" class="chat-user-card-avatar" id="chatUserAvatar">
+        </div>
+
+        <div class="chat-user-card-details">
+            <div class="chat-user-card-info">
+                <h3 id="chatUserName"></h3>
+                <p id="chatUserUsername"></p>
+            </div>
+            <div class="chat-user-detail-row">
+                <span class="chat-user-detail-label">Pronouns</span>
+                <span id="chatUserPronouns"></span>
+            </div>
+            <div class="chat-user-detail-row">
+                <span class="chat-user-detail-label">Role</span>
+                <span id="chatUserRole"></span>
+            </div>
+        </div>
     </div>
-{% endfor %}
+</div>
 
-<!-- validate comment form -->
+<div class="chat-image-modal" id="chatImageModal">
+    <button type="button" class="chat-image-close" id="chatImageClose" aria-label="Close image preview">
+        <i data-lucide="x"></i>
+    </button>
+    <img src="" alt="" class="chat-image-modal-preview" id="chatImagePreview">
+</div>
+
 <script>
-    document.querySelectorAll('.post-timestamp').forEach(el => {
+    function formatPostTimestamp(el) {
+        if (!el || !el.dataset.datetime) return;
         const dt = new Date(el.dataset.datetime);
-        el.textContent = dt.toLocaleString(undefined, {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const messageDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+
+        let prefix;
+        if (messageDay.getTime() === today.getTime()) {
+            prefix = 'Today';
+        } else if (messageDay.getTime() === yesterday.getTime()) {
+            prefix = 'Yesterday';
+        } else {
+            prefix = dt.toLocaleDateString(undefined, {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+
+        const timeLabel = dt.toLocaleTimeString(undefined, {
             hour: 'numeric',
             minute: '2-digit',
             hour12: true
         });
+
+        el.textContent = `${prefix} at ${timeLabel}`;
+    }
+
+    document.querySelectorAll('.post-timestamp').forEach((el) => {
+        formatPostTimestamp(el);
     });
 
-    function validateCommentForm(form) {
+    const chatAttachmentInput = document.getElementById('chatAttachmentInput');
+    const chatAttachmentName = document.getElementById('chatAttachmentName');
+    const chatAttachmentPills = document.getElementById('chatAttachmentPills');
+    const chatMessageList = document.getElementById('chatMessageList');
+    const chatUserModal = document.getElementById('chatUserModal');
+    const chatUserBanner = document.getElementById('chatUserBanner');
+    const chatUserAvatar = document.getElementById('chatUserAvatar');
+    const chatUserName = document.getElementById('chatUserName');
+    const chatUserUsername = document.getElementById('chatUserUsername');
+    const chatUserPronouns = document.getElementById('chatUserPronouns');
+    const chatUserRole = document.getElementById('chatUserRole');
+    const chatUserClose = document.getElementById('chatUserClose');
+    const chatComposerForm = document.getElementById('chatComposerForm');
+    const chatComposerInput = document.getElementById('chatComposerInput');
+    const chatComposerCounter = document.getElementById('chatComposerCounter');
+    const chatComposerSendBtn = chatComposerForm ? chatComposerForm.querySelector('.chat-send-btn') : null;
+    const chatComposerAttachBtn = chatComposerForm ? chatComposerForm.querySelector('.chat-attachment-btn') : null;
+    const MAX_CHAT_UPLOAD_BYTES = 8 * 1024 * 1024;
+    const chatImageModal = document.getElementById('chatImageModal');
+    const chatImagePreview = document.getElementById('chatImagePreview');
+    const chatImageClose = document.getElementById('chatImageClose');
+    const discussionChatPage = document.querySelector('[data-cio-discussion-id]');
+
+    function updateComposerCounter() {
+        if (!chatComposerInput || !chatComposerCounter) return;
+        chatComposerCounter.textContent = `${chatComposerInput.value.length} / 2000`;
+    }
+
+    function renderAttachmentPills() {
+        if (!chatAttachmentInput || !chatAttachmentPills || !chatAttachmentName) return;
+        const file = chatAttachmentInput.files && chatAttachmentInput.files[0];
+        if (!file) {
+            chatAttachmentPills.innerHTML = '';
+            chatAttachmentPills.classList.add('joined-cio-hidden');
+            chatAttachmentName.textContent = 'No file selected';
+            return;
+        }
+
+        chatAttachmentPills.innerHTML = `
+            <span class="chat-attachment-pill" title="${file.name}">
+                ${file.name}
+            </span>
+        `;
+        chatAttachmentPills.classList.remove('joined-cio-hidden');
+        chatAttachmentName.textContent = file.name;
+    }
+
+    if (chatAttachmentInput && chatAttachmentName) {
+        chatAttachmentInput.addEventListener('change', () => {
+            const file = chatAttachmentInput.files && chatAttachmentInput.files[0];
+            if (file && file.size > MAX_CHAT_UPLOAD_BYTES) {
+                alert('Please choose an image under 8 MB.');
+                chatAttachmentInput.value = '';
+            }
+            renderAttachmentPills();
+        });
+    }
+
+    if (chatComposerInput && chatComposerForm) {
+        chatComposerInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                chatComposerForm.requestSubmit();
+            }
+        });
+        chatComposerInput.addEventListener('input', updateComposerCounter);
+    }
+
+    function scrollToLatestMessage() {
+        if (chatMessageList) {
+            requestAnimationFrame(() => {
+                chatMessageList.scrollTop = chatMessageList.scrollHeight;
+            });
+        }
+    }
+
+    function shouldGroupMessages(previousMessageEl, nextMessageEl) {
+        if (!previousMessageEl || !nextMessageEl) return false;
+
+        const previousSenderId = previousMessageEl.dataset.messageSenderId;
+        const nextSenderId = nextMessageEl.dataset.messageSenderId;
+        if (!previousSenderId || previousSenderId !== nextSenderId) return false;
+
+        const previousCreatedAt = new Date(previousMessageEl.dataset.messageCreatedAt || '');
+        const nextCreatedAt = new Date(nextMessageEl.dataset.messageCreatedAt || '');
+        if (Number.isNaN(previousCreatedAt.getTime()) || Number.isNaN(nextCreatedAt.getTime())) return false;
+
+        const sameDay =
+            previousCreatedAt.getFullYear() === nextCreatedAt.getFullYear()
+            && previousCreatedAt.getMonth() === nextCreatedAt.getMonth()
+            && previousCreatedAt.getDate() === nextCreatedAt.getDate();
+        const withinFiveMinutes = (nextCreatedAt - previousCreatedAt) <= (5 * 60 * 1000);
+
+        return sameDay && withinFiveMinutes;
+    }
+
+    function updateGroupedAvatar(previousMessageEl) {
+        if (!previousMessageEl) return;
+
+        const avatarEl = previousMessageEl.querySelector('.chat-message-avatar');
+        if (!avatarEl) return;
+
+        const spacerEl = document.createElement('div');
+        spacerEl.className = 'chat-message-avatar-spacer';
+        spacerEl.setAttribute('aria-hidden', 'true');
+        avatarEl.replaceWith(spacerEl);
+    }
+
+    function clearDiscussionEmptyState() {
+        if (!chatMessageList) return;
+        chatMessageList
+            .querySelectorAll('.chat-empty-state, .discussion-empty-state')
+            .forEach((emptyStateEl) => emptyStateEl.remove());
+    }
+
+    function focusChatComposer() {
+        if (chatComposerInput) {
+            chatComposerInput.focus();
+        }
+    }
+
+    window.activateDiscussionComposer = function activateDiscussionComposer() {
+        setTimeout(() => {
+            scrollToLatestMessage();
+            focusChatComposer();
+        }, 0);
+
+        setTimeout(() => {
+            scrollToLatestMessage();
+            focusChatComposer();
+        }, 120);
+    };
+
+    if (chatMessageList) {
+        document.querySelectorAll('.chat-message-image').forEach((imageEl) => {
+            if (imageEl.complete) return;
+            imageEl.addEventListener('load', scrollToLatestMessage, {once: true});
+        });
+    }
+
+    window.filterDiscussionMessages = function filterDiscussionMessages(query, authorQuery = '') {
+        const normalizedQuery = (query || '').trim().toLowerCase();
+        const normalizedAuthorQuery = (authorQuery || '').trim().toLowerCase();
+        let matchCount = 0;
+        const chatMessages = Array.from(document.querySelectorAll('#chatMessageList [data-message-day]'));
+        const chatDividers = Array.from(document.querySelectorAll('#chatMessageList [data-divider-day]'));
+
+        chatMessages.forEach((messageEl) => {
+            const haystack = (messageEl.dataset.searchText || '').toLowerCase();
+            const authorHaystack = (messageEl.dataset.messageAuthor || '').toLowerCase();
+            const matches = (!normalizedQuery || haystack.includes(normalizedQuery))
+                && (!normalizedAuthorQuery || authorHaystack.includes(normalizedAuthorQuery));
+            messageEl.style.display = matches ? '' : 'none';
+
+            if (matches) {
+                matchCount += 1;
+            }
+        });
+
+        chatDividers.forEach((dividerEl) => {
+            let hasVisibleMessages = false;
+            let sibling = dividerEl.nextElementSibling;
+
+            while (sibling && !sibling.hasAttribute('data-divider-day')) {
+                if (sibling.hasAttribute('data-message-day') && sibling.style.display !== 'none') {
+                    hasVisibleMessages = true;
+                    break;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+
+            dividerEl.style.display = hasVisibleMessages ? '' : 'none';
+        });
+
+        return matchCount;
+    };
+
+    function bindChatUserTrigger(triggerEl) {
+        triggerEl.addEventListener('click', () => {
+            chatUserBanner.style.background = triggerEl.dataset.userBanner || '#111827';
+            chatUserAvatar.src = triggerEl.dataset.userImage || '';
+            chatUserAvatar.alt = `${triggerEl.dataset.userName} profile image`;
+            chatUserName.textContent = triggerEl.dataset.userName || '';
+            chatUserUsername.textContent = triggerEl.dataset.userUsername || '';
+            chatUserPronouns.textContent = triggerEl.dataset.userPronouns || 'No pronouns listed';
+            chatUserRole.textContent = triggerEl.dataset.userRole || 'Member';
+            chatUserModal.classList.add('is-open');
+        });
+    }
+
+    document.querySelectorAll('.chat-user-trigger').forEach((triggerEl) => {
+        bindChatUserTrigger(triggerEl);
+    });
+
+    if (chatUserClose) {
+        chatUserClose.addEventListener('click', () => {
+            chatUserModal.classList.remove('is-open');
+        });
+    }
+
+    if (chatUserModal) {
+        chatUserModal.addEventListener('click', (event) => {
+            if (event.target === chatUserModal) {
+                chatUserModal.classList.remove('is-open');
+            }
+        });
+    }
+
+    function bindChatImageTrigger(triggerEl) {
+        triggerEl.addEventListener('click', () => {
+            if (!chatImageModal || !chatImagePreview) return;
+
+            chatImagePreview.src = triggerEl.dataset.chatImage || '';
+            chatImagePreview.alt = triggerEl.dataset.chatImageAlt || 'Chat image preview';
+            chatImageModal.classList.add('is-open');
+        });
+    }
+
+    document.querySelectorAll('[data-chat-image]').forEach((triggerEl) => {
+        bindChatImageTrigger(triggerEl);
+    });
+
+    if (chatImageClose) {
+        chatImageClose.addEventListener('click', () => {
+            chatImageModal.classList.remove('is-open');
+        });
+    }
+
+    if (chatImageModal) {
+        chatImageModal.addEventListener('click', (event) => {
+            if (event.target === chatImageModal) {
+                chatImageModal.classList.remove('is-open');
+            }
+        });
+    }
+
+    function validateMessageForm(form) {
         const text = form.querySelector('textarea[name="content"]').value.trim();
         const file = form.querySelector('input[name="image"]').files.length;
 
         if (!text && !file) {
-            alert("Please enter a reply or select an image.");
+            alert("Please enter a message or select an image.");
             return false;
         }
         return true;
     }
+
+    function setDiscussionComposerPending(isPending) {
+        if (chatComposerForm) {
+            chatComposerForm.dataset.isSending = isPending ? 'true' : 'false';
+        }
+        if (chatComposerSendBtn) {
+            chatComposerSendBtn.disabled = isPending;
+        }
+        if (chatComposerAttachBtn) {
+            chatComposerAttachBtn.style.pointerEvents = isPending ? 'none' : '';
+            chatComposerAttachBtn.style.opacity = isPending ? '0.6' : '';
+        }
+    }
+
+    if (discussionChatPage && chatComposerForm && chatComposerInput) {
+        const cioId = discussionChatPage.dataset.cioDiscussionId;
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${window.location.host}/ws/cios/${cioId}/discussions/`);
+
+        socket.addEventListener('message', (event) => {
+            const payload = JSON.parse(event.data);
+            if (!chatMessageList || payload.type !== 'message') return;
+
+            clearDiscussionEmptyState();
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = payload.html;
+            const previousMessageEl = chatMessageList.querySelector('.chat-message:last-of-type');
+            const newMessageEl = wrapper.querySelector('.chat-message');
+
+            if (shouldGroupMessages(previousMessageEl, newMessageEl)) {
+                updateGroupedAvatar(previousMessageEl);
+            }
+
+            Array.from(wrapper.children).forEach((child) => {
+                chatMessageList.appendChild(child);
+                if (child.matches && child.matches('.chat-message')) {
+                    child.querySelectorAll('.post-timestamp').forEach(formatPostTimestamp);
+                    child.querySelectorAll('.chat-user-trigger').forEach(bindChatUserTrigger);
+                    child.querySelectorAll('[data-chat-image]').forEach(bindChatImageTrigger);
+                }
+            });
+
+            if (typeof window.syncCioPageSearchState === 'function') {
+                window.syncCioPageSearchState();
+            }
+            scrollToLatestMessage();
+        });
+
+        chatComposerForm.addEventListener('submit', (event) => {
+            if (chatComposerForm.dataset.isSending === 'true') {
+                event.preventDefault();
+                return;
+            }
+            const file = chatAttachmentInput && chatAttachmentInput.files && chatAttachmentInput.files[0];
+            if (file) {
+                event.preventDefault();
+                if (!validateMessageForm(chatComposerForm)) return;
+                setDiscussionComposerPending(true);
+                fetch(chatComposerForm.action, {
+                    method: 'POST',
+                    body: new FormData(chatComposerForm),
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin',
+                }).then((response) => {
+                    if (!response.ok) return;
+                    chatComposerInput.value = '';
+                    if (chatAttachmentInput) {
+                        chatAttachmentInput.value = '';
+                    }
+                    updateComposerCounter();
+                    renderAttachmentPills();
+                }).finally(() => {
+                    setDiscussionComposerPending(false);
+                });
+                return;
+            }
+
+            event.preventDefault();
+            const content = chatComposerInput.value.trim();
+            if (!content || socket.readyState !== WebSocket.OPEN) return;
+
+            socket.send(JSON.stringify({content}));
+            chatComposerInput.value = '';
+            updateComposerCounter();
+        });
+    }
+
+    updateComposerCounter();
 </script>

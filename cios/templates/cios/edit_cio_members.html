@@ -1,0 +1,465 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block page_title_block %}
+    <h1 class="page-title cio-page-title">{{ cio.name }}</h1>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item">
+        <i data-lucide="building-2"></i>
+        <span>CIO Profile</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'discussions:edit_cio_members' cio.id %}" class="sidebar-item active">
+        <i data-lucide="users-round"></i>
+        <span>Members</span>
+    </a>
+    <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
+        <i data-lucide="inbox"></i>
+        <span>Requests</span>
+        <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-danger-form">
+        <button type="button" class="sidebar-item sidebar-item-danger" data-delete-cio-open>
+            <i data-lucide="trash-2"></i>
+            <span>Delete CIO</span>
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="cio-form-shell">
+    <section class="cio-form-surface cio-form-surface-wide cio-form-surface-members">
+        <div class="cio-members-shell">
+            <div class="cio-members-header">
+                <div class="cio-form-header-top">
+                    <div class="cio-form-header-copy">
+                        <div class="cio-form-title-row">
+                            <h2>Members</h2>
+                            <span class="cio-form-title-separator" aria-hidden="true">•</span>
+                            <span class="cio-form-eyebrow">CIO Settings</span>
+                        </div>
+                        <p>View and search everyone currently in {{ cio.name }}.</p>
+                    </div>
+                    <a href="{% url 'cio_detail' cio.id %}" class="cio-settings-close" aria-label="Leave settings and return to {{ cio.name }}">
+                        <i data-lucide="x"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="cio-members-card">
+                <div class="cio-members-table-wrap">
+                    <table class="cio-members-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Member Since</th>
+                            <th>Joined Clubstrate</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="cioMembersTableBody">
+                        {% for membership in members %}
+                            <tr
+                                class="cio-member-row"
+                                data-member-search="{{ membership.display_name|escape }} {{ membership.user.username|escape }}"
+                                data-user-name="{{ membership.display_name }}"
+                                data-user-username="@{{ membership.user.username }}"
+                                data-user-pronouns="{{ membership.user.pronouns|default:'No pronouns listed' }}"
+                                data-user-role="{{ membership.get_role_display }}"
+                                data-user-image="{{ membership.user.profile.image.url }}"
+                                data-user-banner="{{ membership.user.banner_colour|default:'#111827' }}">
+                                <td>
+                                    <div class="cio-member-name-cell">
+                                        <img src="{{ membership.user.profile.image.url }}" alt="{{ membership.display_name }}" class="cio-member-avatar">
+                                        <div class="cio-member-identity">
+                                            <span class="cio-member-full-name">{{ membership.display_name }}</span>
+                                            <span class="cio-member-username">@{{ membership.user.username }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ membership.created_at|date:"j F Y" }}</td>
+                                <td>{{ membership.user.date_joined|date:"j F Y" }}</td>
+                                <td class="cio-member-actions-cell">
+                                    <div class="cio-member-action-menu">
+                                        <button
+                                            type="button"
+                                            class="cio-member-action-trigger cio-floating-tooltip-trigger"
+                                            data-member-menu-trigger
+                                            data-tooltip="more options"
+                                            aria-label="More options">
+                                            <i data-lucide="ellipsis-vertical"></i>
+                                        </button>
+                                        <div class="cio-member-action-dropdown joined-cio-hidden" data-member-menu>
+                                            <button type="button" class="cio-member-action-item" data-member-profile>
+                                                Profile
+                                            </button>
+                                            {% if not membership.is_self %}
+                                                <button
+                                                    type="button"
+                                                    class="cio-member-action-item cio-member-action-item-danger"
+                                                    data-kick-member-open
+                                                    data-kick-member-name="{{ membership.display_name }}"
+                                                    data-kick-member-url="{% url 'discussions:remove_cio_member' cio.id membership.id %}">
+                                                    Kick {{ membership.display_name }}
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr class="cio-member-empty-row">
+                                <td colspan="4">No members yet.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="cio-members-footer">
+                <button type="button" class="cio-members-arrow" id="membersPrevBtn" aria-label="Previous members page">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <span class="cio-members-page-label" id="membersPageLabel"></span>
+                <button type="button" class="cio-members-arrow" id="membersNextBtn" aria-label="Next members page">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="chat-user-modal" id="chatUserModal">
+    <div class="chat-user-card">
+        <div class="chat-user-card-banner" id="chatUserBanner"></div>
+        <button type="button" class="chat-user-close" id="chatUserClose" aria-label="Close profile">
+            <i data-lucide="x"></i>
+        </button>
+
+        <div class="chat-user-card-body">
+            <img src="" alt="" class="chat-user-card-avatar" id="chatUserAvatar">
+        </div>
+
+        <div class="chat-user-card-details">
+            <div class="chat-user-card-info">
+                <h3 id="chatUserName"></h3>
+                <p id="chatUserUsername"></p>
+            </div>
+            <div class="chat-user-detail-row">
+                <span class="chat-user-detail-label">Pronouns</span>
+                <span id="chatUserPronouns"></span>
+            </div>
+            <div class="chat-user-detail-row">
+                <span class="chat-user-detail-label">Role</span>
+                <span id="chatUserRole"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "cios/partials/delete_cio_modal.html" %}
+{% include "cios/partials/kick_member_modal.html" %}
+<div class="cio-floating-tooltip joined-cio-hidden" id="cioFloatingTooltip"></div>
+
+<script>
+    const membersPageSize = 5;
+    let membersPage = 0;
+    const chatUserModal = document.getElementById('chatUserModal');
+    const chatUserBanner = document.getElementById('chatUserBanner');
+    const chatUserAvatar = document.getElementById('chatUserAvatar');
+    const chatUserName = document.getElementById('chatUserName');
+    const chatUserUsername = document.getElementById('chatUserUsername');
+    const chatUserPronouns = document.getElementById('chatUserPronouns');
+    const chatUserRole = document.getElementById('chatUserRole');
+    const chatUserClose = document.getElementById('chatUserClose');
+    const kickMemberModal = document.getElementById('kickMemberModal');
+    const kickMemberClose = document.getElementById('kickMemberClose');
+    const kickMemberCancel = document.getElementById('kickMemberCancel');
+    const kickMemberForm = document.getElementById('kickMemberForm');
+    const kickMemberTitle = document.getElementById('kickMemberTitle');
+    const kickMemberBody = document.getElementById('kickMemberBody');
+    const cioFloatingTooltip = document.getElementById('cioFloatingTooltip');
+    let activeMemberMenu = null;
+
+    function getVisibleMemberRows(query) {
+        const rows = Array.from(document.querySelectorAll('.cio-member-row'));
+        const normalizedQuery = (query || '').trim().toLowerCase();
+        return rows.filter((rowEl) => {
+            const haystack = (rowEl.dataset.memberSearch || '').toLowerCase();
+            return !normalizedQuery || haystack.includes(normalizedQuery);
+        });
+    }
+
+    function renderMembersTable(query) {
+        const rows = Array.from(document.querySelectorAll('.cio-member-row'));
+        const prevBtn = document.getElementById('membersPrevBtn');
+        const nextBtn = document.getElementById('membersNextBtn');
+        const pageLabel = document.getElementById('membersPageLabel');
+        const emptyRow = document.querySelector('.cio-member-empty-row');
+
+        if (!rows.length) {
+            if (pageLabel) pageLabel.textContent = '';
+            if (prevBtn) prevBtn.disabled = true;
+            if (nextBtn) nextBtn.disabled = true;
+            return;
+        }
+
+        const visibleRows = getVisibleMemberRows(query);
+        const totalPages = Math.max(1, Math.ceil(visibleRows.length / membersPageSize));
+        membersPage = Math.min(membersPage, totalPages - 1);
+
+        rows.forEach((rowEl) => {
+            rowEl.style.display = 'none';
+        });
+
+        const start = membersPage * membersPageSize;
+        const end = start + membersPageSize;
+        visibleRows.slice(start, end).forEach((rowEl) => {
+            rowEl.style.display = '';
+        });
+
+        if (emptyRow) {
+            emptyRow.style.display = visibleRows.length ? 'none' : '';
+        }
+
+        if (pageLabel) {
+            pageLabel.textContent = visibleRows.length ? `Showing page ${membersPage + 1} of ${totalPages}` : 'Showing page 0 of 0';
+        }
+        if (prevBtn) prevBtn.disabled = membersPage === 0 || !visibleRows.length;
+        if (nextBtn) nextBtn.disabled = membersPage >= totalPages - 1 || !visibleRows.length;
+    }
+
+    const membersSearchInput = document.querySelector('.search-bar');
+    const membersPrevBtn = document.getElementById('membersPrevBtn');
+    const membersNextBtn = document.getElementById('membersNextBtn');
+
+    if (membersSearchInput) {
+        membersSearchInput.value = '';
+        membersSearchInput.placeholder = 'Search members by name or username...';
+        membersSearchInput.addEventListener('input', () => {
+            if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                return;
+            }
+            membersPage = 0;
+            renderMembersTable(membersSearchInput.value);
+        });
+    }
+
+    if (membersPrevBtn) {
+        membersPrevBtn.addEventListener('click', () => {
+            membersPage = Math.max(0, membersPage - 1);
+    renderMembersTable(membersSearchInput ? membersSearchInput.value : '');
+        });
+    }
+
+    const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+    const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+    cioRequestSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+        if (payload.type !== 'request_created' && payload.type !== 'request_removed') {
+            return;
+        }
+        const nextCount = Number(payload.pending_requests_count || 0);
+        cioRequestBadges.forEach((badgeEl) => {
+            badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+        });
+    });
+
+    if (membersNextBtn) {
+        membersNextBtn.addEventListener('click', () => {
+            membersPage += 1;
+            renderMembersTable(membersSearchInput ? membersSearchInput.value : '');
+        });
+    }
+
+    function closeMemberMenus() {
+        document.querySelectorAll('[data-member-menu]').forEach((menuEl) => {
+            menuEl.classList.add('joined-cio-hidden');
+            menuEl.style.top = '';
+            menuEl.style.left = '';
+        });
+        activeMemberMenu = null;
+    }
+
+    function openKickMemberModal(name, url) {
+        if (!kickMemberModal || !kickMemberForm || !kickMemberTitle || !kickMemberBody) return;
+        kickMemberTitle.textContent = `Kick ${name}?`;
+        kickMemberBody.textContent = `${name} will be removed from {{ cio.name }}. They can request to join again later.`;
+        kickMemberForm.action = url;
+        kickMemberModal.classList.add('is-open');
+    }
+
+    function closeKickMemberModal() {
+        if (!kickMemberModal) return;
+        kickMemberModal.classList.remove('is-open');
+    }
+
+    function hideFloatingTooltip() {
+        if (!cioFloatingTooltip) return;
+        cioFloatingTooltip.classList.add('joined-cio-hidden');
+        cioFloatingTooltip.textContent = '';
+        cioFloatingTooltip.style.top = '';
+        cioFloatingTooltip.style.left = '';
+    }
+
+    function showFloatingTooltip(triggerEl) {
+        if (!cioFloatingTooltip) return;
+        const tooltipText = triggerEl.dataset.tooltip;
+        if (!tooltipText) return;
+
+        cioFloatingTooltip.textContent = tooltipText;
+        cioFloatingTooltip.classList.remove('joined-cio-hidden');
+
+        const triggerRect = triggerEl.getBoundingClientRect();
+        const tooltipRect = cioFloatingTooltip.getBoundingClientRect();
+        const gap = 10;
+        let top = triggerRect.top - tooltipRect.height - gap;
+        let left = triggerRect.left + (triggerRect.width / 2) - (tooltipRect.width / 2);
+
+        if (left < 12) left = 12;
+        if (left + tooltipRect.width > window.innerWidth - 12) {
+            left = window.innerWidth - tooltipRect.width - 12;
+        }
+        if (top < 12) {
+            top = triggerRect.bottom + gap;
+        }
+
+        cioFloatingTooltip.style.top = `${top}px`;
+        cioFloatingTooltip.style.left = `${left}px`;
+    }
+
+    function positionMemberMenu(triggerEl, menuEl) {
+        const triggerRect = triggerEl.getBoundingClientRect();
+        const menuRect = menuEl.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const gap = 8;
+
+        let top = triggerRect.bottom + gap;
+        let left = triggerRect.right - menuRect.width;
+
+        if (left < 12) {
+            left = 12;
+        }
+        if (left + menuRect.width > viewportWidth - 12) {
+            left = viewportWidth - menuRect.width - 12;
+        }
+        if (top + menuRect.height > viewportHeight - 12) {
+            top = Math.max(12, triggerRect.top - menuRect.height - gap);
+        }
+
+        menuEl.style.top = `${top}px`;
+        menuEl.style.left = `${left}px`;
+    }
+
+    document.querySelectorAll('[data-member-menu-trigger]').forEach((triggerEl) => {
+        triggerEl.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const menuEl = triggerEl.parentElement.querySelector('[data-member-menu]');
+            const shouldOpen = menuEl.classList.contains('joined-cio-hidden');
+
+            closeMemberMenus();
+            if (!shouldOpen) return;
+
+            menuEl.classList.remove('joined-cio-hidden');
+            positionMemberMenu(triggerEl, menuEl);
+            activeMemberMenu = {triggerEl, menuEl};
+        });
+
+        triggerEl.addEventListener('mouseenter', () => showFloatingTooltip(triggerEl));
+        triggerEl.addEventListener('mouseleave', hideFloatingTooltip);
+        triggerEl.addEventListener('focus', () => showFloatingTooltip(triggerEl));
+        triggerEl.addEventListener('blur', hideFloatingTooltip);
+    });
+
+    document.querySelectorAll('[data-member-profile]').forEach((buttonEl) => {
+        buttonEl.addEventListener('click', () => {
+            const rowEl = buttonEl.closest('.cio-member-row');
+            if (!rowEl || !chatUserModal) return;
+
+            chatUserBanner.style.background = rowEl.dataset.userBanner || '#111827';
+            chatUserAvatar.src = rowEl.dataset.userImage || '';
+            chatUserAvatar.alt = `${rowEl.dataset.userName || 'Member'} avatar`;
+            chatUserName.textContent = rowEl.dataset.userName || '';
+            chatUserUsername.textContent = rowEl.dataset.userUsername || '';
+            chatUserPronouns.textContent = rowEl.dataset.userPronouns || 'No pronouns listed';
+            chatUserRole.textContent = rowEl.dataset.userRole || 'Member';
+            chatUserModal.classList.add('is-open');
+
+            const menuEl = buttonEl.closest('[data-member-menu]');
+            if (menuEl) {
+                closeMemberMenus();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-kick-member-open]').forEach((buttonEl) => {
+        buttonEl.addEventListener('click', () => {
+            closeMemberMenus();
+            openKickMemberModal(
+                buttonEl.dataset.kickMemberName || 'this member',
+                buttonEl.dataset.kickMemberUrl || ''
+            );
+        });
+    });
+
+    if (chatUserClose && chatUserModal) {
+        chatUserClose.addEventListener('click', () => {
+            chatUserModal.classList.remove('is-open');
+        });
+        chatUserModal.addEventListener('click', (event) => {
+            if (event.target === chatUserModal) {
+                chatUserModal.classList.remove('is-open');
+            }
+        });
+    }
+
+    if (kickMemberClose) {
+        kickMemberClose.addEventListener('click', closeKickMemberModal);
+    }
+
+    if (kickMemberCancel) {
+        kickMemberCancel.addEventListener('click', closeKickMemberModal);
+    }
+
+    if (kickMemberModal) {
+        kickMemberModal.addEventListener('click', (event) => {
+            if (event.target === kickMemberModal) {
+                closeKickMemberModal();
+            }
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.cio-member-action-menu')) {
+            closeMemberMenus();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeKickMemberModal();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        closeMemberMenus();
+        hideFloatingTooltip();
+    });
+    window.addEventListener('scroll', () => {
+        closeMemberMenus();
+        hideFloatingTooltip();
+    }, true);
+
+    renderMembersTable('');
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block page_title_block %}
+    <h1 class="page-title cio-page-title">{{ cio.name }}</h1>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item">
+        <i data-lucide="building-2"></i>
+        <span>CIO Profile</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'discussions:edit_cio_members' cio.id %}" class="sidebar-item">
+        <i data-lucide="users-round"></i>
+        <span>Members</span>
+    </a>
+    <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item active">
+        <i data-lucide="inbox"></i>
+        <span>Requests</span>
+        <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-danger-form">
+        <button type="button" class="sidebar-item sidebar-item-danger" data-delete-cio-open>
+            <i data-lucide="trash-2"></i>
+            <span>Delete CIO</span>
+        </button>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="cio-form-shell">
+    <section class="cio-form-surface cio-form-surface-wide cio-form-surface-members">
+        <div class="cio-members-shell">
+            <div class="cio-members-header">
+                <div class="cio-form-header-top">
+                    <div class="cio-form-header-copy">
+                        <div class="cio-form-title-row">
+                            <h2>Requests</h2>
+                            <span class="cio-form-title-separator" aria-hidden="true">•</span>
+                            <span class="cio-form-eyebrow">CIO Settings</span>
+                        </div>
+                        <p>Review pending join requests for {{ cio.name }}.</p>
+                    </div>
+                    <a href="{% url 'cio_detail' cio.id %}" class="cio-settings-close" aria-label="Leave settings and return to {{ cio.name }}">
+                        <i data-lucide="x"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="cio-members-card">
+                <div class="cio-members-table-wrap">
+                    <table class="cio-members-table cio-requests-table">
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Requested</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="cioRequestsTableBody">
+                        {% for join_request in join_requests %}
+                            {% include "cios/partials/join_request_row.html" with join_request=join_request %}
+                        {% empty %}
+                            <tr class="cio-member-empty-row">
+                                <td colspan="3">No pending requests.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="cio-members-footer">
+                <button type="button" class="cio-members-arrow" id="requestsPrevBtn" aria-label="Previous requests page">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <span class="cio-members-page-label" id="requestsPageLabel"></span>
+                <button type="button" class="cio-members-arrow" id="requestsNextBtn" aria-label="Next requests page">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% include "cios/partials/delete_cio_modal.html" %}
+
+<script>
+    const requestsPageSize = 5;
+    let requestsPage = 0;
+    const requestsPrevBtn = document.getElementById('requestsPrevBtn');
+    const requestsNextBtn = document.getElementById('requestsNextBtn');
+    const requestsPageLabel = document.getElementById('requestsPageLabel');
+    const requestsEmptyRow = document.querySelector('.cio-member-empty-row');
+    const requestsTableBody = document.getElementById('cioRequestsTableBody');
+    const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+
+    function getRequestRows() {
+        return Array.from(document.querySelectorAll('.cio-request-row'));
+    }
+
+    function getCsrfToken() {
+        const csrfCookie = document.cookie
+            .split('; ')
+            .find((row) => row.startsWith('csrftoken='));
+        return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
+    }
+
+    function bindRequestActionForms(scope = document) {
+        scope.querySelectorAll('[data-cio-request-action-form]').forEach((formEl) => {
+            if (formEl.dataset.boundRequestAction === 'true') return;
+            formEl.dataset.boundRequestAction = 'true';
+
+            formEl.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const response = await fetch(formEl.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) return;
+                removeRequestRow(formEl.closest('.cio-request-row'));
+            });
+        });
+    }
+
+    function updateRequestBadges(nextCount) {
+        cioRequestBadges.forEach((badgeEl) => {
+            badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+        });
+    }
+
+    function removeRequestRow(rowEl) {
+        if (!rowEl) return;
+        rowEl.remove();
+        renderRequestsTable();
+    }
+
+    function ensureRequestEmptyState() {
+        if (!requestsTableBody) return;
+        const rows = getRequestRows();
+        let emptyRow = requestsTableBody.querySelector('.cio-member-empty-row');
+
+        if (!rows.length && !emptyRow) {
+            emptyRow = document.createElement('tr');
+            emptyRow.className = 'cio-member-empty-row';
+            emptyRow.innerHTML = '<td colspan="3">No pending requests.</td>';
+            requestsTableBody.appendChild(emptyRow);
+        } else if (rows.length && emptyRow) {
+            emptyRow.remove();
+        }
+    }
+
+    function renderRequestsTable() {
+        const requestRows = getRequestRows();
+        ensureRequestEmptyState();
+
+        if (!requestRows.length) {
+            if (requestsPageLabel) requestsPageLabel.textContent = 'Showing page 0 of 0';
+            if (requestsPrevBtn) requestsPrevBtn.disabled = true;
+            if (requestsNextBtn) requestsNextBtn.disabled = true;
+            updateRequestBadges(0);
+            return;
+        }
+
+        const totalPages = Math.max(1, Math.ceil(requestRows.length / requestsPageSize));
+        requestsPage = Math.min(requestsPage, totalPages - 1);
+
+        requestRows.forEach((rowEl) => {
+            rowEl.style.display = 'none';
+        });
+
+        const start = requestsPage * requestsPageSize;
+        const end = start + requestsPageSize;
+        requestRows.slice(start, end).forEach((rowEl) => {
+            rowEl.style.display = '';
+        });
+
+        if (requestsEmptyRow) {
+            requestsEmptyRow.style.display = 'none';
+        }
+
+        if (requestsPageLabel) {
+            requestsPageLabel.textContent = `Showing page ${requestsPage + 1} of ${totalPages}`;
+        }
+        if (requestsPrevBtn) requestsPrevBtn.disabled = requestsPage === 0;
+        if (requestsNextBtn) requestsNextBtn.disabled = requestsPage >= totalPages - 1;
+        updateRequestBadges(requestRows.length);
+    }
+
+    if (requestsPrevBtn) {
+        requestsPrevBtn.addEventListener('click', () => {
+            requestsPage = Math.max(0, requestsPage - 1);
+            renderRequestsTable();
+        });
+    }
+
+    if (requestsNextBtn) {
+        requestsNextBtn.addEventListener('click', () => {
+            requestsPage += 1;
+            renderRequestsTable();
+        });
+    }
+
+    bindRequestActionForms();
+    renderRequestsTable();
+
+    const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+    cioRequestSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+
+        if (payload.type === 'request_created' && payload.html && requestsTableBody) {
+            const existingRow = requestsTableBody.querySelector(`[data-request-id="${payload.request_id}"]`);
+            if (!existingRow) {
+                const wrapper = document.createElement('tbody');
+                wrapper.innerHTML = payload.html;
+                const rowEl = wrapper.firstElementChild;
+                if (rowEl) {
+                    requestsTableBody.prepend(rowEl);
+                    bindRequestActionForms(rowEl);
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                    renderRequestsTable();
+                }
+            }
+        }
+
+        if (payload.type === 'request_removed') {
+            const rowEl = requestsTableBody.querySelector(`[data-request-id="${payload.request_id}"]`);
+            if (rowEl) {
+                removeRequestRow(rowEl);
+            } else {
+                renderRequestsTable();
+            }
+        }
+    });
+</script>
+{% endblock %}

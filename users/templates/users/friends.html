@@ -1,0 +1,978 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Friends{% endblock %}
+
+{% block top_center %}
+    {% if selected_friend and selected_friendship %}
+        <div class="cio-scroll">
+            <div class="joined-cio-strip" id="joinedCioStrip" data-page-size="5">
+                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev" aria-label="Previous CIOs">
+                    <i data-lucide="chevron-left"></i>
+                </button>
+                <div class="joined-cio-track" id="joinedCioTrack">
+                    {% for cio in joined_cios %}
+                        <a href="{% url 'cio_detail' cio.id %}"
+                           class="joined-cio-link tooltip-bottom"
+                           data-tooltip="{{ cio.name }}"
+                           data-joined-cio-index="{{ forloop.counter0 }}">
+                            <img src="{{ cio.display_icon_url }}"
+                                 alt="{{ cio.name }} icon"
+                                 class="joined-cio-icon">
+                        </a>
+                    {% endfor %}
+                </div>
+                <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext" aria-label="Next CIOs">
+                    <i data-lucide="chevron-right"></i>
+                </button>
+                <div class="friends-dm-recipient">
+                    <img src="{{ selected_friend.profile.image.url }}" alt="{{ selected_friend.username }}" class="friends-dm-recipient-avatar">
+                    <span class="friends-dm-recipient-name">
+                        {% if selected_friend.first_name or selected_friend.last_name %}
+                            {{ selected_friend.first_name }} {{ selected_friend.last_name }}
+                        {% else %}
+                            {{ selected_friend.username }}
+                        {% endif %}
+                    </span>
+                </div>
+                <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
+            </div>
+        </div>
+    {% else %}
+        {{ block.super }}
+    {% endif %}
+{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'friends' %}?section=all" class="sidebar-item {% if section != 'dm' %}active{% endif %}">
+        <i data-lucide="users"></i>
+        <span>Friends</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <p class="sidebar-section-label">Direct Messages</p>
+    <div id="friendSidebarItems">
+        {% for item in friend_items %}
+            <a href="{% url 'friends' %}?dm={{ item.friend.id }}" class="sidebar-item sidebar-dm-item {% if selected_friend and selected_friend.id == item.friend.id %}active{% endif %}" data-sidebar-friend-id="{{ item.friend.id }}">
+                <img src="{{ item.friend.profile.image.url }}" alt="{{ item.display_name }}" class="sidebar-dm-avatar">
+                <div class="sidebar-dm-copy">
+                    <span class="sidebar-dm-name">{{ item.display_name }}</span>
+                </div>
+            </a>
+        {% empty %}
+            <p class="sidebar-section-empty" id="friendSidebarEmptyState">No direct messages yet.</p>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="friends-page">
+        {% if selected_friend and selected_friendship %}
+            <section class="friends-chat-page" data-friendship-id="{{ selected_friendship.id }}">
+                <div class="chat-message-list friends-chat-message-list" id="directMessageList">
+                    {% for message in direct_messages %}
+                        {% if message.show_time_divider %}
+                            <div class="chat-date-divider" data-divider-day="{{ message.created_at|date:'Y-m-d' }}">
+                                <span>{{ message.time_divider_label }}</span>
+                            </div>
+                        {% endif %}
+                        <article
+                            class="chat-message {% if message.sender == user %}chat-message-own{% endif %} {% if not message.show_header %}chat-message-grouped{% endif %}"
+                            data-message-sender-id="{{ message.sender_id }}"
+                            data-message-created-at="{{ message.created_at|date:'c' }}"
+                            data-message-day="{{ message.created_at|date:'Y-m-d' }}"
+                            data-search-text="{{ message.display_name }} {{ message.sender.username }} {{ message.content|default:''|escape }}">
+                            {% if message.show_avatar %}
+                                <img src="{{ message.sender.profile.image.url }}" alt="{{ message.sender.username }}" class="chat-message-avatar">
+                            {% else %}
+                                <div class="chat-message-avatar-spacer" aria-hidden="true"></div>
+                            {% endif %}
+                            <div class="chat-message-content">
+                                {% if message.show_header %}
+                                    <div class="chat-message-meta">
+                                        <span class="chat-message-author">{{ message.display_name }}</span>
+                                        <span class="discussion-meta-dot">•</span>
+                                        <span class="post-timestamp" data-datetime="{{ message.created_at|date:'c' }}"></span>
+                                    </div>
+                                {% endif %}
+                                {% if message.content %}
+                                    <div class="chat-message-bubble">
+                                        <p>{{ message.content }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if message.image %}
+                                    <div class="chat-message-attachment">
+                                        <button
+                                            type="button"
+                                            class="chat-message-image-btn"
+                                            data-chat-image="{{ message.image.url }}"
+                                            data-chat-image-alt="Direct message upload preview">
+                                            <img src="{{ message.image.url }}" alt="Direct message upload" class="chat-message-image">
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        <div class="discussion-empty-state chat-empty-state">
+                            <h3>No messages yet</h3>
+                            <p>Say hello to start the conversation.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="chat-composer-stack">
+                    <div class="chat-attachment-pill-row joined-cio-hidden" id="directMessageAttachmentPills"></div>
+                    <form class="chat-composer-bar"
+                          id="directMessageForm"
+                          method="POST"
+                          enctype="multipart/form-data"
+                          action="{% url 'send_direct_message' selected_friendship.id %}">
+                        {% csrf_token %}
+                        <label for="directMessageAttachmentInput" class="chat-attachment-btn" aria-label="Attach a file">
+                            <i data-lucide="paperclip"></i>
+                        </label>
+                        <input id="directMessageAttachmentInput" type="file" name="image" class="chat-file-input" accept="image/*">
+                        <textarea id="directMessageInput" name="content" class="chat-composer-input friends-chat-input" placeholder="Type a message..." maxlength="2000"></textarea>
+                        <button type="submit" class="chat-send-btn" aria-label="Send message">
+                            <i data-lucide="send-horizontal"></i>
+                        </button>
+                    </form>
+                    <div class="chat-composer-meta">
+                        <span class="chat-attachment-name" id="directMessageAttachmentName">No file selected</span>
+                        <div class="friends-chat-counter" id="directMessageCounter">0 / 2000</div>
+                    </div>
+                </div>
+            </section>
+        {% else %}
+            <section class="friends-shell">
+                <div class="friends-tabs">
+                    <a href="{% url 'friends' %}?section=all" class="cio-subsection-link {% if section == 'all' %}active{% endif %}" data-friends-tab="all">All</a>
+                    <a href="{% url 'friends' %}?section=add" class="cio-subsection-link {% if section == 'add' %}active{% endif %}" data-friends-tab="add">Add Friend</a>
+                    <a href="{% url 'friends' %}?section=requests" class="cio-subsection-link {% if section == 'requests' %}active{% endif %}" data-friends-tab="requests">
+                        <span>Requests</span>
+                        <span class="friends-request-dot {% if requests_count == 0 %}joined-cio-hidden{% endif %}" id="friendsRequestDot" aria-hidden="true"></span>
+                    </a>
+                </div>
+
+                <div class="friends-tab-panel {% if section == 'all' %}is-active{% endif %}" data-friends-panel="all">
+                    <div class="friends-list-shell">
+                        {% if notice and section == 'all' %}
+                            <div class="friends-notice">{{ notice }}</div>
+                        {% endif %}
+                        <div class="friends-list-header">
+                            <div>
+                                <h2>All</h2>
+                                <p id="friendsCountLabel">{{ friend_count }} of {{ friend_limit }} friends</p>
+                            </div>
+                        </div>
+
+                        <div class="friends-list-card">
+                            <div id="friendsListRows">
+                                {% for friend in accepted_friends %}
+                                    {% include "users/partials/friend_list_row.html" %}
+                                {% empty %}
+                                    <div class="discussion-empty-state" id="friendsListEmptyState">
+                                        <h3>No friends yet</h3>
+                                        <p>Use Add Friend to connect with someone.</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="friends-list-pager" id="friendsListPager">
+                            <button type="button" class="joined-cio-arrow" id="friendsPrev" aria-label="Previous friends page">
+                                <i data-lucide="chevron-left"></i>
+                            </button>
+                            <span class="friends-list-page-label" id="friendsPageLabel">Page 1 of 1</span>
+                            <button type="button" class="joined-cio-arrow" id="friendsNext" aria-label="Next friends page">
+                                <i data-lucide="chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="friends-tab-panel {% if section == 'add' %}is-active{% endif %}" data-friends-panel="add">
+                    <div class="friends-add-shell">
+                        <h2>Add friend</h2>
+                        <p>You can add friends with their Clubstrate usernames.</p>
+                        <form method="POST" action="{% url 'add_friend' %}" class="friends-add-form">
+                            {% csrf_token %}
+                            <div class="friends-add-input-wrap {% if notice and section == 'add' and notice_type == 'success' %}is-success{% elif notice and section == 'add' %}is-error{% endif %}" id="friendsAddInputWrap">
+                                <input
+                                    type="text"
+                                    name="username"
+                                    class="friends-add-input"
+                                    id="friendsAddInput"
+                                    placeholder="You can add friends with their Clubstrate usernames."
+                                    maxlength="150">
+                                <button type="submit" class="friends-add-submit">Send Friend Request</button>
+                            </div>
+                            <p class="friends-add-error {% if notice_type == 'success' %}is-success{% endif %}{% if not notice or section != 'add' %} joined-cio-hidden{% endif %}" id="friendsAddNotice" {% if notice and section == 'add' %}data-friends-add-notice="{{ notice_type }}"{% endif %}>{% if notice and section == 'add' %}{{ notice }}{% endif %}</p>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="friends-tab-panel {% if section == 'requests' %}is-active{% endif %}" data-friends-panel="requests">
+                    <div class="friends-list-shell">
+                        <div class="friends-list-header">
+                            <div>
+                                <h2>Requests</h2>
+                                <p id="friendRequestsCountLabel">{{ requests_count }} pending requests</p>
+                            </div>
+                        </div>
+
+                        <div class="friends-list-card">
+                            <div id="friendRequestRows">
+                                {% for request_item in received_requests %}
+                                    {% include "users/partials/friend_request_row.html" %}
+                                {% empty %}
+                                    <div class="discussion-empty-state" id="friendRequestEmptyState">
+                                        <h3>No pending requests</h3>
+                                        <p>Incoming friend requests will appear here.</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+    </div>
+
+    <div class="chat-image-modal" id="directMessageImageModal">
+        <button type="button" class="chat-image-close" id="directMessageImageClose" aria-label="Close image preview">
+            <i data-lucide="x"></i>
+        </button>
+        <img src="" alt="" class="chat-image-modal-preview" id="directMessageImagePreview">
+    </div>
+
+    <script>
+        document.querySelectorAll('.post-timestamp').forEach((el) => {
+            const dt = new Date(el.dataset.datetime);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const messageDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+
+            let prefix;
+            if (messageDay.getTime() === today.getTime()) {
+                prefix = 'Today';
+            } else if (messageDay.getTime() === yesterday.getTime()) {
+                prefix = 'Yesterday';
+            } else {
+                prefix = dt.toLocaleDateString(undefined, {day: 'numeric', month: 'long', year: 'numeric'});
+            }
+
+            const timeLabel = dt.toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            el.textContent = `${prefix} at ${timeLabel}`;
+        });
+
+        const friendRows = Array.from(document.querySelectorAll('[data-friend-row]'));
+        const friendsPrev = document.getElementById('friendsPrev');
+        const friendsNext = document.getElementById('friendsNext');
+        const friendsPageLabel = document.getElementById('friendsPageLabel');
+        const friendsPerPage = 10;
+        let friendsPage = 0;
+        const friendsShell = document.querySelector('.friends-shell');
+        const friendsTabLinks = Array.from(document.querySelectorAll('[data-friends-tab]'));
+        const friendsTabPanels = Array.from(document.querySelectorAll('[data-friends-panel]'));
+        const friendRequestRows = document.getElementById('friendRequestRows');
+        const directMessageShell = document.querySelector('[data-friendship-id]');
+        const directMessageAttachmentInput = document.getElementById('directMessageAttachmentInput');
+        const directMessageAttachmentName = document.getElementById('directMessageAttachmentName');
+        const directMessageAttachmentPills = document.getElementById('directMessageAttachmentPills');
+        const directMessageImageModal = document.getElementById('directMessageImageModal');
+        const directMessageImagePreview = document.getElementById('directMessageImagePreview');
+        const directMessageImageClose = document.getElementById('directMessageImageClose');
+        const friendsRequestDot = document.getElementById('friendsRequestDot');
+        const friendSidebarItems = document.getElementById('friendSidebarItems');
+        const friendsListRows = document.getElementById('friendsListRows');
+        const friendRequestsCountLabel = document.getElementById('friendRequestsCountLabel');
+        const friendsCountLabel = document.getElementById('friendsCountLabel');
+        const friendsAddNotice = document.querySelector('[data-friends-add-notice]');
+        const friendsAddForm = document.querySelector('.friends-add-form');
+        const friendsAddInputWrap = document.getElementById('friendsAddInputWrap');
+        const friendsAddInput = document.getElementById('friendsAddInput');
+        const friendsAddNoticeEl = document.getElementById('friendsAddNotice');
+
+        function renderFriendsPage(pageIndex) {
+            if (!friendRows.length) return;
+            const totalPages = Math.ceil(friendRows.length / friendsPerPage);
+            friendsPage = Math.min(Math.max(pageIndex, 0), totalPages - 1);
+            const start = friendsPage * friendsPerPage;
+            const end = start + friendsPerPage;
+
+            friendRows.forEach((rowEl, idx) => {
+                rowEl.style.display = idx >= start && idx < end ? '' : 'none';
+            });
+
+            if (friendsPageLabel) {
+                friendsPageLabel.textContent = `Page ${friendsPage + 1} of ${totalPages}`;
+            }
+            if (friendsPrev) friendsPrev.disabled = friendsPage === 0;
+            if (friendsNext) friendsNext.disabled = friendsPage >= totalPages - 1;
+        }
+
+        if (friendsPrev && friendsNext && friendRows.length) {
+            friendsPrev.addEventListener('click', () => renderFriendsPage(friendsPage - 1));
+            friendsNext.addEventListener('click', () => renderFriendsPage(friendsPage + 1));
+            renderFriendsPage(0);
+        }
+
+        function activateFriendsSection(sectionName, shouldPushState = true) {
+            if (!friendsTabPanels.length) return;
+
+            friendsTabLinks.forEach((tabEl) => {
+                tabEl.classList.toggle('active', tabEl.dataset.friendsTab === sectionName);
+            });
+
+            friendsTabPanels.forEach((panelEl) => {
+                panelEl.classList.toggle('is-active', panelEl.dataset.friendsPanel === sectionName);
+            });
+
+            if (shouldPushState) {
+                const nextUrl = new URL(window.location.href);
+                nextUrl.searchParams.set('section', sectionName);
+                nextUrl.searchParams.delete('dm');
+                window.history.pushState({}, '', nextUrl.toString());
+            }
+        }
+
+        friendsTabLinks.forEach((tabEl) => {
+            tabEl.addEventListener('click', (event) => {
+                if (directMessageShell) return;
+                event.preventDefault();
+                activateFriendsSection(tabEl.dataset.friendsTab);
+            });
+        });
+
+        window.addEventListener('popstate', () => {
+            if (directMessageShell) return;
+            const url = new URL(window.location.href);
+            activateFriendsSection(url.searchParams.get('section') || 'all', false);
+        });
+
+        if (friendsShell && !directMessageShell) {
+            activateFriendsSection('{{ section|default:"all" }}', false);
+        }
+        const directMessageList = document.getElementById('directMessageList');
+        const directMessageForm = document.getElementById('directMessageForm');
+        const directMessageInput = document.getElementById('directMessageInput');
+        const directMessageCounter = document.getElementById('directMessageCounter');
+        const directMessageSendBtn = directMessageForm ? directMessageForm.querySelector('.chat-send-btn') : null;
+        const directMessageAttachBtn = directMessageForm ? directMessageForm.querySelector('.chat-attachment-btn') : null;
+        const MAX_DM_UPLOAD_BYTES = 8 * 1024 * 1024;
+        const dmSearchBar = document.querySelector('.search-bar');
+        const dmMessages = Array.from(document.querySelectorAll('[data-message-day]'));
+        const dmDividers = Array.from(document.querySelectorAll('[data-divider-day]'));
+
+        function getCsrfToken() {
+            const csrfCookie = document.cookie
+                .split('; ')
+                .find((row) => row.startsWith('csrftoken='));
+            return csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
+        }
+
+        function setFriendsAddNotice(message, noticeType) {
+            if (!friendsAddInputWrap || !friendsAddNoticeEl) return;
+
+            friendsAddInputWrap.classList.remove('is-success', 'is-error');
+            friendsAddNoticeEl.classList.remove('is-success', 'joined-cio-hidden');
+            delete friendsAddNoticeEl.dataset.friendsAddNotice;
+
+            if (!message) {
+                friendsAddNoticeEl.textContent = '';
+                friendsAddNoticeEl.classList.add('joined-cio-hidden');
+                return;
+            }
+
+            friendsAddInputWrap.classList.add(noticeType === 'success' ? 'is-success' : 'is-error');
+            if (noticeType === 'success') {
+                friendsAddNoticeEl.classList.add('is-success');
+            }
+            friendsAddNoticeEl.dataset.friendsAddNotice = noticeType;
+            friendsAddNoticeEl.textContent = message;
+        }
+
+        if (friendsAddNotice && friendsAddNotice.dataset.friendsAddNotice === 'success') {
+            setFriendsAddNotice(friendsAddNotice.textContent, 'success');
+            history.replaceState({}, '', '{{ request.path }}?section=add');
+        }
+
+        if (friendsAddForm && friendsAddInput) {
+            friendsAddForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const formData = new FormData(friendsAddForm);
+                const response = await fetch(friendsAddForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: formData,
+                    credentials: 'same-origin',
+                });
+
+                const payload = await response.json();
+                const noticeType = payload.notice_type || (response.ok ? 'success' : 'error');
+                setFriendsAddNotice(payload.notice || '', noticeType);
+
+                if (response.ok && noticeType === 'success') {
+                    friendsAddForm.reset();
+                    if (typeof window.launchSuccessConfetti === 'function') {
+                        window.launchSuccessConfetti();
+                    }
+                    friendsAddInput.focus();
+                }
+            });
+        }
+
+        function ensureFriendRequestEmptyState() {
+            if (!friendRequestRows) return;
+
+            const remainingRows = friendRequestRows.querySelectorAll('[data-request-row]');
+            const existingEmptyState = document.getElementById('friendRequestEmptyState');
+
+            if (remainingRows.length === 0 && !existingEmptyState) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'discussion-empty-state';
+                emptyState.id = 'friendRequestEmptyState';
+                emptyState.innerHTML = '<h3>No pending requests</h3><p>Incoming friend requests will appear here.</p>';
+                friendRequestRows.appendChild(emptyState);
+            } else if (remainingRows.length > 0 && existingEmptyState) {
+                existingEmptyState.remove();
+            }
+        }
+
+        function updateRequestDot() {
+            if (!friendsRequestDot || !friendRequestRows) return;
+            const requestCount = friendRequestRows.querySelectorAll('[data-request-row]').length;
+            friendsRequestDot.classList.toggle('joined-cio-hidden', requestCount === 0);
+            if (friendRequestsCountLabel) {
+                friendRequestsCountLabel.textContent = `${requestCount} pending request${requestCount === 1 ? '' : 's'}`;
+            }
+        }
+
+        function ensureFriendsListEmptyState() {
+            if (!friendsListRows) return;
+
+            const remainingFriends = friendsListRows.querySelectorAll('[data-friend-row]');
+            const emptyState = document.getElementById('friendsListEmptyState');
+
+            if (remainingFriends.length === 0 && !emptyState) {
+                const nextEmptyState = document.createElement('div');
+                nextEmptyState.className = 'discussion-empty-state';
+                nextEmptyState.id = 'friendsListEmptyState';
+                nextEmptyState.innerHTML = '<h3>No friends yet</h3><p>Use Add Friend to connect with someone.</p>';
+                friendsListRows.appendChild(nextEmptyState);
+            } else if (remainingFriends.length > 0 && emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function updateFriendsCountLabel() {
+            if (!friendsCountLabel || !friendsListRows) return;
+            const friendCount = friendsListRows.querySelectorAll('[data-friend-row]').length;
+            friendsCountLabel.textContent = `${friendCount} of {{ friend_limit }} friends`;
+        }
+
+        function ensureFriendSidebarEmptyState() {
+            if (!friendSidebarItems) return;
+
+            const existingItems = friendSidebarItems.querySelectorAll('[data-sidebar-friend-id]');
+            const emptyState = document.getElementById('friendSidebarEmptyState');
+
+            if (existingItems.length === 0 && !emptyState) {
+                const nextEmptyState = document.createElement('p');
+                nextEmptyState.className = 'sidebar-section-empty';
+                nextEmptyState.id = 'friendSidebarEmptyState';
+                nextEmptyState.textContent = 'No direct messages yet.';
+                friendSidebarItems.appendChild(nextEmptyState);
+            } else if (existingItems.length > 0 && emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function removeFriendRow(friendId) {
+            if (!friendsListRows) return;
+            const rowEl = friendsListRows.querySelector(`[data-friend-id="${friendId}"]`);
+            if (!rowEl) {
+                ensureFriendsListEmptyState();
+                return;
+            }
+
+            rowEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                rowEl.remove();
+                const rowIndex = friendRows.indexOf(rowEl);
+                if (rowIndex >= 0) {
+                    friendRows.splice(rowIndex, 1);
+                }
+                ensureFriendsListEmptyState();
+                if (friendRows.length) {
+                    renderFriendsPage(Math.min(friendsPage, Math.max(Math.ceil(friendRows.length / friendsPerPage) - 1, 0)));
+                }
+                updateFriendsCountLabel();
+            }, 180);
+        }
+
+        function removeSidebarFriend(friendId) {
+            if (!friendSidebarItems) return;
+            const itemEl = friendSidebarItems.querySelector(`[data-sidebar-friend-id="${friendId}"]`);
+            if (!itemEl) {
+                ensureFriendSidebarEmptyState();
+                return;
+            }
+
+            itemEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                itemEl.remove();
+                ensureFriendSidebarEmptyState();
+            }, 180);
+        }
+
+        function removeFriendRequestRow(rowEl) {
+            if (!rowEl) return;
+            rowEl.classList.add('is-removing');
+            window.setTimeout(() => {
+                rowEl.remove();
+                ensureFriendRequestEmptyState();
+                updateRequestDot();
+            }, 180);
+        }
+
+        function bindFriendRequestActionForm(formEl) {
+            formEl.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const response = await fetch(formEl.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (!response.ok) return;
+
+                removeFriendRequestRow(formEl.closest('[data-request-row]'));
+            });
+        }
+
+        function closeAllFriendMenus(exceptMenu = null) {
+            document.querySelectorAll('[data-friend-menu]').forEach((menuEl) => {
+                if (menuEl === exceptMenu) return;
+                menuEl.classList.remove('is-open');
+                menuEl.classList.add('joined-cio-hidden');
+                const shell = menuEl.closest('.friends-row-menu-shell');
+                const triggerEl = shell ? shell.querySelector('[data-friend-menu-trigger]') : null;
+                if (triggerEl) {
+                    triggerEl.dataset.menuOpen = 'false';
+                }
+            });
+        }
+
+        function bindFriendRowActions(scope = document) {
+            scope.querySelectorAll('[data-friend-menu-trigger]').forEach((triggerEl) => {
+                if (triggerEl.dataset.boundMenuTrigger === 'true') return;
+                triggerEl.dataset.boundMenuTrigger = 'true';
+
+                triggerEl.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const shell = triggerEl.closest('.friends-row-menu-shell');
+                    const menuEl = shell ? shell.querySelector('[data-friend-menu]') : null;
+                    if (!menuEl) return;
+
+                    const willOpen = menuEl.classList.contains('joined-cio-hidden');
+                    closeAllFriendMenus(willOpen ? menuEl : null);
+
+                    if (willOpen) {
+                        triggerEl.dataset.menuOpen = 'true';
+                        menuEl.classList.remove('joined-cio-hidden');
+                        requestAnimationFrame(() => {
+                            menuEl.classList.add('is-open');
+                        });
+                    } else {
+                        triggerEl.dataset.menuOpen = 'false';
+                        menuEl.classList.remove('is-open');
+                        window.setTimeout(() => {
+                            menuEl.classList.add('joined-cio-hidden');
+                        }, 180);
+                    }
+                });
+            });
+
+            scope.querySelectorAll('[data-remove-friend-form]').forEach((formEl) => {
+                if (formEl.dataset.boundRemoveFriend === 'true') return;
+                formEl.dataset.boundRemoveFriend = 'true';
+
+                formEl.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+
+                    const response = await fetch(formEl.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) return;
+
+                    const rowEl = formEl.closest('[data-friend-row]');
+                    const friendId = rowEl ? rowEl.dataset.friendId : null;
+                    if (!friendId) return;
+
+                    removeFriendRow(friendId);
+                    removeSidebarFriend(friendId);
+                });
+            });
+        }
+
+        document.querySelectorAll('[data-request-action-form]').forEach(bindFriendRequestActionForm);
+        bindFriendRowActions();
+
+        document.addEventListener('click', () => {
+            closeAllFriendMenus();
+        });
+
+        if (friendRequestRows) {
+            const requestSocketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const requestSocket = new WebSocket(`${requestSocketProtocol}://${window.location.host}/ws/friends/requests/`);
+
+            requestSocket.addEventListener('message', (event) => {
+                const payload = JSON.parse(event.data);
+
+                if (payload.type === 'request_created' && payload.html) {
+                    const existingEmptyState = document.getElementById('friendRequestEmptyState');
+                    if (existingEmptyState) {
+                        existingEmptyState.remove();
+                    }
+
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = payload.html;
+                    const rowEl = wrapper.firstElementChild;
+                    if (!rowEl) return;
+
+                    rowEl.classList.add('friends-row-enter');
+                    friendRequestRows.prepend(rowEl);
+                    rowEl.querySelectorAll('[data-request-action-form]').forEach(bindFriendRequestActionForm);
+                    updateRequestDot();
+                    if (window.lucide) {
+                        lucide.createIcons();
+                    }
+                }
+
+                if (payload.type === 'request_removed' && payload.request_id) {
+                    const rowEl = friendRequestRows.querySelector(`[data-request-id="${payload.request_id}"]`);
+                    if (rowEl) {
+                        removeFriendRequestRow(rowEl);
+                    } else {
+                        ensureFriendRequestEmptyState();
+                    }
+                    updateRequestDot();
+                }
+
+                if (payload.type === 'friend_added') {
+                    if (payload.friend_html && friendsListRows) {
+                        const emptyState = document.getElementById('friendsListEmptyState');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = payload.friend_html;
+                        const rowEl = wrapper.firstElementChild;
+                        if (rowEl && !friendsListRows.querySelector(`[data-friend-id="${payload.friend_id}"]`)) {
+                            rowEl.classList.add('friends-row-enter');
+                            friendsListRows.prepend(rowEl);
+                            friendRows.push(rowEl);
+                            bindFriendRowActions(rowEl);
+                            if (window.lucide) {
+                                lucide.createIcons();
+                            }
+                            renderFriendsPage(0);
+                            ensureFriendsListEmptyState();
+                            updateFriendsCountLabel();
+                        }
+                    }
+
+                    if (payload.sidebar_html && friendSidebarItems) {
+                        const emptyState = document.getElementById('friendSidebarEmptyState');
+                        if (emptyState) {
+                            emptyState.remove();
+                        }
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = payload.sidebar_html;
+                        const linkEl = wrapper.firstElementChild;
+                        if (linkEl && !friendSidebarItems.querySelector(`[data-sidebar-friend-id="${payload.friend_id}"]`)) {
+                            linkEl.classList.add('friends-row-enter');
+                            friendSidebarItems.prepend(linkEl);
+                            ensureFriendSidebarEmptyState();
+                        }
+                    }
+                }
+
+                if (payload.type === 'friend_removed' && payload.friend_id) {
+                    removeFriendRow(payload.friend_id);
+                    removeSidebarFriend(payload.friend_id);
+                }
+            });
+        }
+
+        updateRequestDot();
+        updateFriendsCountLabel();
+
+        function scrollDmToLatest() {
+            if (!directMessageList) return;
+            requestAnimationFrame(() => {
+                directMessageList.scrollTop = directMessageList.scrollHeight;
+            });
+        }
+
+        function shouldGroupMessages(previousMessageEl, nextMessageEl) {
+            if (!previousMessageEl || !nextMessageEl) return false;
+
+            const previousSenderId = previousMessageEl.dataset.messageSenderId;
+            const nextSenderId = nextMessageEl.dataset.messageSenderId;
+            if (!previousSenderId || previousSenderId !== nextSenderId) return false;
+
+            const previousCreatedAt = new Date(previousMessageEl.dataset.messageCreatedAt || '');
+            const nextCreatedAt = new Date(nextMessageEl.dataset.messageCreatedAt || '');
+            if (Number.isNaN(previousCreatedAt.getTime()) || Number.isNaN(nextCreatedAt.getTime())) return false;
+
+            const sameDay =
+                previousCreatedAt.getFullYear() === nextCreatedAt.getFullYear()
+                && previousCreatedAt.getMonth() === nextCreatedAt.getMonth()
+                && previousCreatedAt.getDate() === nextCreatedAt.getDate();
+            const withinFiveMinutes = (nextCreatedAt - previousCreatedAt) <= (5 * 60 * 1000);
+
+            return sameDay && withinFiveMinutes;
+        }
+
+        function updateGroupedAvatar(previousMessageEl) {
+            if (!previousMessageEl) return;
+
+            const avatarEl = previousMessageEl.querySelector('.chat-message-avatar');
+            if (!avatarEl) return;
+
+            const spacerEl = document.createElement('div');
+            spacerEl.className = 'chat-message-avatar-spacer';
+            spacerEl.setAttribute('aria-hidden', 'true');
+            avatarEl.replaceWith(spacerEl);
+        }
+
+        function clearDirectMessageEmptyState() {
+            if (!directMessageList) return;
+            directMessageList
+                .querySelectorAll('.chat-empty-state, .discussion-empty-state')
+                .forEach((emptyStateEl) => emptyStateEl.remove());
+        }
+
+        function renderDirectMessageAttachmentPills() {
+            if (!directMessageAttachmentInput || !directMessageAttachmentPills || !directMessageAttachmentName) return;
+            const file = directMessageAttachmentInput.files && directMessageAttachmentInput.files[0];
+            if (!file) {
+                directMessageAttachmentPills.innerHTML = '';
+                directMessageAttachmentPills.classList.add('joined-cio-hidden');
+                directMessageAttachmentName.textContent = 'No file selected';
+                return;
+            }
+
+            directMessageAttachmentPills.innerHTML = `
+                <span class="chat-attachment-pill" title="${file.name}">
+                    ${file.name}
+                </span>
+            `;
+            directMessageAttachmentPills.classList.remove('joined-cio-hidden');
+            directMessageAttachmentName.textContent = file.name;
+        }
+
+        function bindDirectMessageImageTrigger(triggerEl) {
+            triggerEl.addEventListener('click', () => {
+                if (!directMessageImageModal || !directMessageImagePreview) return;
+                directMessageImagePreview.src = triggerEl.dataset.chatImage || '';
+                directMessageImagePreview.alt = triggerEl.dataset.chatImageAlt || 'Direct message image preview';
+                directMessageImageModal.classList.add('is-open');
+            });
+        }
+
+        function filterDirectMessages(query) {
+            const normalizedQuery = (query || '').trim().toLowerCase();
+
+            dmMessages.forEach((messageEl) => {
+                const haystack = (messageEl.dataset.searchText || '').toLowerCase();
+                const matches = !normalizedQuery || haystack.includes(normalizedQuery);
+                messageEl.style.display = matches ? '' : 'none';
+            });
+
+            dmDividers.forEach((dividerEl) => {
+                let hasVisibleMessages = false;
+                let sibling = dividerEl.nextElementSibling;
+
+                while (sibling && !sibling.hasAttribute('data-divider-day')) {
+                    if (sibling.hasAttribute('data-message-day') && sibling.style.display !== 'none') {
+                        hasVisibleMessages = true;
+                        break;
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+
+                dividerEl.style.display = hasVisibleMessages ? '' : 'none';
+            });
+        }
+
+        if (dmSearchBar && directMessageShell) {
+            dmSearchBar.placeholder = 'Search this DM...';
+            dmSearchBar.addEventListener('input', () => {
+                if (typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio') {
+                    return;
+                }
+                filterDirectMessages(dmSearchBar.value);
+            });
+        }
+
+        if (directMessageShell && directMessageForm && directMessageInput) {
+            const friendshipId = directMessageShell.dataset.friendshipId;
+            const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const socket = new WebSocket(`${protocol}://${window.location.host}/ws/friends/${friendshipId}/`);
+
+            const updateDirectMessageCounter = () => {
+                if (!directMessageCounter) return;
+                directMessageCounter.textContent = `${directMessageInput.value.length} / 2000`;
+            };
+
+            const setDirectMessagePending = (isPending) => {
+                directMessageForm.dataset.isSending = isPending ? 'true' : 'false';
+                if (directMessageSendBtn) {
+                    directMessageSendBtn.disabled = isPending;
+                }
+                if (directMessageAttachBtn) {
+                    directMessageAttachBtn.style.pointerEvents = isPending ? 'none' : '';
+                    directMessageAttachBtn.style.opacity = isPending ? '0.6' : '';
+                }
+            };
+
+            socket.addEventListener('message', (event) => {
+                const payload = JSON.parse(event.data);
+                if (!directMessageList || payload.type !== 'message') return;
+
+                clearDirectMessageEmptyState();
+                const previousMessageEl = directMessageList.querySelector('.chat-message:last-of-type');
+                const wrapper = document.createElement('div');
+                wrapper.innerHTML = payload.html;
+                const newMessageEl = wrapper.querySelector('.chat-message');
+                const newDividerEls = Array.from(wrapper.querySelectorAll('[data-divider-day]'));
+
+                if (shouldGroupMessages(previousMessageEl, newMessageEl)) {
+                    updateGroupedAvatar(previousMessageEl);
+                }
+
+                Array.from(wrapper.children).forEach((child) => {
+                    directMessageList.appendChild(child);
+                    if (child.matches && child.matches('.chat-message')) {
+                        child.querySelectorAll('[data-chat-image]').forEach(bindDirectMessageImageTrigger);
+                    }
+                });
+                if (newMessageEl) {
+                    dmMessages.push(newMessageEl);
+                }
+                newDividerEls.forEach((dividerEl) => dmDividers.push(dividerEl));
+                if (dmSearchBar) {
+                    if (!(typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio')) {
+                        filterDirectMessages(dmSearchBar.value);
+                    }
+                }
+                scrollDmToLatest();
+            });
+
+            directMessageForm.addEventListener('submit', (event) => {
+                if (directMessageForm.dataset.isSending === 'true') {
+                    event.preventDefault();
+                    return;
+                }
+                const file = directMessageAttachmentInput && directMessageAttachmentInput.files && directMessageAttachmentInput.files[0];
+                if (file) {
+                    event.preventDefault();
+                    const content = directMessageInput.value.trim();
+                    if (!content && !file) return;
+                    setDirectMessagePending(true);
+                    fetch(directMessageForm.action, {
+                        method: 'POST',
+                        body: new FormData(directMessageForm),
+                        headers: {'X-Requested-With': 'XMLHttpRequest'},
+                        credentials: 'same-origin',
+                    }).then((response) => {
+                        if (!response.ok) return;
+                        directMessageInput.value = '';
+                        if (directMessageAttachmentInput) {
+                            directMessageAttachmentInput.value = '';
+                        }
+                        updateDirectMessageCounter();
+                        renderDirectMessageAttachmentPills();
+                    }).finally(() => {
+                        setDirectMessagePending(false);
+                    });
+                    return;
+                }
+
+                event.preventDefault();
+                const content = directMessageInput.value.trim();
+                if (!content || socket.readyState !== WebSocket.OPEN) return;
+                socket.send(JSON.stringify({content}));
+                directMessageInput.value = '';
+                updateDirectMessageCounter();
+            });
+
+            directMessageInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    directMessageForm.requestSubmit();
+                }
+            });
+
+            directMessageInput.addEventListener('input', updateDirectMessageCounter);
+
+            if (directMessageAttachmentInput) {
+                directMessageAttachmentInput.addEventListener('change', () => {
+                    const file = directMessageAttachmentInput.files && directMessageAttachmentInput.files[0];
+                    if (file && file.size > MAX_DM_UPLOAD_BYTES) {
+                        alert('Please choose an image under 8 MB.');
+                        directMessageAttachmentInput.value = '';
+                    }
+                    renderDirectMessageAttachmentPills();
+                });
+            }
+
+            document.querySelectorAll('#directMessageList [data-chat-image]').forEach(bindDirectMessageImageTrigger);
+            if (directMessageImageClose) {
+                directMessageImageClose.addEventListener('click', () => {
+                    directMessageImageModal.classList.remove('is-open');
+                });
+            }
+            if (directMessageImageModal) {
+                directMessageImageModal.addEventListener('click', (event) => {
+                    if (event.target === directMessageImageModal) {
+                        directMessageImageModal.classList.remove('is-open');
+                    }
+                });
+            }
+
+            updateDirectMessageCounter();
+            renderDirectMessageAttachmentPills();
+            if (dmSearchBar) {
+                if (!(typeof window.getActiveGlobalSearchMode === 'function' && window.getActiveGlobalSearchMode()?.kind === 'cio')) {
+                    filterDirectMessages(dmSearchBar.value);
+                }
+            }
+            scrollDmToLatest();
+        }
+    </script>
+{% endblock %}

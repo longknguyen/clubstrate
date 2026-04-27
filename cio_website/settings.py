@@ -29,11 +29,30 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 
+def _split_env_list(value):
+    return [item.strip() for item in (value or '').split(',') if item.strip()]
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://project-a-08-f1babc20b53c.herokuapp.com',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+APP_URL = os.getenv('APP_URL')
+if APP_URL:
+    CSRF_TRUSTED_ORIGINS.append(APP_URL.rstrip('/'))
+
+CSRF_TRUSTED_ORIGINS.extend(_split_env_list(os.getenv('CSRF_TRUSTED_ORIGINS')))
+
+
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'users.apps.UsersConfig',
     'cios.apps.CiosConfig',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -76,12 +95,20 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'cios.context_processors.joined_cios',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'cio_website.wsgi.application'
+ASGI_APPLICATION = 'cio_website.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database
@@ -143,7 +170,8 @@ MEDIA_URL = '/media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = "users.CustomUser"
-LOGIN_REDIRECT_URL = '/users/profile/'
+LOGIN_URL = '/users/login/'
+LOGIN_REDIRECT_URL = '/home/'
 LOGOUT_REDIRECT_URL = '/'
 
 AUTHENTICATION_BACKENDS = [

@@ -15,6 +15,10 @@ body {
     min-height: 100vh;
 }
 
+.joined-cio-hidden {
+    display: none !important;
+}
+
 .construction-backdrop {
     position: fixed;
     inset: 0;
@@ -98,6 +102,39 @@ body {
     line-height: 1.5;
 }
 
+.friends-confetti-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1600;
+}
+
+.friends-confetti-layer.is-fullscreen {
+    position: fixed;
+}
+
+.friends-confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 14px;
+    border-radius: 3px;
+    opacity: 0.95;
+    animation: friendsConfettiFall 1200ms cubic-bezier(0.18, 0.8, 0.22, 1) forwards;
+    will-change: transform, opacity;
+}
+
+@keyframes friendsConfettiFall {
+    0% {
+        transform: translate3d(0, 0, 0) rotate(0deg);
+        opacity: 0.95;
+    }
+    100% {
+        transform: translate3d(var(--confetti-x, 0px), var(--confetti-y, 220px), 0) rotate(var(--confetti-rotate, 180deg));
+        opacity: 0;
+    }
+}
+
 .sidebar {
     width: 260px;
     padding: 24px;
@@ -114,6 +151,12 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+}
+
+.sidebar-top-copy {
+    min-width: 0;
+    flex: 1;
 }
 
 .sidebar-avatar {
@@ -126,12 +169,20 @@ body {
 .sidebar-top h3 {
     font-size: 16px;
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-top a {
     font-size: 13px;
     color: #666666;
     text-decoration: none;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .sidebar-search {

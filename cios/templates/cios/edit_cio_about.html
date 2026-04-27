@@ -1,44 +1,428 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}{{ cio.name }}{% endblock %}
+
+{% block page_title_block %}
+    <h1 class="page-title cio-page-title">{{ cio.name }}</h1>
+{% endblock %}
+
+{% block sidebar_menu %}
+    <a href="{% url 'discussions:edit_cio_about' cio.id %}" class="sidebar-item active">
+        <i data-lucide="building-2"></i>
+        <span>CIO Profile</span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <a href="{% url 'discussions:edit_cio_members' cio.id %}" class="sidebar-item">
+        <i data-lucide="users-round"></i>
+        <span>Members</span>
+    </a>
+    <a href="{% url 'discussions:edit_cio_requests' cio.id %}" class="sidebar-item">
+        <i data-lucide="inbox"></i>
+        <span>Requests</span>
+        <span class="cio-request-dot cio-request-count-badge {% if not pending_requests_count %}joined-cio-hidden{% endif %}" aria-hidden="true"></span>
+    </a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-danger-form">
+        <button type="button" class="sidebar-item sidebar-item-danger" data-delete-cio-open>
+            <i data-lucide="trash-2"></i>
+            <span>Delete CIO</span>
+        </button>
+    </div>
+{% endblock %}
 
 {% block content %}
-<div class="cio-detail-page">
-    <div class="cio-main-panel">
-
-        <div class="cio-about-header">
-            <h2>Edit About for {{ cio.name }}</h2>
+<div class="cio-form-shell">
+    <section class="cio-form-surface">
+        <div class="cio-form-header">
+            <div class="cio-form-header-top">
+                <div class="cio-form-header-copy">
+                    <div class="cio-form-title-row">
+                        <h1>CIO Profile</h1>
+                        <span class="cio-form-title-separator" aria-hidden="true">•</span>
+                        <span class="cio-form-eyebrow">CIO Settings</span>
+                    </div>
+                    <p>Update the CIO name, banner, icon, and profile details members see on the page.</p>
+                </div>
+                <a href="{% url 'cio_detail' cio.id %}" class="cio-settings-close" aria-label="Leave settings and return to {{ cio.name }}">
+                    <i data-lucide="x"></i>
+                </a>
+            </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="cio-form-body">
             {% csrf_token %}
 
-            <label>Description</label><br>
-            <textarea name="description" rows="4" style="width: 100%;">{{ cio.description }}</textarea><br><br>
-
-            <label>Dues</label><br>
-            <input type="text" name="dues" value="{{ cio.dues }}" style="width: 100%;"><br><br>
-
-            <label>Commitment Level</label><br>
-            <input type="text" name="commitment_level" value="{{ cio.commitment_level }}" style="width: 100%;"><br><br>
-
-            <label>Time Expectations</label><br>
-            <input type="text" name="time_expectations" value="{{ cio.time_expectations }}" style="width: 100%;"><br><br>
-
-            {% if cio.about_image %}
-                <label>Current Image</label><br>
-                <img src="{{ cio.about_image.url }}" width="200"><br><br>
-
-                <label>
-                    <input type="checkbox" name="remove_image">
-                    Remove image (will be removed on save)
-                </label><br><br>
+            {% if form.non_field_errors %}
+                <div class="cio-form-error-banner">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
             {% endif %}
 
-            <label>Upload New Image (optional)</label><br>
-            <input type="file" name="about_image"><br><br>
+            <div class="cio-form-section">
+                <label for="name">CIO Name</label>
+                {{ form.name }}
+                {% for error in form.name.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
 
-            <button type="submit">Save</button>
+            <div class="cio-media-grid">
+                <div class="cio-form-section">
+                    <label>Banner</label>
+                    <div class="cio-banner-upload-stack">
+                        <div
+                            class="cio-banner-preview"
+                            id="editCioBannerPreview"
+                            style="
+                                {% if cio.display_banner_kind == 'image' %}
+                                    background-image: url('{{ cio.display_banner_value }}');
+                                {% else %}
+                                    background: {{ cio.display_banner_value }};
+                                {% endif %}
+                            ">
+                        </div>
+
+                        <div class="cio-icon-upload-actions">
+                            <label for="editCioBannerInput" class="discussion-action-btn discussion-action-btn-primary">Choose Banner</label>
+                            <input type="file" id="editCioBannerInput" name="banner_image" accept="image/*" hidden>
+                            {{ form.remove_banner.as_hidden }}
+                            <button type="button" class="cio-media-toggle-btn" id="removeBannerButton">Remove Banner</button>
+                        </div>
+                    </div>
+                    {% for error in form.banner_image.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div class="cio-form-section">
+                    <label>Icon</label>
+                    <div class="cio-icon-upload-row cio-icon-upload-row-compact">
+                        <img
+                            src="{{ cio.display_icon_url }}"
+                            alt="{{ cio.name }} icon preview"
+                            class="cio-icon-preview"
+                            id="editCioIconPreview">
+
+                        <div class="cio-icon-upload-actions">
+                            <label for="editCioIconInput" class="discussion-action-btn discussion-action-btn-primary">Choose Icon</label>
+                            <input type="file" id="editCioIconInput" name="icon" accept="image/*" hidden>
+                            {{ form.remove_icon.as_hidden }}
+                            <button type="button" class="cio-media-toggle-btn" id="removeIconButton">Remove Icon</button>
+                        </div>
+                    </div>
+                    {% for error in form.icon.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="cio-form-section">
+                <label for="description">Description</label>
+                {{ form.description }}
+                {% for error in form.description.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-grid">
+                <div class="cio-form-section">
+                    <label for="dues">Dues</label>
+                    {{ form.dues }}
+                    {% for error in form.dues.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div class="cio-form-section">
+                    <label for="commitment_level">Commitment Level</label>
+                    {{ form.commitment_level }}
+                    {% for error in form.commitment_level.errors %}
+                        <p class="cio-field-error">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="cio-form-section">
+                <label for="time_expectations">Time Expectations</label>
+                {{ form.time_expectations }}
+                {% for error in form.time_expectations.errors %}
+                    <p class="cio-field-error">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <div class="cio-form-actions">
+                <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Save Changes</button>
+            </div>
         </form>
 
-    </div>
+        <div class="unsaved-changes-banner" id="cioUnsavedBanner" aria-live="polite">
+            <p>Careful! You have unsaved changes.</p>
+            <div class="unsaved-changes-actions">
+                <button type="button" class="unsaved-changes-reset" id="cioUnsavedReset">Reset</button>
+                <button type="button" class="unsaved-changes-save" id="cioUnsavedSave">Save</button>
+            </div>
+        </div>
+    </section>
 </div>
+
+{% include "cios/partials/delete_cio_modal.html" %}
+
+<script>
+    const cioEditForm = document.querySelector('.cio-form-body');
+    const editCioIconInput = document.getElementById('editCioIconInput');
+    const editCioIconPreview = document.getElementById('editCioIconPreview');
+    const removeIconCheckbox = document.querySelector('input[name="remove_icon"]');
+    const removeIconButton = document.getElementById('removeIconButton');
+    const defaultCioIcon = "{{ default_icon_data_uri|escapejs }}";
+    const originalCioIcon = "{{ cio.display_icon_url|escapejs }}";
+
+    const editCioBannerInput = document.getElementById('editCioBannerInput');
+    const editCioBannerPreview = document.getElementById('editCioBannerPreview');
+    const removeBannerCheckbox = document.querySelector('input[name="remove_banner"]');
+    const removeBannerButton = document.getElementById('removeBannerButton');
+    const defaultCioBanner = `{{ cio.default_gradient|escapejs }}`;
+    const originalCioBanner = `{% if cio.display_banner_kind == 'image' %}url('{{ cio.display_banner_value|escapejs }}'){% else %}{{ cio.display_banner_value|escapejs }}{% endif %}`;
+    const cioUnsavedBanner = document.getElementById('cioUnsavedBanner');
+    const cioUnsavedReset = document.getElementById('cioUnsavedReset');
+    const cioUnsavedSave = document.getElementById('cioUnsavedSave');
+
+    function isHiddenToggleEnabled(inputEl) {
+        return ['1', 'true', 'on', 'yes'].includes(String(inputEl?.value || '').toLowerCase());
+    }
+
+    function setHiddenToggleValue(inputEl, enabled) {
+        if (!inputEl) return;
+        inputEl.value = enabled ? 'true' : '';
+    }
+
+    function applyBannerPreviewImage(imageValue) {
+        if (!editCioBannerPreview) return;
+        editCioBannerPreview.style.background = 'none';
+        editCioBannerPreview.style.backgroundImage = imageValue;
+        editCioBannerPreview.style.backgroundSize = '100% 100%';
+        editCioBannerPreview.style.backgroundPosition = 'center';
+        editCioBannerPreview.style.backgroundRepeat = 'no-repeat';
+    }
+
+    function applyBannerPreviewBackground(backgroundValue) {
+        if (!editCioBannerPreview) return;
+        editCioBannerPreview.style.backgroundImage = 'none';
+        editCioBannerPreview.style.background = backgroundValue;
+        editCioBannerPreview.style.backgroundSize = '';
+        editCioBannerPreview.style.backgroundPosition = '';
+        editCioBannerPreview.style.backgroundRepeat = '';
+    }
+
+    function syncRemoveIconButton() {
+        if (!removeIconButton || !removeIconCheckbox) return;
+        const isEnabled = isHiddenToggleEnabled(removeIconCheckbox);
+        removeIconButton.textContent = isEnabled ? 'Using Default Icon' : 'Remove Icon';
+        removeIconButton.classList.toggle('is-active', isEnabled);
+    }
+
+    function syncRemoveBannerButton() {
+        if (!removeBannerButton || !removeBannerCheckbox) return;
+        const isEnabled = isHiddenToggleEnabled(removeBannerCheckbox);
+        removeBannerButton.textContent = isEnabled ? 'Using Default Banner' : 'Remove Banner';
+        removeBannerButton.classList.toggle('is-active', isEnabled);
+    }
+
+    function applyCioIconPreviewState() {
+        if (!editCioIconPreview) return;
+
+        if (editCioIconInput && editCioIconInput.files && editCioIconInput.files[0]) {
+            editCioIconPreview.src = URL.createObjectURL(editCioIconInput.files[0]);
+        } else {
+            editCioIconPreview.src = isHiddenToggleEnabled(removeIconCheckbox) ? defaultCioIcon : originalCioIcon;
+        }
+    }
+
+    function applyCioBannerPreviewState() {
+        if (!editCioBannerPreview) return;
+
+        if (editCioBannerInput && editCioBannerInput.files && editCioBannerInput.files[0]) {
+            applyBannerPreviewImage(`url(${URL.createObjectURL(editCioBannerInput.files[0])})`);
+            return;
+        }
+
+        const bannerValue = isHiddenToggleEnabled(removeBannerCheckbox) ? defaultCioBanner : originalCioBanner;
+        if (bannerValue.startsWith('url(')) {
+            applyBannerPreviewImage(bannerValue);
+        } else {
+            applyBannerPreviewBackground(bannerValue);
+        }
+    }
+
+    if (editCioIconInput && editCioIconPreview) {
+        editCioIconInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            if (removeIconCheckbox) {
+                setHiddenToggleValue(removeIconCheckbox, false);
+                syncRemoveIconButton();
+            }
+            applyCioIconPreviewState();
+        });
+    }
+
+    if (removeIconButton && removeIconCheckbox && editCioIconPreview) {
+        removeIconButton.addEventListener('click', () => {
+            setHiddenToggleValue(removeIconCheckbox, !isHiddenToggleEnabled(removeIconCheckbox));
+            if (editCioIconInput) {
+                editCioIconInput.value = '';
+            }
+            applyCioIconPreviewState();
+            syncRemoveIconButton();
+        });
+    }
+
+    if (editCioBannerInput && editCioBannerPreview) {
+        editCioBannerInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            if (removeBannerCheckbox) {
+                setHiddenToggleValue(removeBannerCheckbox, false);
+                syncRemoveBannerButton();
+            }
+            applyCioBannerPreviewState();
+        });
+    }
+
+    if (removeBannerButton && removeBannerCheckbox && editCioBannerPreview) {
+        removeBannerButton.addEventListener('click', () => {
+            setHiddenToggleValue(removeBannerCheckbox, !isHiddenToggleEnabled(removeBannerCheckbox));
+            if (editCioBannerInput) {
+                editCioBannerInput.value = '';
+            }
+            applyCioBannerPreviewState();
+            syncRemoveBannerButton();
+        });
+    }
+
+    function serializeCioFormState() {
+        if (!cioEditForm) return '';
+
+        const state = [];
+        Array.from(cioEditForm.elements).forEach((element) => {
+            if (!element.name) return;
+
+            if (element.type === 'file') {
+                state.push(`${element.name}:${element.files && element.files.length ? 'has-file' : 'no-file'}`);
+                return;
+            }
+
+            if (element.type === 'checkbox' || element.type === 'radio') {
+                state.push(`${element.name}:${element.checked}`);
+                return;
+            }
+
+            state.push(`${element.name}:${element.value}`);
+        });
+
+        return state.join('|');
+    }
+
+    let isCioDirty = false;
+    let isCioSubmitting = false;
+    const initialCioState = serializeCioFormState();
+
+    function setCioDirtyState(nextDirty) {
+        isCioDirty = nextDirty;
+        if (!cioUnsavedBanner) return;
+        cioUnsavedBanner.classList.toggle('is-visible', nextDirty);
+        if (!nextDirty) {
+            cioUnsavedBanner.classList.remove('is-warning');
+        }
+    }
+
+    function syncCioDirtyState() {
+        setCioDirtyState(serializeCioFormState() !== initialCioState);
+    }
+
+    function flashCioUnsavedWarning() {
+        if (!cioUnsavedBanner) return;
+        cioUnsavedBanner.classList.add('is-visible', 'is-warning');
+        window.clearTimeout(cioUnsavedBanner._warningTimeout);
+        cioUnsavedBanner._warningTimeout = window.setTimeout(() => {
+            cioUnsavedBanner.classList.remove('is-warning');
+        }, 1000);
+    }
+
+    if (cioEditForm) {
+        cioEditForm.addEventListener('input', syncCioDirtyState);
+        cioEditForm.addEventListener('change', syncCioDirtyState);
+        cioEditForm.addEventListener('submit', () => {
+            isCioSubmitting = true;
+            setCioDirtyState(false);
+        });
+    }
+
+    if (cioUnsavedReset && cioEditForm) {
+        cioUnsavedReset.addEventListener('click', () => {
+            cioEditForm.reset();
+            applyCioIconPreviewState();
+            applyCioBannerPreviewState();
+            syncRemoveIconButton();
+            syncRemoveBannerButton();
+            syncCioDirtyState();
+        });
+    }
+
+    if (cioUnsavedSave && cioEditForm) {
+        cioUnsavedSave.addEventListener('click', () => {
+            cioEditForm.requestSubmit();
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        if (!isCioDirty || isCioSubmitting) return;
+
+        const targetLink = event.target.closest('a[href]');
+        if (!targetLink) return;
+        if (targetLink.target === '_blank' || targetLink.hasAttribute('download')) return;
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const nextUrl = new URL(targetLink.href, window.location.origin);
+        if (nextUrl.href === window.location.href || nextUrl.hash && nextUrl.pathname === window.location.pathname && nextUrl.search === window.location.search) {
+            return;
+        }
+
+        event.preventDefault();
+        flashCioUnsavedWarning();
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!isCioDirty || isCioSubmitting) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
+
+    applyCioIconPreviewState();
+    applyCioBannerPreviewState();
+    syncRemoveIconButton();
+    syncRemoveBannerButton();
+    syncCioDirtyState();
+
+    const cioRequestBadges = Array.from(document.querySelectorAll('.cio-request-count-badge'));
+    const cioRequestProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioRequestSocket = new WebSocket(`${cioRequestProtocol}://${window.location.host}/ws/cios/requests/`);
+    cioRequestSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+        if (payload.type !== 'request_created' && payload.type !== 'request_removed') {
+            return;
+        }
+        const nextCount = Number(payload.pending_requests_count || 0);
+        cioRequestBadges.forEach((badgeEl) => {
+            badgeEl.classList.toggle('joined-cio-hidden', nextCount === 0);
+        });
+    });
+</script>
 {% endblock %}

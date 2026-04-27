@@ -1,0 +1,36 @@
+<article class="friends-list-row friends-friend-row" data-friend-row data-friend-id="{{ friend.id }}">
+    <img src="{{ friend.image_url }}" alt="{{ friend.display_name }}" class="friends-list-avatar">
+    <div class="friends-list-copy">
+        <span class="friends-list-name">{{ friend.display_name }}</span>
+        <span class="friends-list-username">@{{ friend.username }}</span>
+    </div>
+    <div class="friends-friend-actions">
+        <a href="{% url 'friends' %}?dm={{ friend.id }}"
+           class="friends-row-icon-btn tooltip-bottom"
+           data-tooltip="Message"
+           aria-label="Message {{ friend.display_name }}">
+            <i data-lucide="message-circle"></i>
+        </a>
+
+        <div class="friends-row-menu-shell">
+            <button type="button"
+                    class="friends-row-icon-btn tooltip-bottom friends-row-menu-trigger"
+                    data-tooltip="More"
+                    aria-label="More options for {{ friend.display_name }}"
+                    data-friend-menu-trigger>
+                <i data-lucide="more-vertical"></i>
+            </button>
+            <div class="friends-row-menu joined-cio-hidden" data-friend-menu>
+                <form method="POST"
+                      action="{% url 'remove_friend' friend.id %}"
+                      class="friends-row-menu-form"
+                      data-remove-friend-form>
+                    {% csrf_token %}
+                    <button type="submit" class="friends-row-menu-item friends-row-menu-item-danger">
+                        Remove friend
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</article>

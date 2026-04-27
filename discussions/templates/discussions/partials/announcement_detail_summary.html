@@ -1,0 +1,14 @@
+<section class="announcement-thread-summary-card" id="announcementSummaryCard" data-announcement-summary-card>
+    <div class="announcement-thread-summary-copy">
+        <h2>{{ announcement.title|default:"Untitled announcement" }}</h2>
+        {% if announcement_tags_list %}
+            <div class="announcement-tag-row announcement-tag-row-detail">
+                {% for tag in announcement_tags_list %}
+                    <span class="announcement-tag-pill">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <p class="announcement-thread-summary-body">{{ announcement.content|default:"No description yet." }}</p>
+    </div>
+    <div class="announcement-thread-summary-divider" aria-hidden="true"></div>
+</section>

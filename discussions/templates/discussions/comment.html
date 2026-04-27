@@ -1,63 +1,50 @@
-<div style="margin-left: {{ level }}px; border-left: 2px solid #eee; padding-left: 10px; margin-top: 10px;">
-
-    <div class="article-metadata">
+<article class="discussion-comment-card {% if level == 0 %}discussion-comment-card-root{% endif %}"
+         style="margin-left: {{ level }}px;">
+    <div class="discussion-comment-header">
         <strong>{{ comment.author.username }}</strong>
-        <small> • <span class="comment-timestamp" data-datetime="{{ comment.created_at|date:'c' }}"></span></small>
+        <span class="discussion-meta-dot">•</span>
+        <span class="comment-timestamp" data-datetime="{{ comment.created_at|date:'c' }}"></span>
     </div>
 
-    <p>{{ comment.content }}</p>
+    <div class="discussion-message-bubble">
+        <p class="discussion-comment-body">{{ comment.content }}</p>
 
-    {% if comment.image %}
-        <img src="{{ comment.image.url }}" style="max-width: 200px;">
-    {% endif %}
+        {% if comment.image %}
+            <img src="{{ comment.image.url }}" alt="Comment image" class="discussion-comment-image">
+        {% endif %}
+    </div>
 
-    <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
-        {% csrf_token %}
-        <button class="btn btn-sm btn-outline-secondary">
-            👍 {{ comment.likes.count }}
-        </button>
-    </form>
+    <div class="discussion-comment-actions">
+        <form method="POST" action="{% url 'discussions:toggle_comment_like' comment.id %}">
+            {% csrf_token %}
+            <button type="submit" class="discussion-like-btn discussion-like-btn-secondary">
+                <span>Like</span>
+                <span class="discussion-like-count">{{ comment.likes.count }}</span>
+            </button>
+        </form>
+    </div>
+
     {% if role != "viewer" %}
         <form method="POST" enctype="multipart/form-data"
               action="{% url 'discussions:create_comment' comment.post.id %}"
-              onsubmit="return validateReplyForm(this);">
-
+              onsubmit="return validateReplyForm(this);"
+              class="discussion-form discussion-reply-form">
             {% csrf_token %}
             <input type="hidden" name="parent_id" value="{{ comment.id }}">
 
-            <textarea name="content" placeholder="Reply..." class="form-control mb-1"></textarea>
-            <input type="file" name="image" class="form-control mb-1" accept="image/*">
-
-            <button type="submit" class="btn btn-sm btn-outline-secondary">Reply</button>
+            <textarea name="content" placeholder="Reply..." class="discussion-textarea"></textarea>
+            <div class="discussion-form-footer">
+                <input type="file" name="image" class="discussion-file-input" accept="image/*">
+                <button type="submit" class="discussion-action-btn discussion-action-btn-subtle">Reply</button>
+            </div>
         </form>
     {% endif %}
-    {% for reply in comment.replies.all %}
-        {% include "discussions/comment.html" with comment=reply level=level|add:25 %}
-    {% endfor %}
 
-    <script>
-        document.querySelectorAll('.comment-timestamp').forEach(el => {
-            const dt = new Date(el.dataset.datetime);
-            el.textContent = dt.toLocaleString(undefined, {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-        });
-
-        function validateReplyForm(form) {
-            const text = form.querySelector('textarea[name="content"]').value.trim();
-            const file = form.querySelector('input[name="image"]').files.length;
-
-            if (!text && !file) {
-                alert("Please enter a reply or select an image.");
-                return false;
-            }
-            return true;
-        }
-    </script>
-
-</div>
+    {% if comment.replies.all %}
+        <div class="discussion-replies">
+            {% for reply in comment.replies.all %}
+                {% include "discussions/comment.html" with comment=reply level=level|add:24 role=role %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</article>

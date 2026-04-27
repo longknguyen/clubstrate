@@ -10,7 +10,7 @@
 
 {% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en-GB">
 <head>
 
     <!-- Required meta tags -->
@@ -23,78 +23,699 @@
           crossorigin="anonymous">
 
     <!-- Your project CSS -->
-    <link rel="stylesheet" type="text/css" href="{% static 'users/main.css' %}">
-    <link rel="stylesheet" href="{% static 'cios/landing.css' %}">
+    <link rel="stylesheet" href="{% static 'users/main.css' %}">
+    <link rel="stylesheet" href="{% static 'cios/home.css' %}">
+    <link rel="stylesheet" href="{% static 'cios/cio_detail.css' %}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <title></title>
 
 </head>
 <body>
-<header class="site-header">
-    <nav class="navbar navbar-expand-md navbar-dark">
-        <div class="container">
+<div class="app-layout {% if request.resolver_match.url_name == 'home' %}explore-page{% endif %}">
 
-            {% if user.is_authenticated and user.profile.user_type == "user_admin" %}
-                <div class="navbar-brand mr-4">
-                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
-                </div>
-            {% else %}
-                <a class="navbar-brand mr-4" href="{% url 'home' %}">
-                    <img src="{% static 'users/logo.png' %}" class="nav-logo">
-                </a>
-            {% endif %}
+    <div class="top-bar">
 
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle"
-                    aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarToggle">
-
-                <!-- Left side -->
-                <div class="navbar-nav mr-auto">
-                    {% if user.is_authenticated and user.profile.user_type != "user_admin" %}
-                        <a class="nav-item nav-link" href="{% url 'home' %}">Home</a>
-                        <a class="nav-item nav-link" href="{% url 'create_cio' %}">Create CIO</a>
-                    {% endif %}
-                </div>
-
-                <!-- Right side -->
-                <div class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        {% if user.profile.user_type != "user_admin" %}
-                            <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
-                        {% endif %}
-                    {% else %}
-                        <a class="nav-item nav-link" href="{% url 'register' %}">Sign up</a>
-                        <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
-                    {% endif %}
-                </div>
-
-            </div>
+        <div class="top-left">
+            {% block page_title_block %}
+                <h1 class="page-title">{% block page_title %}Explore{% endblock %}</h1>
+            {% endblock %}
         </div>
-    </nav>
-</header>
 
-<main role="main">
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
+        {% block top_center %}
+            <div class="cio-scroll">
+                <div class="joined-cio-strip" id="joinedCioStrip" data-page-size="5">
+                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioPrev"
+                            aria-label="Previous CIOs">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <div class="joined-cio-track" id="joinedCioTrack">
+                        {% for cio in joined_cios %}
+                            <a href="{% url 'cio_detail' cio.id %}"
+                               class="joined-cio-link tooltip-bottom"
+                               data-tooltip="{{ cio.name }}"
+                               data-joined-cio-index="{{ forloop.counter0 }}">
+                                <img src="{{ cio.display_icon_url }}"
+                                     alt="{{ cio.name }} icon"
+                                     class="joined-cio-icon">
+                            </a>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="joined-cio-arrow joined-cio-hidden" id="joinedCioNext"
+                            aria-label="Next CIOs">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                    <span id="topNavSubsectionLabel" class="top-subsection-label joined-cio-hidden"></span>
+                </div>
             </div>
+        {% endblock %}
+
+        <div class="top-nav-actions">
+            <a href="{% url 'friends' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'friends' %}active{% endif %}"
+               data-tooltip="Friends">
+                <i data-lucide="users"></i>
+                <span class="top-nav-dot {% if pending_friend_requests_count == 0 %}joined-cio-hidden{% endif %}" id="topNavFriendsDot" aria-hidden="true"></span>
+            </a>
+
+            <a href="{% url 'home' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+               data-tooltip="Explore">
+                <i data-lucide="compass"></i>
+            </a>
+
+            <a href="{% url 'create_cio' %}"
+               class="nav-btn tooltip-bottom {% if request.resolver_match.url_name == 'create_cio' %}active{% endif %}"
+               data-tooltip="Create a CIO">
+                <i data-lucide="plus"></i>
+            </a>
+        </div>
+
+        {% block top_right %}
+            <div class="top-right search-shell">
+                <div class="search-input-shell" id="globalSearchInputShell">
+                    <button type="button" class="search-filter-pill joined-cio-hidden" id="globalSearchFilterPill">
+                        <span id="globalSearchFilterPillLabel">to:</span>
+                        <span id="globalSearchFilterPillValue" class="joined-cio-hidden"></span>
+                        <i data-lucide="x"></i>
+                    </button>
+                    <input type="text" placeholder="Search..." class="search-bar">
+                </div>
+                <div id="globalSearchPopover" class="global-search-popover joined-cio-hidden"></div>
+                <div id="globalSearchResults" class="global-search-results joined-cio-hidden"></div>
+            </div>
+        {% endblock %}
+
+    </div>
+
+    <div class="main-container">
+
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+                {% block sidebar_menu %}
+                    <a href="#" class="sidebar-item active">
+                        <i data-lucide="building-2"></i>
+                        <span>CIOs</span>
+                    </a>
+                {% endblock %}
+            </div>
+
+            <div class="mini-profile" id="miniProfileShell">
+                <div class="mini-profile-card joined-cio-hidden" id="miniProfileCard">
+                    <div class="mini-profile-card-banner"
+                         style="background: {{ user.banner_colour|default:'#111827' }};"></div>
+                    <div class="mini-profile-card-body">
+                        <img src="{{ user.profile.image.url }}" class="mini-profile-card-avatar"
+                             alt="{{ user.username }} profile image">
+                        <div class="mini-profile-card-copy">
+                            <span class="mini-profile-card-name">{% if user.first_name or user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}{% else %}
+                                {{ user.username }}{% endif %}</span>
+                            <div class="mini-profile-card-meta">
+                                <span>@{{ user.username }}</span>
+                                <span class="mini-profile-card-separator" aria-hidden="true">•</span>
+                                <span>{{ user.pronouns|default:"No pronouns listed" }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'profile_edit' %}" class="mini-profile-card-edit">
+                            <i data-lucide="pencil"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </div>
+                </div>
+                <button type="button" class="mini-profile-trigger" id="miniProfileTrigger" aria-expanded="false"
+                        aria-controls="miniProfileCard">
+                    <img src="{{ user.profile.image.url }}" class="profile-pic" alt="{{ user.username }} profile image">
+                    <div class="profile-info">
+                        <span class="name">{% if user.first_name or user.last_name %}{{ user.first_name }}
+                            {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</span>
+                        <span class="profile-subline">
+                            <span class="profile-subline-item profile-subline-pronouns">{{ user.pronouns|default:"No pronouns listed" }}</span>
+                            <span class="profile-subline-item profile-subline-username">@{{ user.username }}</span>
+                        </span>
+                    </div>
+                </button>
+                <a href="{% url 'profile' %}" class="settings-icon" data-tooltip="User Settings">
+                    <i data-lucide="settings"></i>
+                </a>
+            </div>
+        </aside>
+
+        <main class="content-panel">
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+</div>
+
+<script>
+    window.cioData = {
+        {% for cio in cios %}
+            "{{ cio.id }}": {
+                name: "{{ cio.name|escapejs }}",
+                description: "{{ cio.description|escapejs }}",
+                members: "{{ cio.member_count }}",
+                created: "{{ cio.created_at|date:'Y M' }}",
+                icon: "{{ cio.display_icon_url|escapejs }}",
+                bannerType: "{{ cio.display_banner_kind|escapejs }}",
+                bannerGradient: "{{ cio.display_banner_value|escapejs }}",
+                banner: "{{ cio.display_banner_value|escapejs }}",
+                joined: {{ cio.is_joined|yesno:"true,false" }},
+                pendingRequest: {{ cio.has_pending_request|yesno:"true,false" }},
+                requestUrl: "{% url 'request-to-join' cio.id %}",
+                cancelRequestUrl: "{% url 'cancel-join-request' cio.id %}",
+                detailUrl: "{% url 'cio_detail' cio.id %}"
+            },
         {% endfor %}
-    {% endif %}
+    };
+    window.joinedCioSearchData = [
+        {% for cio in joined_cios %}
+            {
+                id: "{{ cio.id }}",
+                name: "{{ cio.name|escapejs }}",
+                icon: "{{ cio.display_icon_url|escapejs }}",
+                url: "{% url 'cio_detail' cio.id %}"
+            },
+        {% endfor %}
+    ];
+    window.getRecentCioVisits = function getRecentCioVisits() {
+        try {
+            return JSON.parse(window.localStorage.getItem('recentCioVisits') || '[]');
+        } catch (error) {
+            return [];
+        }
+    };
+    window.recordRecentCioVisit = function recordRecentCioVisit(cioId) {
+        if (!cioId) return;
+        const normalizedId = String(cioId);
+        const nextVisits = window.getRecentCioVisits().filter((item) => String(item) !== normalizedId);
+        nextVisits.unshift(normalizedId);
+        window.localStorage.setItem('recentCioVisits', JSON.stringify(nextVisits.slice(0, 12)));
+    };
+    window.launchSuccessConfetti = function launchSuccessConfetti() {
+        const targetPanel = document.querySelector('.content-panel') || document.body;
+        const panelHeight = Math.max(targetPanel.clientHeight || 0, window.innerHeight || 0);
+        const panelWidth = Math.max(targetPanel.clientWidth || 0, window.innerWidth || 0);
+        const layer = document.createElement('div');
+        layer.className = 'friends-confetti-layer';
 
-    {% block content %}{% endblock %}
-</main>
+        const colors = ['#16a34a', '#22c55e', '#86efac', '#bbf7d0', '#facc15'];
+        for (let index = 0; index < 88; index += 1) {
+            const piece = document.createElement('span');
+            piece.className = 'friends-confetti-piece';
+            const size = 9 + Math.random() * 11;
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.top = '-24px';
+            piece.style.width = `${size}px`;
+            piece.style.height = `${Math.max(12, size * 1.45)}px`;
+            piece.style.background = colors[index % colors.length];
+            piece.style.setProperty('--confetti-x', `${(Math.random() - 0.5) * Math.min(280, panelWidth * 0.28)}px`);
+            piece.style.setProperty('--confetti-y', `${panelHeight + 120 + Math.random() * 140}px`);
+            piece.style.setProperty('--confetti-rotate', `${260 + Math.random() * 520}deg`);
+            piece.style.animationDelay = `${Math.random() * 220}ms`;
+            piece.style.animationDuration = `${1500 + Math.random() * 650}ms`;
+            layer.appendChild(piece);
+        }
 
-<!-- Optional JavaScript -->
-<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-        integrity="sha384-KJ3o2DKtIkvYIK3UENzm7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-        crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-        crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-        integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-        crossorigin="anonymous"></script>
+        targetPanel.appendChild(layer);
+        window.setTimeout(() => layer.remove(), 2600);
+    };
+    window.launchCioJoinConfetti = window.launchSuccessConfetti;
+    window.addEventListener("DOMContentLoaded", () => {
+        const joinedCioStrip = document.getElementById("joinedCioStrip");
+        const joinedCioLinks = Array.from(document.querySelectorAll("[data-joined-cio-index]"));
+        const joinedCioPrev = document.getElementById("joinedCioPrev");
+        const joinedCioNext = document.getElementById("joinedCioNext");
+        const miniProfileShell = document.getElementById("miniProfileShell");
+        const miniProfileTrigger = document.getElementById("miniProfileTrigger");
+        const miniProfileCard = document.getElementById("miniProfileCard");
+        const topNavFriendsDot = document.getElementById("topNavFriendsDot");
+        const searchInput = document.querySelector(".search-bar");
+        const searchInputShell = document.getElementById("globalSearchInputShell");
+        const searchFilterPill = document.getElementById("globalSearchFilterPill");
+        const searchFilterPillLabel = document.getElementById("globalSearchFilterPillLabel");
+        const searchFilterPillValue = document.getElementById("globalSearchFilterPillValue");
+        const searchPopover = document.getElementById("globalSearchPopover");
+        let miniProfileHideTimeout = null;
+        let activeGlobalSearchMode = null;
+        let defaultSearchPlaceholder = searchInput ? searchInput.placeholder : "Search...";
+        let searchPopoverHideTimeout = null;
+
+        window.getActiveGlobalSearchMode = function getActiveGlobalSearchMode() {
+            return activeGlobalSearchMode;
+        };
+
+        function notifyGlobalSearchModeChange() {
+            window.dispatchEvent(new CustomEvent("globalsearchmodechange", {detail: {mode: activeGlobalSearchMode}}));
+        }
+
+        function showSearchPopover() {
+            if (!searchPopover) return;
+            if (searchPopoverHideTimeout) {
+                window.clearTimeout(searchPopoverHideTimeout);
+                searchPopoverHideTimeout = null;
+            }
+            searchPopover.classList.remove("joined-cio-hidden");
+            searchPopover.classList.remove("is-closing", "is-swapping");
+            window.requestAnimationFrame(() => {
+                searchPopover.classList.add("is-open");
+            });
+        }
+
+        function hideSearchPopover() {
+            if (!searchPopover) return;
+            if (searchPopoverHideTimeout) {
+                window.clearTimeout(searchPopoverHideTimeout);
+            }
+            searchPopover.classList.remove("is-open", "is-swapping");
+            searchPopover.classList.add("is-closing");
+            searchPopoverHideTimeout = window.setTimeout(() => {
+                searchPopover.classList.add("joined-cio-hidden");
+                searchPopover.classList.remove("is-closing");
+                searchPopoverHideTimeout = null;
+            }, 180);
+        }
+
+        function transitionSearchPopover(renderFn) {
+            if (!searchPopover) return;
+            if (searchPopover.classList.contains("joined-cio-hidden")) {
+                renderFn();
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+                showSearchPopover();
+                return;
+            }
+
+            searchPopover.classList.remove("is-open");
+            searchPopover.classList.add("is-swapping");
+            window.setTimeout(() => {
+                renderFn();
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+                window.requestAnimationFrame(() => {
+                    searchPopover.classList.remove("is-swapping");
+                    searchPopover.classList.add("is-open");
+                });
+            }, 90);
+        }
+
+        function getJoinedCioSuggestions(queryValue) {
+            const joinedCios = Array.isArray(window.joinedCioSearchData) ? window.joinedCioSearchData : [];
+            const normalizedQuery = (queryValue || "").trim().toLowerCase();
+
+            if (normalizedQuery) {
+                return joinedCios.filter((cio) => cio.name.toLowerCase().includes(normalizedQuery));
+            }
+
+            const recentIds = window.getRecentCioVisits();
+            const recentCios = recentIds
+                .map((recentId) => joinedCios.find((cio) => String(cio.id) === String(recentId)))
+                .filter(Boolean);
+
+            if (recentCios.length) {
+                return recentCios.slice(0, 3);
+            }
+
+            return joinedCios.slice(0, 3);
+        }
+
+        function setGlobalSearchMode(modeConfig) {
+            activeGlobalSearchMode = modeConfig;
+            if (searchFilterPill) {
+                searchFilterPill.classList.remove("joined-cio-hidden");
+            }
+            if (searchInputShell) {
+                searchInputShell.classList.add("has-filter");
+            }
+            if (searchFilterPillLabel) {
+                searchFilterPillLabel.textContent = modeConfig.label || "";
+            }
+            if (searchFilterPillValue) {
+                const rawValue = modeConfig.value || "";
+                const displayValue = rawValue.length > 6 ? `${rawValue.slice(0, 6)}...` : rawValue;
+                searchFilterPillValue.textContent = displayValue;
+                searchFilterPillValue.classList.toggle("joined-cio-hidden", !displayValue);
+            }
+            defaultSearchPlaceholder = searchInput.placeholder || defaultSearchPlaceholder;
+            searchInput.placeholder = modeConfig.placeholder || "Search...";
+            searchInput.value = "";
+            notifyGlobalSearchModeChange();
+        }
+
+        function getNormalSearchOptions() {
+            const options = [{id: "cio", icon: "building-2", label: "Go to a specific CIO"}];
+            if (typeof window.getGlobalSearchFilterOptions === "function") {
+                return options.concat(window.getGlobalSearchFilterOptions() || []);
+            }
+            return options;
+        }
+
+        function renderSearchModeSuggestions(modeConfig) {
+            if (!searchPopover || !searchInput) return;
+
+            if (modeConfig.kind === "cio") {
+                const suggestions = getJoinedCioSuggestions(searchInput.value);
+                const sectionLabel = (searchInput.value || "").trim() ? "Matching CIOs" : "Recently visited";
+
+                if (!suggestions.length) {
+                    transitionSearchPopover(() => {
+                        searchPopover.innerHTML = `
+                        <div class="global-search-empty">
+                            <p>No joined CIOs match that search.</p>
+                        </div>
+                    `;
+                    });
+                    return;
+                }
+
+                transitionSearchPopover(() => {
+                    searchPopover.innerHTML = `
+                    <div class="global-search-section">
+                        <span class="global-search-section-label">${sectionLabel}</span>
+                        <div class="global-search-option-list">
+                            ${suggestions.map((cio) => `
+                                <button type="button" class="global-search-option global-search-cio-option" data-search-cio-id="${cio.id}" data-search-cio-url="${cio.url}">
+                                    <img src="${cio.icon}" alt="${cio.name} icon" class="global-search-cio-option-icon">
+                                    <span>${cio.name}</span>
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+                `;
+
+                searchPopover.querySelectorAll("[data-search-cio-url]").forEach((buttonEl) => {
+                    buttonEl.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        const cioId = buttonEl.dataset.searchCioId;
+                        const cioUrl = buttonEl.dataset.searchCioUrl;
+                        window.recordRecentCioVisit(cioId);
+                        if (cioUrl) {
+                            window.location.href = cioUrl;
+                        }
+                    });
+                });
+                });
+                return;
+            }
+
+            if (modeConfig.kind === "user" && typeof window.getGlobalSearchFilterSuggestions === "function") {
+                const suggestions = window.getGlobalSearchFilterSuggestions(searchInput.value, modeConfig) || [];
+                const sectionLabel = (searchInput.value || "").trim() ? "Matching people" : "People in this CIO";
+
+                if (!suggestions.length) {
+                    transitionSearchPopover(() => {
+                        searchPopover.innerHTML = `
+                        <div class="global-search-empty">
+                            <p>No people match that search.</p>
+                        </div>
+                    `;
+                    });
+                    return;
+                }
+
+                transitionSearchPopover(() => {
+                    searchPopover.innerHTML = `
+                    <div class="global-search-section">
+                        <span class="global-search-section-label">${sectionLabel}</span>
+                        <div class="global-search-option-list">
+                            ${suggestions.map((userOption) => `
+                                <button type="button" class="global-search-option" data-search-user-value="${String(userOption.value).replace(/"/g, '&quot;')}" data-search-user-label="${String(userOption.label).replace(/"/g, '&quot;')}">
+                                    <i data-lucide="user"></i>
+                                    <span>${userOption.label}</span>
+                                </button>
+                            `).join("")}
+                        </div>
+                    </div>
+                `;
+
+                searchPopover.querySelectorAll("[data-search-user-value]").forEach((buttonEl) => {
+                    buttonEl.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        setGlobalSearchMode({
+                            kind: "user",
+                            id: modeConfig.id,
+                            label: "from:",
+                            value: buttonEl.dataset.searchUserLabel || "",
+                            queryValue: buttonEl.dataset.searchUserValue || "",
+                            placeholder: "Search within that person's messages...",
+                        });
+                        hideSearchPopover();
+                    });
+                });
+                });
+            }
+        }
+
+        function renderGlobalSearchPopover() {
+            if (!searchPopover || !searchInput) return;
+
+            if (activeGlobalSearchMode) {
+                renderSearchModeSuggestions(activeGlobalSearchMode);
+                return;
+            }
+
+            transitionSearchPopover(() => {
+                searchPopover.innerHTML = `
+                <div class="global-search-section">
+                    <div class="global-search-option-list">
+                        ${getNormalSearchOptions().map((option) => `
+                            <button type="button" class="global-search-option" data-global-search-option="${option.id}">
+                                <i data-lucide="${option.icon}"></i>
+                                <span>${option.label}</span>
+                            </button>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+            searchPopover.querySelectorAll("[data-global-search-option]").forEach((buttonEl) => {
+                buttonEl.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    const optionId = buttonEl.dataset.globalSearchOption;
+
+                    if (optionId === "cio") {
+                        setGlobalSearchMode({
+                            kind: "cio",
+                            id: "cio",
+                            label: "to:",
+                            value: "",
+                            placeholder: "Search joined CIOs...",
+                        });
+                        renderGlobalSearchPopover();
+                        searchInput.focus();
+                        return;
+                    }
+
+                    if (typeof window.applyGlobalSearchFilterOption === "function") {
+                        window.applyGlobalSearchFilterOption(optionId, {
+                            setGlobalSearchMode,
+                            renderGlobalSearchPopover,
+                            hideSearchPopover,
+                            searchInput,
+                        });
+                    }
+                });
+            });
+            });
+        }
+
+        function clearGlobalSearchMode(reopenPopover = false) {
+            activeGlobalSearchMode = null;
+            if (searchFilterPill) {
+                searchFilterPill.classList.add("joined-cio-hidden");
+            }
+            if (searchInputShell) {
+                searchInputShell.classList.remove("has-filter");
+            }
+            if (searchFilterPillValue) {
+                searchFilterPillValue.textContent = "";
+                searchFilterPillValue.classList.add("joined-cio-hidden");
+            }
+            if (searchInput) {
+                searchInput.value = "";
+                searchInput.placeholder = defaultSearchPlaceholder || "Search...";
+            }
+            notifyGlobalSearchModeChange();
+            if (reopenPopover) {
+                renderGlobalSearchPopover();
+                showSearchPopover();
+            } else {
+                hideSearchPopover();
+            }
+        }
+
+        if (joinedCioStrip && joinedCioPrev && joinedCioNext && joinedCioLinks.length > 0) {
+            const pageSize = Number(joinedCioStrip.dataset.pageSize || 5);
+            const totalPages = Math.ceil(joinedCioLinks.length / pageSize);
+            let currentPage = 0;
+
+            const renderJoinedCioPage = () => {
+                const start = currentPage * pageSize;
+                const end = start + pageSize;
+
+                joinedCioLinks.forEach((linkEl, idx) => {
+                    const inPage = idx >= start && idx < end;
+                    linkEl.classList.toggle("joined-cio-hidden", !inPage);
+                });
+
+                joinedCioPrev.classList.toggle("joined-cio-hidden", currentPage === 0);
+                joinedCioNext.classList.toggle("joined-cio-hidden", currentPage >= totalPages - 1);
+            };
+
+            if (totalPages > 1) {
+                joinedCioPrev.addEventListener("click", () => {
+                    currentPage = Math.max(0, currentPage - 1);
+                    renderJoinedCioPage();
+                });
+                joinedCioNext.addEventListener("click", () => {
+                    currentPage = Math.min(totalPages - 1, currentPage + 1);
+                    renderJoinedCioPage();
+                });
+            }
+
+            renderJoinedCioPage();
+        }
+
+        joinedCioLinks.forEach((linkEl) => {
+            linkEl.addEventListener("click", () => {
+                const href = linkEl.getAttribute("href") || "";
+                const matchedCio = (window.joinedCioSearchData || []).find((cio) => cio.url === href);
+                if (matchedCio) {
+                    window.recordRecentCioVisit(matchedCio.id);
+                }
+            });
+        });
+
+        if (searchInput && searchPopover) {
+            searchInput.addEventListener("focus", () => {
+                renderGlobalSearchPopover();
+            });
+
+            searchInput.addEventListener("input", () => {
+                if (activeGlobalSearchMode && activeGlobalSearchMode.kind === "cio") {
+                    renderGlobalSearchPopover();
+                    return;
+                }
+                if ((searchInput.value || "").trim()) {
+                    hideSearchPopover();
+                    return;
+                }
+                renderGlobalSearchPopover();
+            });
+
+            searchInput.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    if (activeGlobalSearchMode) {
+                        clearGlobalSearchMode(true);
+                    } else {
+                        hideSearchPopover();
+                    }
+                }
+
+                if (event.key === "Backspace" && activeGlobalSearchMode && !searchInput.value) {
+                    clearGlobalSearchMode(true);
+                }
+
+                if (event.key === "Enter" && activeGlobalSearchMode && activeGlobalSearchMode.kind === "cio") {
+                    const [firstMatch] = getJoinedCioSuggestions(searchInput.value);
+                    if (firstMatch) {
+                        event.preventDefault();
+                        window.recordRecentCioVisit(firstMatch.id);
+                        window.location.href = firstMatch.url;
+                    }
+                }
+            });
+        }
+
+        if (searchFilterPill) {
+            searchFilterPill.addEventListener("click", () => {
+                clearGlobalSearchMode(true);
+                if (searchInput) {
+                    searchInput.focus();
+                }
+            });
+        }
+
+        document.addEventListener("click", (event) => {
+            if (!event.target.closest(".search-shell")) {
+                hideSearchPopover();
+            }
+        });
+
+        if (miniProfileShell && miniProfileTrigger && miniProfileCard) {
+            const closeMiniProfileCard = () => {
+                miniProfileCard.classList.remove("is-open");
+                miniProfileTrigger.setAttribute("aria-expanded", "false");
+                if (miniProfileHideTimeout) {
+                    window.clearTimeout(miniProfileHideTimeout);
+                }
+                miniProfileHideTimeout = window.setTimeout(() => {
+                    miniProfileCard.classList.add("joined-cio-hidden");
+                    miniProfileHideTimeout = null;
+                }, 180);
+            };
+
+            const openMiniProfileCard = () => {
+                if (miniProfileHideTimeout) {
+                    window.clearTimeout(miniProfileHideTimeout);
+                    miniProfileHideTimeout = null;
+                }
+                miniProfileCard.classList.remove("joined-cio-hidden");
+                window.requestAnimationFrame(() => {
+                    miniProfileCard.classList.add("is-open");
+                });
+                miniProfileTrigger.setAttribute("aria-expanded", "true");
+            };
+
+            miniProfileTrigger.addEventListener("click", () => {
+                const isOpen = miniProfileCard.classList.contains("is-open");
+                if (isOpen) {
+                    closeMiniProfileCard();
+                } else {
+                    openMiniProfileCard();
+                }
+            });
+
+            document.addEventListener("click", (event) => {
+                if (!miniProfileShell.contains(event.target)) {
+                    closeMiniProfileCard();
+                }
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    closeMiniProfileCard();
+                }
+            });
+        }
+
+        if (topNavFriendsDot && document.body.dataset.friendRequestsSocketBound !== "true") {
+            document.body.dataset.friendRequestsSocketBound = "true";
+            const requestSocketProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+            const requestSocket = new WebSocket(`${requestSocketProtocol}://${window.location.host}/ws/friends/requests/`);
+
+            const syncTopNavFriendsDot = (delta) => {
+                const currentCount = Number(topNavFriendsDot.dataset.count || "{{ pending_friend_requests_count|default:0 }}");
+                const nextCount = Math.max(0, currentCount + delta);
+                topNavFriendsDot.dataset.count = String(nextCount);
+                topNavFriendsDot.classList.toggle("joined-cio-hidden", nextCount === 0);
+            };
+
+            topNavFriendsDot.dataset.count = "{{ pending_friend_requests_count|default:0 }}";
+
+            requestSocket.addEventListener("message", (event) => {
+                const payload = JSON.parse(event.data);
+                if (payload.type === "request_created") {
+                    syncTopNavFriendsDot(1);
+                }
+                if (payload.type === "request_removed") {
+                    syncTopNavFriendsDot(-1);
+                }
+            });
+        }
+
+        lucide.createIcons();
+    });
+</script>
 </body>
 </html>
