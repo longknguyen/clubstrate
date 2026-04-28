@@ -30,6 +30,10 @@
                             <input type="hidden" name="redirect_type" value="cio">
 
                             <select name="role" class="custom-select-role">
+                                <option value="viewer" {% if membership.role == "viewer" %}selected{% endif %}>
+                                Viewer
+                                </option>
+
                                 <option value="member" {% if membership.role == "member" %}selected{% endif %}>
                                 Member
                                 </option>

@@ -417,13 +417,10 @@ class ChangeRoleView(LoginRequiredMixin, View):
 
         redirect_type = request.POST.get("redirect_type", "users")
 
-        # Never modify viewers
-        if membership.role == "viewer":
-            return self._redirect_back(redirect_type, membership)
-
         new_role = request.POST.get("role")
 
-        if new_role in ["member", "officer"]:
+        # Allow role changes including viewer
+        if new_role in ["member", "officer", "viewer"]:
             membership.role = new_role
             membership.save()
 
@@ -518,6 +515,8 @@ class CIORoleDetailView(LoginRequiredMixin, View):
 
         memberships = Membership.objects.filter(
             cio=cio
+        ).exclude(
+            role="viewer"
         ).select_related("user")
 
         return render(request, "users/cio_role_detail.html", {
