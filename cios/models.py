@@ -64,3 +64,27 @@ class JoinRequest(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.cio.name} - {self.status}'
+
+class Event(models.Model):
+    cio = models.ForeignKey(CIO, on_delete=models.CASCADE, related_name='events')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    start_time = models.DateTimeField()
+    location = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title} - {self.cio.name}'
+
+
+class Reminder(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reminders')
+    remind_at = models.DateTimeField()
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('user', 'event')
+
+    def __str__(self):
+        return f'{self.user.username} reminder for {self.event.title}'

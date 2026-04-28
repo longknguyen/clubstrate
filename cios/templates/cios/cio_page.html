@@ -103,16 +103,99 @@
 
             <main class="cio-main-panel">
                 <div id="events-tab" class="cio-tab" style="display: none;">
-                    {% if events %}
-                        <h3>Events</h3>
-                        {% for event in events %}
-                            <div class="cio-event-card">
-                                <h4>{{ event.title }}</h4>
+                    <div class="cio-events-header">
+                        <h3>Events Calendar</h3>
+                        {% if role == 'officer' %}
+                            <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-primary" id="open-add-modal">
+                                <i data-lucide="plus"></i>
+                                <span>Add Event</span>
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="cio-events-calendar-shell">
+                        <div id="calendar"></div>
+                    </div>
+
+                    <div id="event-modal-overlay" class="cio-event-modal">
+                        <div id="event-modal" class="cio-event-modal-card">
+                            <button type="button" class="cio-event-modal-close" id="close-event-modal" aria-label="Close event dialog">
+                                <i data-lucide="x"></i>
+                            </button>
+                            <div class="cio-event-modal-header">
+                                <h2 id="modal-title"></h2>
                             </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="cio-empty-state">
-                            <p>No events are currently happening right now</p>
+
+                            <div id="modal-view-body" class="cio-event-modal-body" hidden>
+                                <div class="cio-event-detail-list">
+                                    <p id="modal-view-time" class="cio-event-detail-item"></p>
+                                    <p id="modal-view-location" class="cio-event-detail-item"></p>
+                                    <p id="modal-view-desc" class="cio-event-detail-description"></p>
+                                </div>
+                                <div class="cio-event-modal-actions">
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-view">Close</button>
+                                    {% if role == 'officer' %}
+                                        <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-danger" id="delete-event-btn">
+                                            <i data-lucide="trash-2"></i>
+                                            <span>Delete Event</span>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if role == 'officer' %}
+                            <div id="modal-add-body" class="cio-event-modal-body" hidden>
+                                <div class="cio-event-form-grid">
+                                    <label class="cio-event-field">
+                                        <span>Title</span>
+                                        <input type="text" id="new-event-title" placeholder="Event title *">
+                                    </label>
+                                    <label class="cio-event-field">
+                                        <span>Start</span>
+                                        <input type="datetime-local" id="new-event-start">
+                                    </label>
+                                    <label class="cio-event-field">
+                                        <span>Location</span>
+                                        <input type="text" id="new-event-location" placeholder="Location (optional)">
+                                    </label>
+                                    <label class="cio-event-field cio-event-field-full">
+                                        <span>Description</span>
+                                        <textarea id="new-event-desc" rows="4" placeholder="Description (optional)"></textarea>
+                                    </label>
+                                </div>
+                                <div class="cio-event-modal-actions">
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-add">Cancel</button>
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-primary" id="save-event-btn">
+                                        <i data-lucide="calendar-plus-2"></i>
+                                        <span>Save Event</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if role == 'officer' %}
+                        <div id="event-delete-modal-overlay" class="cio-event-modal cio-event-modal-danger">
+                            <div class="cio-event-modal-card cio-event-delete-card">
+                                <button type="button" class="cio-event-modal-close" id="close-event-delete-modal" aria-label="Close delete event dialog">
+                                    <i data-lucide="x"></i>
+                                </button>
+                                <div class="cio-event-delete-icon">
+                                    <i data-lucide="trash-2"></i>
+                                </div>
+                                <div class="cio-event-delete-copy">
+                                    <h3>Delete this event?</h3>
+                                    <p>This will permanently remove the event from the calendar for everyone in this CIO.</p>
+                                </div>
+                                <div class="cio-event-modal-actions">
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="cancel-event-delete-btn">Cancel</button>
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-danger" id="confirm-event-delete-btn">
+                                        <i data-lucide="trash-2"></i>
+                                        <span>Delete Event</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -268,6 +351,10 @@
 
             if (tab === 'discussions' && typeof window.activateDiscussionComposer === 'function') {
                 window.activateDiscussionComposer();
+            }
+
+            if (tab === 'events') {
+                initCalendarIfNeeded();
             }
 
             activeCioTab = tab;
@@ -474,7 +561,7 @@
             const requestedTab = params.get('tab');
             const requestedQuery = params.get('q') || '';
             const savedTab = localStorage.getItem(cioTabStorageKey);
-            const preferredTab = requestedTab || savedTab || 'info';
+            const preferredTab = requestedTab || (savedTab === 'events' ? 'info' : savedTab) || 'info';
             const searchInput = document.querySelector('.search-bar');
             const titleButton = document.getElementById('cioTitleButton');
             const titleDropdown = document.getElementById('cioTitleDropdown');
@@ -639,4 +726,241 @@
             syncCioPageSearchState();
         };
     </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
+<script>
+const IS_OFFICER = "{{ role }}" === "officer";
+const CSRF_TOKEN = "{{ csrf_token }}";
+const ADD_EVENT_URL = "{% url 'add_event' cio.id %}";
+const EVENTS_DATA = {{ events_json|safe }};
+
+let currentEventId = null;
+let calendar = null;
+let calendarTransitionTimer = null;
+const eventModalOverlay = document.getElementById('event-modal-overlay');
+const eventDeleteModalOverlay = document.getElementById('event-delete-modal-overlay');
+const eventViewBody = document.getElementById('modal-view-body');
+const eventAddBody = document.getElementById('modal-add-body');
+const calendarShell = document.querySelector('.cio-events-calendar-shell');
+
+function playCalendarTransition() {
+    if (!calendarShell) return;
+    calendarShell.classList.remove('is-transitioning');
+    window.clearTimeout(calendarTransitionTimer);
+    void calendarShell.offsetWidth;
+    calendarShell.classList.add('is-transitioning');
+    calendarTransitionTimer = window.setTimeout(() => {
+        calendarShell.classList.remove('is-transitioning');
+    }, 220);
+}
+
+function cacheEventData(eventData) {
+    const eventId = String(eventData.id);
+    const existingIndex = EVENTS_DATA.findIndex((item) => String(item.id) === eventId);
+    if (existingIndex >= 0) {
+        EVENTS_DATA[existingIndex] = {...EVENTS_DATA[existingIndex], ...eventData};
+        return;
+    }
+    EVENTS_DATA.push(eventData);
+}
+
+function removeCachedEvent(eventId) {
+    const normalizedId = String(eventId);
+    const existingIndex = EVENTS_DATA.findIndex((item) => String(item.id) === normalizedId);
+    if (existingIndex >= 0) {
+        EVENTS_DATA.splice(existingIndex, 1);
+    }
+}
+
+function upsertCalendarEvent(eventData) {
+    cacheEventData(eventData);
+    if (!calendar) return;
+    const eventId = String(eventData.id);
+    const existingEvent = calendar.getEventById(eventId) || calendar.getEventById(Number(eventData.id));
+
+    if (existingEvent) {
+        existingEvent.setProp('title', eventData.title);
+        existingEvent.setStart(eventData.start);
+        existingEvent.setExtendedProp('description', eventData.description || '');
+        existingEvent.setExtendedProp('location', eventData.location || '');
+        return;
+    }
+
+    calendar.addEvent(eventData);
+}
+
+function removeCalendarEvent(eventId) {
+    removeCachedEvent(eventId);
+    if (!calendar) return;
+    const existingEvent = calendar.getEventById(String(eventId)) || calendar.getEventById(Number(eventId));
+    if (existingEvent) {
+        existingEvent.remove();
+    }
+}
+
+function initCalendarIfNeeded() {
+    if (calendar) return;
+    const calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        height: 600,
+        dayMaxEvents: 2,
+        eventMaxStack: 2,
+        slotEventOverlap: false,
+        events: EVENTS_DATA,
+        eventClick: function(info) { openViewModal(info.event); },
+        dateClick: IS_OFFICER ? function(info) { openAddModal(info.dateStr + 'T12:00'); } : null,
+    });
+    calendar.render();
+}
+
+function openEventModal() {
+    if (!eventModalOverlay) return;
+    eventModalOverlay.classList.add('is-open');
+}
+
+function closeEventModal() {
+    if (!eventModalOverlay) return;
+    eventModalOverlay.classList.remove('is-open');
+    currentEventId = null;
+}
+
+function openEventDeleteModal() {
+    if (!eventDeleteModalOverlay) return;
+    eventDeleteModalOverlay.classList.add('is-open');
+}
+
+function closeEventDeleteModal() {
+    if (!eventDeleteModalOverlay) return;
+    eventDeleteModalOverlay.classList.remove('is-open');
+}
+
+function openAddModal(defaultStart = '') {
+    document.getElementById('modal-title').textContent = 'Add Event';
+    if (eventAddBody) eventAddBody.hidden = false;
+    if (eventViewBody) eventViewBody.hidden = true;
+    document.getElementById('new-event-title').value = '';
+    document.getElementById('new-event-start').value = defaultStart;
+    document.getElementById('new-event-location').value = '';
+    document.getElementById('new-event-desc').value = '';
+    openEventModal();
+}
+
+function openViewModal(event) {
+    currentEventId = parseInt(event.id);
+    document.getElementById('modal-title').textContent = event.title;
+    document.getElementById('modal-view-time').textContent = event.start.toLocaleString();
+    document.getElementById('modal-view-location').textContent =
+        event.extendedProps.location || '';
+    document.getElementById('modal-view-desc').textContent = event.extendedProps.description || '';
+    if (eventViewBody) eventViewBody.hidden = false;
+    if (eventAddBody) eventAddBody.hidden = true;
+    openEventModal();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('open-add-modal')?.addEventListener('click', () => openAddModal());
+    document.getElementById('close-modal-add')?.addEventListener('click', closeEventModal);
+    document.getElementById('close-modal-view')?.addEventListener('click', closeEventModal);
+    document.getElementById('close-event-modal')?.addEventListener('click', closeEventModal);
+    document.getElementById('close-event-delete-modal')?.addEventListener('click', closeEventDeleteModal);
+    document.getElementById('cancel-event-delete-btn')?.addEventListener('click', closeEventDeleteModal);
+
+    eventModalOverlay?.addEventListener('click', function(e) {
+        if (e.target === this) closeEventModal();
+    });
+
+    eventDeleteModalOverlay?.addEventListener('click', function(e) {
+        if (e.target === this) closeEventDeleteModal();
+    });
+
+    document.getElementById('calendar')?.addEventListener('click', (event) => {
+        const button = event.target.closest('.fc-button');
+        if (!button) return;
+        playCalendarTransition();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        closeEventDeleteModal();
+        closeEventModal();
+    });
+
+    document.getElementById('save-event-btn')?.addEventListener('click', async () => {
+        const title = document.getElementById('new-event-title').value.trim();
+        const start_time = document.getElementById('new-event-start').value;
+        const location = document.getElementById('new-event-location').value.trim();
+        const description = document.getElementById('new-event-desc').value.trim();
+
+        if (!title || !start_time) { alert('Title and start time are required.'); return; }
+
+        const res = await fetch(ADD_EVENT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+            body: JSON.stringify({ title, start_time, location, description }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            upsertCalendarEvent(data);
+            if (typeof window.launchSuccessConfetti === 'function') {
+                window.launchSuccessConfetti();
+            }
+            closeEventModal();
+        } else {
+            alert(data.error || 'Failed to save event.');
+        }
+    });
+
+    document.getElementById('delete-event-btn')?.addEventListener('click', () => {
+        if (!currentEventId) return;
+        openEventDeleteModal();
+    });
+
+    document.getElementById('confirm-event-delete-btn')?.addEventListener('click', async () => {
+        if (!currentEventId) return;
+        const res = await fetch(`/events/${currentEventId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN },
+        });
+        const data = await res.json();
+        if (data.status === 'deleted') {
+            removeCalendarEvent(currentEventId);
+            closeEventDeleteModal();
+            closeEventModal();
+        } else {
+            alert('Failed to delete event.');
+        }
+    });
+
+    const cioEventsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioEventsSocket = new WebSocket(`${cioEventsProtocol}://${window.location.host}/ws/cios/{{ cio.id }}/events/`);
+    cioEventsSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+
+        if (payload.type === 'event_created' && payload.event) {
+            upsertCalendarEvent(payload.event);
+        }
+
+        if (payload.type === 'event_deleted' && payload.event_id) {
+            removeCalendarEvent(payload.event_id);
+            if (String(currentEventId || '') === String(payload.event_id)) {
+                closeEventDeleteModal();
+                closeEventModal();
+            }
+        }
+    });
+});
+</script>
+
+
 {% endblock %}

@@ -9,13 +9,16 @@ from datetime import timedelta
 import random
 from urllib.parse import quote
 import uuid
+import json
+from django.utils.dateparse import parse_datetime
+
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from discussions.models import Post
 from image_utils import convert_upload_to_webp
 from .forms import CIOAboutForm, CIOCreateForm
-from .models import CIO, Membership, JoinRequest
+from .models import CIO, Membership, JoinRequest,  Event, Reminder
 
 
 def _display_name_for_user(user):
@@ -73,6 +76,31 @@ def _send_cio_request_event_to_officers(cio_id, event_type, payload):
             "payload": payload,
         },
     )
+
+
+def _send_cio_event(cio_id, event_type, payload):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"cio_events_{cio_id}",
+        {
+            "type": "cio.event.message",
+            "event_type": event_type,
+            "payload": payload,
+        },
+    )
+
+
+def _serialize_event(event):
+    return {
+        'id': event.id,
+        'title': event.title,
+        'start': event.start_time.isoformat(),
+        'description': event.description,
+        'location': event.location,
+    }
 
 
 def _join_request_row_context(join_request):
@@ -460,7 +488,24 @@ def cio_detail(request, cio_id):
     for membership in members:
         membership.display_name = _display_name_for_user(membership.user)
 
-    events = []
+    events = Event.objects.filter(cio=cio)
+    events_data = [
+        {
+            "id": e.id,
+            "title": e.title,
+            "start": e.start_time.isoformat(),
+            "description": e.description,
+            "location": e.location,
+        }
+        for e in events
+    ]
+
+    reminder_event_ids = []
+    if request.user.is_authenticated:
+        reminder_event_ids = list(
+            Reminder.objects.filter(user=request.user, event__cio=cio)
+            .values_list('event_id', flat=True)
+        )
 
     return render(request,
                   'cios/cio_page.html',
@@ -468,6 +513,8 @@ def cio_detail(request, cio_id):
             'cio': cio,
             'role': role,
             'events': events,
+            'events_json': json.dumps(events_data),
+            'reminder_event_ids': reminder_event_ids,
             'announcements': announcement_posts,
             'discussion_messages': discussion_messages,
             'join_requests': join_requests,
@@ -693,3 +740,51 @@ def deny_request(request, request_id):
             })
 
     return redirect('discussions:edit_cio_requests', cio_id=join_request.cio.id)
+
+@login_required
+def add_event(request, cio_id):
+    cio = get_object_or_404(CIO, pk=cio_id)
+    membership = Membership.objects.filter(user=request.user, cio=cio, role=Membership.OFFICER).first()
+
+    if not membership:
+        return JsonResponse({'error': 'Officers only'}, status=403)
+
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        event = Event.objects.create(
+            cio=cio,
+            title=data['title'],
+            description=data.get('description', ''),
+            start_time=parse_datetime(data['start_time']),
+            location=data.get('location', ''),
+            created_by=request.user,
+        )
+        event_payload = _serialize_event(event)
+        _send_cio_event(cio.id, 'event_created', {
+            'cio_id': cio.id,
+            'event': event_payload,
+        })
+        return JsonResponse(event_payload)
+
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+
+@login_required
+def delete_event(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    membership = Membership.objects.filter(user=request.user, cio=event.cio, role=Membership.OFFICER).first()
+
+    if not membership:
+        return JsonResponse({'error': 'Officers only'}, status=403)
+
+    if request.method == 'POST':
+        event_id = event.id
+        cio_id = event.cio_id
+        event.delete()
+        _send_cio_event(cio_id, 'event_deleted', {
+            'cio_id': cio_id,
+            'event_id': event_id,
+        })
+        return JsonResponse({'status': 'deleted'})
+
+    return JsonResponse({'error': 'POST required'}, status=405)
