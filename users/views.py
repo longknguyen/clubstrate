@@ -415,11 +415,11 @@ class ChangeRoleView(LoginRequiredMixin, View):
 
         membership = get_object_or_404(Membership, id=membership_id)
 
+        redirect_type = request.POST.get("redirect_type", "users")
+
         # Never modify viewers
         if membership.role == "viewer":
-            return redirect(
-                f'/users/role-admin/{membership.user.id}/'
-            )
+            return self._redirect_back(redirect_type, membership)
 
         new_role = request.POST.get("role")
 
@@ -427,9 +427,12 @@ class ChangeRoleView(LoginRequiredMixin, View):
             membership.role = new_role
             membership.save()
 
-        return redirect(
-            f'/users/role-admin/{membership.user.id}/'
-        )
+        return self._redirect_back(redirect_type, membership)
+
+    def _redirect_back(self, redirect_type, membership):
+        if redirect_type == "cio":
+            return redirect(f'/users/role-admin/cios/{membership.cio.id}/')
+        return redirect(f'/users/role-admin/users/{membership.user.id}/')
 
 @method_decorator(never_cache, name='dispatch')
 class RoleAdminView(LoginRequiredMixin, View):
@@ -504,7 +507,7 @@ class UserRoleDetailView(LoginRequiredMixin, View):
             user=target_user
         ).select_related("cio")
 
-        return render(request, "users/user_detail.html", {
+        return render(request, "users/user_role_detail.html", {
             "target_user": target_user,
             "memberships": memberships,
         })
@@ -534,7 +537,9 @@ class CIORoleListView(LoginRequiredMixin, View):
         cios = CIO.objects.all()
 
         if query:
-            cios = cios.filter(name__icontains=query)
+            cios = cios.filter(
+                Q(name__icontains=query)
+            )
 
         return render(request, "users/cio_list.html", {
             "cios": cios,
