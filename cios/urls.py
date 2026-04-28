@@ -10,4 +10,7 @@ urlpatterns = [
     path('<int:cio_id>/cancel-request/', views.cancel_join_request, name='cancel-join-request'),
     path('request/<int:request_id>/accept/', views.accept_request, name='accept-request'),
     path('request/<int:request_id>/deny/', views.deny_request, name='deny-request'),
+    path('<int:cio_id>/add-event/', views.add_event, name='add_event'),
+    path('events/<int:event_id>/delete/', views.delete_event, name='delete_event'),
+
 ]

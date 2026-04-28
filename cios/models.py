@@ -12,6 +12,16 @@ class CIO(models.Model):
     commitment_level = models.CharField(max_length=100, blank=True)
     time_expectations = models.CharField(max_length=200, blank=True)
     about_image = models.ImageField(upload_to='cio_about_images/', blank=True, null=True)
+    banner_image = models.ImageField(upload_to='cio_banners/', blank=True, null=True)
+    gradient = models.CharField(max_length=255, blank=True)
+    icon = models.ImageField(upload_to='cio_icons/', blank=True, null=True)
+
+    BANNER_TYPE_CHOICES = [
+        ('default', 'Default'),
+        ('custom', 'Custom'),
+        ("image", "Image")
+    ]
+    banner_type = models.CharField(max_length=10, choices=BANNER_TYPE_CHOICES, default='default')
 
     def __str__(self):
         return self.name
@@ -28,6 +38,7 @@ class Membership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     cio = models.ForeignKey(CIO, on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta: # can only have one membership per CIO
         unique_together = ('user', 'cio')
@@ -53,3 +64,27 @@ class JoinRequest(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.cio.name} - {self.status}'
+
+class Event(models.Model):
+    cio = models.ForeignKey(CIO, on_delete=models.CASCADE, related_name='events')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    start_time = models.DateTimeField()
+    location = models.CharField(max_length=255, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title} - {self.cio.name}'
+
+
+class Reminder(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='reminders')
+    remind_at = models.DateTimeField()
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        unique_together = ('user', 'event')
+
+    def __str__(self):
+        return f'{self.user.username} reminder for {self.event.title}'
