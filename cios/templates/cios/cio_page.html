@@ -756,6 +756,50 @@ function playCalendarTransition() {
     }, 220);
 }
 
+function cacheEventData(eventData) {
+    const eventId = String(eventData.id);
+    const existingIndex = EVENTS_DATA.findIndex((item) => String(item.id) === eventId);
+    if (existingIndex >= 0) {
+        EVENTS_DATA[existingIndex] = {...EVENTS_DATA[existingIndex], ...eventData};
+        return;
+    }
+    EVENTS_DATA.push(eventData);
+}
+
+function removeCachedEvent(eventId) {
+    const normalizedId = String(eventId);
+    const existingIndex = EVENTS_DATA.findIndex((item) => String(item.id) === normalizedId);
+    if (existingIndex >= 0) {
+        EVENTS_DATA.splice(existingIndex, 1);
+    }
+}
+
+function upsertCalendarEvent(eventData) {
+    cacheEventData(eventData);
+    if (!calendar) return;
+    const eventId = String(eventData.id);
+    const existingEvent = calendar.getEventById(eventId) || calendar.getEventById(Number(eventData.id));
+
+    if (existingEvent) {
+        existingEvent.setProp('title', eventData.title);
+        existingEvent.setStart(eventData.start);
+        existingEvent.setExtendedProp('description', eventData.description || '');
+        existingEvent.setExtendedProp('location', eventData.location || '');
+        return;
+    }
+
+    calendar.addEvent(eventData);
+}
+
+function removeCalendarEvent(eventId) {
+    removeCachedEvent(eventId);
+    if (!calendar) return;
+    const existingEvent = calendar.getEventById(String(eventId)) || calendar.getEventById(Number(eventId));
+    if (existingEvent) {
+        existingEvent.remove();
+    }
+}
+
 function initCalendarIfNeeded() {
     if (calendar) return;
     const calendarEl = document.getElementById('calendar');
@@ -767,6 +811,9 @@ function initCalendarIfNeeded() {
             right: 'dayGridMonth,timeGridWeek,listWeek'
         },
         height: 600,
+        dayMaxEvents: 2,
+        eventMaxStack: 2,
+        slotEventOverlap: false,
         events: EVENTS_DATA,
         eventClick: function(info) { openViewModal(info.event); },
         dateClick: IS_OFFICER ? function(info) { openAddModal(info.dateStr + 'T12:00'); } : null,
@@ -861,7 +908,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         const data = await res.json();
         if (res.ok) {
-            calendar.addEvent(data);
+            upsertCalendarEvent(data);
+            if (typeof window.launchSuccessConfetti === 'function') {
+                window.launchSuccessConfetti();
+            }
             closeEventModal();
         } else {
             alert(data.error || 'Failed to save event.');
@@ -881,12 +931,32 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         const data = await res.json();
         if (data.status === 'deleted') {
-            const calEvent = calendar.getEventById(currentEventId);
-            if (calEvent) calEvent.remove();
+            removeCalendarEvent(currentEventId);
             closeEventDeleteModal();
             closeEventModal();
         } else {
             alert('Failed to delete event.');
+        }
+    });
+
+    const cioEventsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const cioEventsSocket = new WebSocket(`${cioEventsProtocol}://${window.location.host}/ws/cios/{{ cio.id }}/events/`);
+    cioEventsSocket.addEventListener('message', (event) => {
+        const payload = JSON.parse(event.data);
+        if (String(payload.cio_id || '') !== '{{ cio.id }}') {
+            return;
+        }
+
+        if (payload.type === 'event_created' && payload.event) {
+            upsertCalendarEvent(payload.event);
+        }
+
+        if (payload.type === 'event_deleted' && payload.event_id) {
+            removeCalendarEvent(payload.event_id);
+            if (String(currentEventId || '') === String(payload.event_id)) {
+                closeEventDeleteModal();
+                closeEventModal();
+            }
         }
     });
 });

@@ -78,6 +78,31 @@ def _send_cio_request_event_to_officers(cio_id, event_type, payload):
     )
 
 
+def _send_cio_event(cio_id, event_type, payload):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    async_to_sync(channel_layer.group_send)(
+        f"cio_events_{cio_id}",
+        {
+            "type": "cio.event.message",
+            "event_type": event_type,
+            "payload": payload,
+        },
+    )
+
+
+def _serialize_event(event):
+    return {
+        'id': event.id,
+        'title': event.title,
+        'start': event.start_time.isoformat(),
+        'description': event.description,
+        'location': event.location,
+    }
+
+
 def _join_request_row_context(join_request):
     return {
         "id": join_request.id,
@@ -734,13 +759,12 @@ def add_event(request, cio_id):
             location=data.get('location', ''),
             created_by=request.user,
         )
-        return JsonResponse({
-            'id': event.id,
-            'title': event.title,
-            'start': event.start_time.isoformat(),
-            'description': event.description,
-            'location': event.location,
+        event_payload = _serialize_event(event)
+        _send_cio_event(cio.id, 'event_created', {
+            'cio_id': cio.id,
+            'event': event_payload,
         })
+        return JsonResponse(event_payload)
 
     return JsonResponse({'error': 'POST required'}, status=405)
 
@@ -754,7 +778,13 @@ def delete_event(request, event_id):
         return JsonResponse({'error': 'Officers only'}, status=403)
 
     if request.method == 'POST':
+        event_id = event.id
+        cio_id = event.cio_id
         event.delete()
+        _send_cio_event(cio_id, 'event_deleted', {
+            'cio_id': cio_id,
+            'event_id': event_id,
+        })
         return JsonResponse({'status': 'deleted'})
 
     return JsonResponse({'error': 'POST required'}, status=405)
