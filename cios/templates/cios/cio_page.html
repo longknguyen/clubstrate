@@ -509,7 +509,7 @@
             const requestedTab = params.get('tab');
             const requestedQuery = params.get('q') || '';
             const savedTab = localStorage.getItem(cioTabStorageKey);
-            const preferredTab = requestedTab || savedTab || 'info';
+            const preferredTab = requestedTab || (savedTab === 'events' ? 'info' : savedTab) || 'info';
             const searchInput = document.querySelector('.search-bar');
             const titleButton = document.getElementById('cioTitleButton');
             const titleDropdown = document.getElementById('cioTitleDropdown');
