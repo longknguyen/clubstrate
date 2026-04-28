@@ -1,6 +1,10 @@
 from django.urls import path
 from .views import *
 
+# Redirect role-admin to role-admin/users
+def role_admin_root(request):
+    return redirect('user_list')
+
 urlpatterns = [
     path("login/", LoginView.as_view(), name="login"),
     path("login-redirect/", login_redirect, name="login_redirect"),

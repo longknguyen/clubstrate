@@ -459,7 +459,7 @@ class RoleAdminView(LoginRequiredMixin, View):
             )
             cios = cios.filter(name__icontains=query)
 
-        return render(request, "users/role_admin.html", {
+        return render(request, "users/user_search.html", {
             "users": users,
             "cios": cios,
             "query": query,
@@ -476,7 +476,7 @@ class UserRoleListView(LoginRequiredMixin, View):
 
         query = request.GET.get("q", "")
 
-        users = User.objects.all()
+        users = User.objects.exclude(id=request.user.id).exclude(profile__user_type="user_admin")
 
         if query:
             users = users.filter(
