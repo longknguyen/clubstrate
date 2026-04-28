@@ -24,6 +24,6 @@ urlpatterns = [
     path("role-admin/users/", UserRoleListView.as_view(), name="user_list"),
     path("role-admin/users/<int:user_id>/", UserRoleDetailView.as_view(), name="user_detail"),
     path("role-admin/cios/", CIORoleListView.as_view(), name="cio_list"),
-    path("role-admin/cios/<int:cio_id>/", CIORoleDetailView.as_view(), name="cio_detail"),
+    path("role-admin/cios/<int:cio_id>/", CIORoleDetailView.as_view(), name="role_admin_cio_detail"),
     path('role-admin/membership/<int:membership_id>/change/', ChangeRoleView.as_view(), name='change_role'),
 ]

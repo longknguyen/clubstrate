@@ -429,8 +429,8 @@ class ChangeRoleView(LoginRequiredMixin, View):
 
     def _redirect_back(self, redirect_type, membership):
         if redirect_type == "cio":
-            return redirect(f'/users/role-admin/cios/{membership.cio.id}/')
-        return redirect(f'/users/role-admin/users/{membership.user.id}/')
+            return redirect('role_admin_cio_detail', cio_id=membership.cio.id)
+        return redirect('user_detail', user_id=membership.user.id)
 
 @method_decorator(never_cache, name='dispatch')
 class RoleAdminView(LoginRequiredMixin, View):
@@ -512,6 +512,11 @@ class UserRoleDetailView(LoginRequiredMixin, View):
 
 class CIORoleDetailView(LoginRequiredMixin, View):
     def get(self, request, cio_id):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
         cio = get_object_or_404(CIO, id=cio_id)
 
         memberships = Membership.objects.filter(
