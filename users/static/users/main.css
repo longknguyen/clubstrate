@@ -1478,3 +1478,41 @@ body {
     right: 0;
     transform: translateX(0);
 }
+
+.custom-user-table {
+    border-top: none !important;
+}
+
+.custom-user-table thead,
+.custom-user-table thead tr,
+.custom-user-table thead th {
+    border-top: none !important;
+}
+
+.custom-user-table > :not(caption) > * > * {
+    border-top: none !important;
+}
+
+.custom-select-role {
+    width: auto;
+    padding: 6px 28px 6px 12px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    background-color: white;
+    font-size: 14px;
+    line-height: 1.2;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+}
+
+.custom-select-role:hover {
+    border-color: #bbb;
+}
+
+.custom-select-role:focus {
+    outline: none;
+    border-color: #999;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+}

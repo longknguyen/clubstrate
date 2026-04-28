@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+          href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href="{% static 'users/main.css' %}">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <title>Role Admin</title>
+</head>
+<body>
+
+<div class="app-layout">
+
+    <div class="top-bar">
+
+        <div class="top-left">
+            <h1 class="page-title">Role Management</h1>
+        </div>
+
+        <div class="top-nav-actions ml-auto">
+            <form method="POST" action="{% url 'logout' %}" class="ml-auto">
+                {% csrf_token %}
+                <button type="submit" class="nav-btn tooltip-bottom" data-tooltip="Logout"
+                        style="border:none; background:none;">
+                    <i data-lucide="log-out"></i>
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="main-container">
+
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+
+                <a href="{% url 'user_list' %}"
+                   class="sidebar-item {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}">
+                    <i data-lucide="users"></i>
+                    <span>User List</span>
+                </a>
+
+                <a href="{% url 'cio_list' %}"
+                   class="sidebar-item {% if request.resolver_match.url_name == 'cio_list' %}active{% endif %}">
+                    <i data-lucide="building-2"></i>
+                    <span>CIO List</span>
+                </a>
+
+            </div>
+        </aside>
+
+        <main class="content-panel">
+            {% block content %}{% endblock %}
+        </main>
+
+    </div>
+
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+</body>
+</html>

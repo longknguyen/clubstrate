@@ -27,11 +27,17 @@ from .forms import (
 import uuid
 
 from .models import Profile, Friendship, FriendRequest, DirectMessage
+from cios.models import Membership, CIO
+
 
 User = get_user_model()
 DM_GROUP_GAP = timedelta(minutes=5)
 FRIEND_LIMIT = 100
 
+def login_redirect(request):
+    if request.user.profile.user_type == "user_admin":
+        return redirect("/users/role-admin/")
+    return redirect("/home/")
 
 def _display_name_for_user(user):
     full_name = f"{user.first_name} {user.last_name}".strip()
@@ -261,6 +267,7 @@ def _friend_sidebar_items(user):
 
 
 class LoginView(View):
+
     def get(self, request):
         return render(request, 'users/login.html')
 
@@ -273,24 +280,22 @@ class LoginView(View):
         else:
             user_obj = User.objects.filter(username=identifier).first()
 
+        user = None
         if user_obj:
             user = authenticate(request, username=user_obj.username, password=password)
-        else:
-            user = None
 
         if user:
             login(request, user)
 
-            # ✅ NEW: admin redirect
             if user.profile.user_type == "user_admin":
                 return redirect('/users/role-admin/')
 
-            return redirect('/')
-        else:
-            return render(request, 'users/login.html', {
-                'error': 'Invalid credentials',
-                'identifier': identifier
-            })
+            return redirect('/home/')
+
+        return render(request, 'users/login.html', {
+            'error': 'Invalid credentials',
+            'identifier': identifier
+        })
 
 def mask_email(email):
     name, domain = email.split("@")
@@ -403,24 +408,29 @@ class RegisterView(View):
 class ChangeRoleView(LoginRequiredMixin, View):
     login_url = '/users/login/'
 
-    def post(self, request, user_id):
+    def post(self, request, membership_id):
         profile, _ = Profile.objects.get_or_create(user=request.user)
+
         if profile.user_type != "user_admin":
-            return redirect('/users/profile/')
+            return redirect('/')
 
-        target_profile = get_object_or_404(Profile, user_id=user_id)
+        membership = get_object_or_404(Membership, id=membership_id)
 
-        if target_profile.user_type == "user_admin":
-            return redirect('/users/role-admin/')
+        redirect_type = request.POST.get("redirect_type", "users")
 
-        new_role = request.POST.get("user_type")
+        new_role = request.POST.get("role")
 
-        if new_role in ["student", "officer"]:
-            target_profile.user_type = new_role
-            target_profile.save()
+        # Allow role changes including viewer
+        if new_role in ["member", "officer", "viewer"]:
+            membership.role = new_role
+            membership.save()
 
-        return redirect('/users/role-admin/')
+        return self._redirect_back(redirect_type, membership)
 
+    def _redirect_back(self, redirect_type, membership):
+        if redirect_type == "cio":
+            return redirect(f'/users/role-admin/cios/{membership.cio.id}/')
+        return redirect(f'/users/role-admin/users/{membership.user.id}/')
 
 @method_decorator(never_cache, name='dispatch')
 class RoleAdminView(LoginRequiredMixin, View):
@@ -428,29 +438,113 @@ class RoleAdminView(LoginRequiredMixin, View):
 
     def get(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
+
         if profile.user_type != "user_admin":
             return redirect('/')
 
         query = request.GET.get("q", "")
-        role = request.GET.get("role", "")
 
-        users = Profile.objects.exclude(user_type="user_admin")
+        # USERS
+        users = User.objects.exclude(profile__user_type="user_admin")
+
+        # CIOS
+        cios = CIO.objects.all()
 
         if query:
             users = users.filter(
-                Q(user__username__icontains=query) |
-                Q(user__email__icontains=query)
+                Q(username__icontains=query) |
+                Q(email__icontains=query)
             )
+            cios = cios.filter(name__icontains=query)
 
-        if role:
-            users = users.filter(user_type=role)
-
-        return render(request, "users/role_admin.html", {
+        return render(request, "users/user_search.html", {
             "users": users,
+            "cios": cios,
             "query": query,
-            "role": role,
         })
 
+class UserRoleListView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        query = request.GET.get("q", "")
+
+        users = User.objects.exclude(id=request.user.id).exclude(profile__user_type="user_admin")
+
+        if query:
+            users = users.filter(
+                username__icontains=query
+            ) | users.filter(
+                first_name__icontains=query
+            ) | users.filter(
+                last_name__icontains=query
+            )
+
+        return render(request, "users/user_search.html", {
+            "users": users,
+            "query": query,
+        })
+
+class UserRoleDetailView(LoginRequiredMixin, View):
+    login_url = '/users/login/'
+
+    def get(self, request, user_id):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        target_user = get_object_or_404(User, id=user_id)
+
+        memberships = Membership.objects.filter(
+            user=target_user
+        ).select_related("cio")
+
+        return render(request, "users/user_role_detail.html", {
+            "target_user": target_user,
+            "memberships": memberships,
+        })
+
+class CIORoleDetailView(LoginRequiredMixin, View):
+    def get(self, request, cio_id):
+        cio = get_object_or_404(CIO, id=cio_id)
+
+        memberships = Membership.objects.filter(
+            cio=cio
+        ).exclude(
+            role="viewer"
+        ).select_related("user")
+
+        return render(request, "users/cio_role_detail.html", {
+            "cio": cio,
+            "memberships": memberships,
+        })
+
+class CIORoleListView(LoginRequiredMixin, View):
+    def get(self, request):
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+
+        if profile.user_type != "user_admin":
+            return redirect('/')
+
+        query = request.GET.get("q", "")
+
+        cios = CIO.objects.all()
+
+        if query:
+            cios = cios.filter(
+                Q(name__icontains=query)
+            )
+
+        return render(request, "users/cio_list.html", {
+            "cios": cios,
+            "query": query,
+        })
 
 @method_decorator(never_cache, name='dispatch')
 class ProfileEditView(LoginRequiredMixin, View):
