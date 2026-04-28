@@ -133,13 +133,13 @@
                                     <p id="modal-view-desc" class="cio-event-detail-description"></p>
                                 </div>
                                 <div class="cio-event-modal-actions">
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-view">Close</button>
                                     {% if role == 'officer' %}
                                         <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-danger" id="delete-event-btn">
                                             <i data-lucide="trash-2"></i>
                                             <span>Delete Event</span>
                                         </button>
                                     {% endif %}
-                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-view">Close</button>
                                 </div>
                             </div>
 
@@ -164,11 +164,11 @@
                                     </label>
                                 </div>
                                 <div class="cio-event-modal-actions">
+                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-add">Cancel</button>
                                     <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-primary" id="save-event-btn">
                                         <i data-lucide="calendar-plus-2"></i>
                                         <span>Save Event</span>
                                     </button>
-                                    <button type="button" class="discussion-action-btn cio-event-btn cio-event-btn-secondary" id="close-modal-add">Cancel</button>
                                 </div>
                             </div>
                             {% endif %}
@@ -738,10 +738,23 @@ const EVENTS_DATA = {{ events_json|safe }};
 
 let currentEventId = null;
 let calendar = null;
+let calendarTransitionTimer = null;
 const eventModalOverlay = document.getElementById('event-modal-overlay');
 const eventDeleteModalOverlay = document.getElementById('event-delete-modal-overlay');
 const eventViewBody = document.getElementById('modal-view-body');
 const eventAddBody = document.getElementById('modal-add-body');
+const calendarShell = document.querySelector('.cio-events-calendar-shell');
+
+function playCalendarTransition() {
+    if (!calendarShell) return;
+    calendarShell.classList.remove('is-transitioning');
+    window.clearTimeout(calendarTransitionTimer);
+    void calendarShell.offsetWidth;
+    calendarShell.classList.add('is-transitioning');
+    calendarTransitionTimer = window.setTimeout(() => {
+        calendarShell.classList.remove('is-transitioning');
+    }, 220);
+}
 
 function initCalendarIfNeeded() {
     if (calendar) return;
@@ -819,6 +832,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     eventDeleteModalOverlay?.addEventListener('click', function(e) {
         if (e.target === this) closeEventDeleteModal();
+    });
+
+    document.getElementById('calendar')?.addEventListener('click', (event) => {
+        const button = event.target.closest('.fc-button');
+        if (!button) return;
+        playCalendarTransition();
     });
 
     document.addEventListener('keydown', (event) => {
