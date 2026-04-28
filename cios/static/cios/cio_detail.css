@@ -94,6 +94,347 @@
     display: inline-block;
 }
 
+.cio-events-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.cio-events-header h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.cio-events-calendar-shell {
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    background: #ffffff;
+    padding: 18px;
+    overflow: hidden;
+}
+
+.cio-event-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cio-event-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.cio-event-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.cio-event-btn-primary {
+    background: #111827;
+    border-color: #111827;
+    color: #ffffff;
+}
+
+.cio-event-btn-primary:hover {
+    background: #000000;
+    border-color: #000000;
+    color: #ffffff;
+}
+
+.cio-event-btn-secondary {
+    background: #ffffff;
+    border-color: #d1d5db;
+    color: #374151;
+}
+
+.cio-event-btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #cbd5e1;
+    color: #111827;
+}
+
+.cio-event-btn-danger {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.cio-event-btn-danger:hover {
+    background: #fecaca;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.cio-events-calendar-shell .fc {
+    width: 100%;
+}
+
+.cio-events-calendar-shell .fc .fc-toolbar {
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cio-events-calendar-shell .fc .fc-toolbar-title {
+    color: #111827;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.cio-events-calendar-shell .fc .fc-button-primary {
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #111827;
+    box-shadow: none;
+    font-weight: 600;
+    text-transform: none;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.cio-events-calendar-shell .fc .fc-button-primary:hover,
+.cio-events-calendar-shell .fc .fc-button-primary:focus,
+.cio-events-calendar-shell .fc .fc-button-primary:active,
+.cio-events-calendar-shell .fc .fc-button-primary:not(:disabled).fc-button-active {
+    background: #111827;
+    border-color: #111827;
+    color: #ffffff;
+    box-shadow: none;
+    transform: translateY(-1px);
+}
+
+.cio-events-calendar-shell .fc .fc-button-primary:disabled {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    opacity: 1;
+}
+
+.cio-events-calendar-shell .fc-theme-standard td,
+.cio-events-calendar-shell .fc-theme-standard th,
+.cio-events-calendar-shell .fc-theme-standard .fc-scrollgrid {
+    border-color: #e5e7eb;
+}
+
+.cio-events-calendar-shell .fc .fc-daygrid-day-number,
+.cio-events-calendar-shell .fc .fc-col-header-cell-cushion {
+    color: #374151;
+    text-decoration: none;
+}
+
+.cio-events-calendar-shell .fc .fc-daygrid-event {
+    border-radius: 10px;
+    padding: 2px 6px;
+}
+
+.cio-event-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1400;
+}
+
+.cio-event-modal.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.cio-event-modal-card {
+    width: min(520px, calc(100vw - 32px));
+    position: relative;
+    border-radius: 28px;
+    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 34%);
+    border: 1px solid #dbe4f0;
+    box-shadow: 0 30px 70px rgba(15, 23, 42, 0.22);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.cio-event-modal.is-open .cio-event-modal-card {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.cio-event-modal-danger .cio-event-modal-card {
+    background: linear-gradient(180deg, #fff7f7 0%, #ffffff 38%);
+    border-color: #fecaca;
+}
+
+.cio-event-modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.cio-event-modal-close:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.cio-event-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.cio-event-modal-header {
+    padding-right: 44px;
+}
+
+.cio-event-modal-header h2 {
+    margin: 0;
+    color: #111827;
+    font-size: 28px;
+    line-height: 1.15;
+}
+
+.cio-event-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.cio-event-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cio-event-detail-item,
+.cio-event-detail-description {
+    margin: 0;
+    color: #4b5563;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.cio-event-detail-item:empty,
+.cio-event-detail-description:empty {
+    display: none;
+}
+
+.cio-event-detail-description {
+    color: #111827;
+}
+
+.cio-event-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.cio-event-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cio-event-field-full {
+    grid-column: 1 / -1;
+}
+
+.cio-event-field span {
+    color: #374151;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.cio-event-field input,
+.cio-event-field textarea {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 14px;
+    background: #ffffff;
+    color: #111827;
+    padding: 12px 14px;
+    font: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.cio-event-field input:focus,
+.cio-event-field textarea:focus {
+    outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.14);
+}
+
+.cio-event-field textarea {
+    resize: vertical;
+    min-height: 112px;
+}
+
+.cio-event-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cio-event-delete-card {
+    width: min(480px, calc(100vw - 32px));
+}
+
+.cio-event-delete-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #fecaca 0%, #fee2e2 100%);
+    color: #b91c1c;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cio-event-delete-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.cio-event-delete-copy h3 {
+    margin: 0 0 8px;
+    color: #111827;
+    font-size: 28px;
+}
+
+.cio-event-delete-copy p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.7;
+}
+
 .cio-info-shell {
     display: flex;
     flex-direction: column;
@@ -2724,7 +3065,8 @@ body.announcement-edit-modal-open {
 
 @media (max-width: 900px) {
     .cio-media-grid,
-    .cio-form-grid {
+    .cio-form-grid,
+    .cio-event-form-grid {
         grid-template-columns: 1fr;
     }
 
@@ -2752,6 +3094,12 @@ body.announcement-edit-modal-open {
 
     .discussion-action-btn {
         width: 100%;
+    }
+
+    .cio-events-header,
+    .cio-event-modal-actions {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .announcement-card-top,
