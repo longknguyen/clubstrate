@@ -2031,6 +2031,8 @@
     height: calc(100vh - 131px);
     min-height: 0;
     overflow: hidden;
+    overflow-x: hidden;
+    min-width: 0;
 }
 
 .announcement-thread-summary-card,
@@ -2052,7 +2054,8 @@ body.announcement-edit-modal-open {
     overflow: hidden;
 }
 
-.announcement-edit-backdrop {
+.announcement-edit-backdrop,
+.announcement-create-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
@@ -2063,7 +2066,8 @@ body.announcement-edit-modal-open {
     z-index: 999;
 }
 
-.announcement-edit-card {
+.announcement-edit-card,
+.announcement-create-card {
     position: fixed;
     top: 50%;
     left: 50%;
@@ -2083,17 +2087,23 @@ body.announcement-edit-modal-open {
     z-index: 1000;
 }
 
-.announcement-edit-backdrop.show {
+.announcement-edit-backdrop.show,
+.announcement-create-backdrop.show {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
 }
 
-.announcement-edit-card.show {
+.announcement-edit-card.show,
+.announcement-create-card.show {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
     transform: translate(-50%, -50%) scale(1);
+}
+
+.announcement-create-card {
+    width: min(760px, calc(100% - 40px));
 }
 
 .announcement-edit-close {
@@ -2158,8 +2168,10 @@ body.announcement-edit-modal-open {
 }
 
 .announcement-summary-image {
-    width: 200px;
-    max-width: 36%;
+    display: block;
+    width: min(100%, 320px);
+    max-width: 100%;
+    margin-top: 8px;
     border-radius: 18px;
     object-fit: cover;
     flex-shrink: 0;
@@ -2189,12 +2201,14 @@ body.announcement-edit-modal-open {
     min-height: 0;
     height: calc(100vh - 131px);
     min-width: 0;
+    overflow-x: hidden;
 }
 
 .announcement-thread-scroll {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0 0 24px;
     min-width: 0;
 }
@@ -2203,13 +2217,15 @@ body.announcement-edit-modal-open {
     position: relative;
     min-width: 0;
     width: 100%;
+    overflow-x: hidden;
 }
 
 .announcement-thread-chat .chat-message-list {
     flex: 0 0 auto;
     min-height: 0;
     overflow: visible;
-    padding: 0;
+    overflow-x: hidden;
+    padding: 18px 0 0;
     min-width: 0;
     width: 100%;
 }
@@ -2234,6 +2250,43 @@ body.announcement-edit-modal-open {
     background: #ffffff;
     border-radius: 28px;
     z-index: -1;
+}
+
+.announcement-modal-footer {
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.announcement-upload-btn {
+    flex-shrink: 0;
+    min-height: 42px;
+}
+
+.announcement-upload-btn:hover {
+    text-decoration: none;
+}
+
+.announcement-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.announcement-modal-actions .chat-attachment-name {
+    margin-right: auto;
+}
+
+.announcement-create-card .chat-attachment-pill-row {
+    padding: 0;
+}
+
+.announcement-thread-chat .chat-empty-state,
+.announcement-thread-chat .chat-date-divider:first-child {
+    margin-top: 10px;
 }
 
 .announcement-thread-more {

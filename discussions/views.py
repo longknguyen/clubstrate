@@ -250,7 +250,10 @@ def _comment_redirect_url(post):
 def create_post(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
     membership = Membership.objects.filter(user=request.user, cio=cio).first()
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     if not membership or membership.role != Membership.OFFICER:
+        if is_ajax:
+            return JsonResponse({'ok': False, 'error': 'Officers only.'}, status=403)
         return redirect(f'/{cio.id}/?tab=announcements')
 
     if request.method == 'POST':
@@ -260,6 +263,8 @@ def create_post(request, cio_id):
         tags = _parse_announcement_tags(request.POST.get('tags', ''))
 
         if not title and not content and not image:
+            if is_ajax:
+                return JsonResponse({'ok': False, 'error': 'Please add a title, description, or image.'}, status=400)
             return redirect(f'/{cio.id}/?tab=announcements')
 
         post = Post.objects.create(
@@ -273,6 +278,8 @@ def create_post(request, cio_id):
         )
         _broadcast_announcement_created(post)
 
+        if is_ajax:
+            return JsonResponse({'ok': True, 'post_id': post.id})
         return redirect(f'/{cio.id}/?tab=announcements')
 
     return render(request, 'discussions/create_post.html', {'cio': cio})

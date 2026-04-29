@@ -27,7 +27,11 @@
             </button>
         </div>
 
-        <section class="announcement-composer-card joined-cio-hidden" id="announcementComposerCard">
+        <div class="announcement-create-backdrop" id="announcementCreateBackdrop"></div>
+        <section class="announcement-composer-card announcement-create-card" id="announcementComposerCard" aria-hidden="true">
+            <button type="button" class="announcement-edit-close" id="announcementCreateClose" aria-label="Close create announcement modal">
+                <i data-lucide="x"></i>
+            </button>
             <div class="discussion-section-heading">
                 <h3>Create an announcement</h3>
                 <p>Only officers can post here. Use announcements for updates that should be easy for everyone to find later.</p>
@@ -45,9 +49,19 @@
                     <input type="hidden" name="tags" data-tag-hidden>
                 </div>
 
-                <div class="discussion-form-footer">
-                    <input type="file" name="image" class="discussion-file-input" accept="image/*">
-                    <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Publish</button>
+                <div class="chat-attachment-pill-row joined-cio-hidden" id="announcementCreateAttachmentPills"></div>
+
+                <div class="discussion-form-footer announcement-modal-footer">
+                    <label for="announcementCreateImageInput" class="discussion-action-btn cio-event-btn cio-event-btn-secondary announcement-upload-btn" aria-label="Attach an image">
+                        <i data-lucide="paperclip"></i>
+                        <span>Upload Image</span>
+                    </label>
+                    <input type="file" name="image" id="announcementCreateImageInput" class="chat-file-input" accept="image/*">
+                    <div class="announcement-modal-actions">
+                        <span class="chat-attachment-name" id="announcementCreateAttachmentName">No file selected</span>
+                        <button type="button" class="discussion-action-btn" id="announcementCreateCancel">Cancel</button>
+                        <button type="submit" class="discussion-action-btn discussion-action-btn-primary">Publish</button>
+                    </div>
                 </div>
             </form>
         </section>
@@ -76,6 +90,7 @@
         const announcementFeed = document.getElementById('announcementFeed');
         const announcementEmptyState = document.getElementById('announcementEmptyState');
         const tagStrip = document.getElementById('announcementTagStrip');
+        const tagStripWrap = tagStrip ? tagStrip.closest('.announcement-tag-strip-wrap') : null;
         const tagPopover = document.getElementById('announcementTagPopover');
         const tagSummary = document.getElementById('announcementTagSummary');
         const sortButton = document.getElementById('announcementSortButton');
@@ -83,6 +98,12 @@
         const composerForm = document.getElementById('announcementComposerForm');
         const composerToggle = document.getElementById('announcementComposerToggle');
         const composerCard = document.getElementById('announcementComposerCard');
+        const composerBackdrop = document.getElementById('announcementCreateBackdrop');
+        const composerClose = document.getElementById('announcementCreateClose');
+        const composerCancel = document.getElementById('announcementCreateCancel');
+        const composerImageInput = document.getElementById('announcementCreateImageInput');
+        const composerAttachmentName = document.getElementById('announcementCreateAttachmentName');
+        const composerAttachmentPills = document.getElementById('announcementCreateAttachmentPills');
         let activeAnnouncementTag = '';
         let activeAnnouncementSort = 'newest';
 
@@ -92,6 +113,53 @@
             requestAnimationFrame(() => {
                 menuEl.classList.add('is-open');
             });
+        }
+
+        function renderAttachmentPreview(file, pillsEl, nameEl) {
+            if (!file) {
+                if (nameEl) nameEl.textContent = 'No file selected';
+                if (pillsEl) {
+                    pillsEl.innerHTML = '';
+                    pillsEl.classList.add('joined-cio-hidden');
+                }
+                return;
+            }
+            if (nameEl) nameEl.textContent = file.name;
+            if (pillsEl) {
+                pillsEl.innerHTML = `
+                    <span class="chat-attachment-pill" title="${file.name}">
+                        <span>${file.name}</span>
+                    </span>
+                `;
+                pillsEl.classList.remove('joined-cio-hidden');
+            }
+        }
+
+        function openComposerModal() {
+            if (!composerCard || !composerBackdrop) return;
+            document.body.classList.add('announcement-edit-modal-open');
+            composerBackdrop.classList.add('show');
+            composerCard.classList.add('show');
+            composerCard.setAttribute('aria-hidden', 'false');
+            const firstField = composerCard.querySelector('input[name="title"]');
+            if (firstField) firstField.focus();
+        }
+
+        function closeComposerModal() {
+            if (!composerCard || !composerBackdrop) return;
+            composerBackdrop.classList.remove('show');
+            composerCard.classList.remove('show');
+            composerCard.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('announcement-edit-modal-open');
+        }
+
+        function resetComposerForm() {
+            if (!composerForm) return;
+            composerForm.reset();
+            composerForm.querySelectorAll('[data-tag-editor]').forEach((editorEl) => {
+                editorEl._tagEditorController?.reset();
+            });
+            renderAttachmentPreview(null, composerAttachmentPills, composerAttachmentName);
         }
 
         function closeFloatingMenu(menuEl) {
@@ -104,6 +172,15 @@
             }, 180);
         }
 
+        function positionTagPopover(anchorEl) {
+            if (!tagPopover || !anchorEl || !tagStripWrap) return;
+            const wrapRect = tagStripWrap.getBoundingClientRect();
+            const anchorRect = anchorEl.getBoundingClientRect();
+            const left = Math.max(0, anchorRect.left - wrapRect.left);
+            tagPopover.style.left = `${left}px`;
+            tagPopover.style.right = 'auto';
+        }
+
         function mountTagEditor(scope) {
             scope.querySelectorAll('[data-tag-editor]').forEach((editorEl) => {
                 if (editorEl.dataset.boundTagEditor === 'true') return;
@@ -112,6 +189,12 @@
                 const hiddenEl = editorEl.querySelector('[data-tag-hidden]');
                 const pillsEl = editorEl.querySelector('[data-tag-pills]');
                 const tags = [];
+
+                (editorEl.dataset.tagInitial || '').split('|').filter(Boolean).forEach((tag) => {
+                    if (tags.length < 3) {
+                        tags.push(tag);
+                    }
+                });
 
                 function syncTags() {
                     hiddenEl.value = tags.join(',');
@@ -155,6 +238,15 @@
                         inputEl.value = '';
                     }
                 });
+
+                editorEl._tagEditorController = {
+                    reset() {
+                        tags.splice(0, tags.length);
+                        inputEl.value = '';
+                        syncTags();
+                    }
+                };
+                syncTags();
             });
         }
 
@@ -196,6 +288,7 @@
                 allButton.className = 'announcement-tag-filter-btn announcement-tag-filter-btn-all';
                 allButton.textContent = 'All';
                 allButton.addEventListener('click', () => {
+                    positionTagPopover(allButton);
                     if (tagPopover.classList.contains('joined-cio-hidden')) {
                         closeFloatingMenu(sortMenu);
                         openFloatingMenu(tagPopover);
@@ -279,14 +372,16 @@
         }
 
         if (composerToggle && composerCard) {
-            composerToggle.addEventListener('click', () => {
-                composerCard.classList.toggle('joined-cio-hidden');
-                if (!composerCard.classList.contains('joined-cio-hidden')) {
-                    const firstField = composerCard.querySelector('input[name="title"]');
-                    if (firstField) firstField.focus();
-                }
-            });
+            composerToggle.addEventListener('click', openComposerModal);
+            composerClose?.addEventListener('click', closeComposerModal);
+            composerCancel?.addEventListener('click', closeComposerModal);
+            composerBackdrop?.addEventListener('click', closeComposerModal);
         }
+
+        composerImageInput?.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
+            renderAttachmentPreview(file, composerAttachmentPills, composerAttachmentName);
+        });
 
         mountTagEditor(document);
         applyAnnouncementFilters();
@@ -329,10 +424,35 @@
         });
 
         if (composerForm) {
-            composerForm.addEventListener('submit', () => {
+            composerForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
                 closeFloatingMenu(tagPopover);
                 closeFloatingMenu(sortMenu);
+                const formData = new FormData(composerForm);
+                const response = await fetch(composerForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {'X-Requested-With': 'XMLHttpRequest'},
+                    credentials: 'same-origin',
+                });
+                if (response.ok) {
+                    closeComposerModal();
+                    resetComposerForm();
+                } else {
+                    const payload = await response.json().catch(() => ({}));
+                    alert(payload.error || 'Failed to publish announcement.');
+                }
             });
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeComposerModal();
+            }
+        });
+
+        if (window.lucide) {
+            window.lucide.createIcons();
         }
     })();
 </script>

@@ -44,8 +44,12 @@
                     <tbody>
                     {% for user in users %}
                     <tr>
-                        <td>{{ user.username }}</td>
-                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="role-admin-table-text role-admin-username" title="{{ user.username }}">{{ user.username }}</span>
+                        </td>
+                        <td>
+                            <span class="role-admin-table-text" title="{{ user.email }}">{{ user.email }}</span>
+                        </td>
                         <td>
                             <a href="{% url 'user_detail' user.id %}"
                                class="btn btn-sm btn-outline-primary">

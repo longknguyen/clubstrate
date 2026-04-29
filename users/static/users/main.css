@@ -261,6 +261,19 @@ body {
     justify-content: flex-end;
 }
 
+.role-admin-table-text {
+    display: inline-block;
+    max-width: min(100%, 34ch);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.role-admin-username {
+    max-width: min(100%, 22ch);
+}
+
 .search-shell {
     position: relative;
     flex-direction: column;

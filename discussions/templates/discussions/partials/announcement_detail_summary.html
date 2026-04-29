@@ -8,6 +8,12 @@
                 {% endfor %}
             </div>
         {% endif %}
+        {% if announcement.image %}
+            <img
+                src="{{ announcement.image.url }}"
+                alt="{{ announcement.title|default:'Announcement image' }}"
+                class="announcement-summary-image">
+        {% endif %}
         <p class="announcement-thread-summary-body">{{ announcement.content|default:"No description yet." }}</p>
     </div>
     <div class="announcement-thread-summary-divider" aria-hidden="true"></div>
