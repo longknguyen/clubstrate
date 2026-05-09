@@ -13,6 +13,7 @@ from rate_limits import get_scope_ip, is_rate_limited_async
 CHAT_GROUP_GAP = timedelta(minutes=5)
 DISCUSSION_MESSAGE_MAX_LENGTH = 2000
 
+
 def _display_name_for_user(user):
     full_name = f"{user.first_name} {user.last_name}".strip()
     return full_name or user.username
@@ -143,7 +144,8 @@ class DiscussionConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def _render_discussion_message_html(self, message_id, viewer_id):
-        message = Post.objects.select_related("author", "author__profile", "cio").get(id=message_id, kind=Post.DISCUSSION)
+        message = Post.objects.select_related("author", "author__profile", "cio").get(id=message_id,
+                                                                                      kind=Post.DISCUSSION)
         previous_message = (
             Post.objects.select_related("author", "author__profile")
             .filter(cio_id=message.cio_id, kind=Post.DISCUSSION, created_at__lt=message.created_at)
@@ -153,15 +155,15 @@ class DiscussionConsumer(AsyncWebsocketConsumer):
         membership = Membership.objects.filter(cio_id=message.cio_id, user_id=message.author_id).first()
         within_gap_of_previous = previous_message is not None and message.created_at - previous_message.created_at <= CHAT_GROUP_GAP
         same_as_previous = (
-            previous_message is not None
-            and previous_message.author_id == message.author_id
-            and previous_message.created_at.date() == message.created_at.date()
-            and within_gap_of_previous
+                previous_message is not None
+                and previous_message.author_id == message.author_id
+                and previous_message.created_at.date() == message.created_at.date()
+                and within_gap_of_previous
         )
         show_time_divider = (
-            previous_message is None
-            or message.created_at.date() != previous_message.created_at.date()
-            or message.created_at - previous_message.created_at > CHAT_GROUP_GAP
+                previous_message is None
+                or message.created_at.date() != previous_message.created_at.date()
+                or message.created_at - previous_message.created_at > CHAT_GROUP_GAP
         )
         return render_to_string(
             "discussions/partials/discussion_message_item.html",
@@ -336,15 +338,15 @@ class AnnouncementThreadConsumer(AsyncWebsocketConsumer):
         membership = Membership.objects.filter(cio_id=comment.post.cio_id, user_id=comment.author_id).first()
         within_gap_of_previous = previous_comment is not None and comment.created_at - previous_comment.created_at <= CHAT_GROUP_GAP
         same_as_previous = (
-            previous_comment is not None
-            and previous_comment.author_id == comment.author_id
-            and previous_comment.created_at.date() == comment.created_at.date()
-            and within_gap_of_previous
+                previous_comment is not None
+                and previous_comment.author_id == comment.author_id
+                and previous_comment.created_at.date() == comment.created_at.date()
+                and within_gap_of_previous
         )
         show_time_divider = (
-            previous_comment is None
-            or comment.created_at.date() != previous_comment.created_at.date()
-            or comment.created_at - previous_comment.created_at > CHAT_GROUP_GAP
+                previous_comment is None
+                or comment.created_at.date() != previous_comment.created_at.date()
+                or comment.created_at - previous_comment.created_at > CHAT_GROUP_GAP
         )
         return render_to_string(
             "discussions/partials/announcement_comment_item.html",
