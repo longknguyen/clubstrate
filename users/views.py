@@ -17,6 +17,7 @@ from urllib.parse import quote_plus
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from image_utils import convert_upload_to_webp
+from rate_limits import get_request_ip, is_rate_limited
 from .forms import (
     PROFILE_FIRST_NAME_MAX_LENGTH,
     PROFILE_LAST_NAME_MAX_LENGTH,
@@ -33,6 +34,23 @@ from cios.models import Membership, CIO
 User = get_user_model()
 DM_GROUP_GAP = timedelta(minutes=5)
 FRIEND_LIMIT = 100
+
+
+def _rate_limit_identity(request, *, suffix=""):
+    user_part = f"user:{request.user.id}" if request.user.is_authenticated else f"ip:{get_request_ip(request)}"
+    return f"{user_part}:{suffix}" if suffix else user_part
+
+
+def _rate_limit_json(message, retry_after):
+    response = JsonResponse({'ok': False, 'error': message}, status=429)
+    response['Retry-After'] = str(retry_after)
+    return response
+
+
+def _rate_limit_template(request, template_name, context, message, retry_after):
+    response = render(request, template_name, {**context, 'error': message}, status=429)
+    response['Retry-After'] = str(retry_after)
+    return response
 
 def login_redirect(request):
     if request.user.profile.user_type == "user_admin":
@@ -274,6 +292,20 @@ class LoginView(View):
     def post(self, request):
         identifier = request.POST.get('email')
         password = request.POST.get('password')
+        limited, retry_after = is_rate_limited(
+            'login',
+            f"{get_request_ip(request)}:{(identifier or '').strip().lower()}",
+            limit=5,
+            window_seconds=60,
+        )
+        if limited:
+            return _rate_limit_template(
+                request,
+                'users/login.html',
+                {'identifier': identifier},
+                'Too many login attempts. Please wait a minute and try again.',
+                retry_after,
+            )
 
         if '@' in identifier:
             user_obj = User.objects.filter(email=identifier).first()
@@ -330,6 +362,14 @@ class ProfileView(LoginRequiredMixin, View):
     def post(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
         if 'image' in request.FILES:
+            limited, retry_after = is_rate_limited(
+                'profile-image-upload',
+                _rate_limit_identity(request),
+                limit=10,
+                window_seconds=3600,
+            )
+            if limited:
+                return _rate_limit_json('Too many profile image uploads. Please try again later.', retry_after)
             profile.image = convert_upload_to_webp(request.FILES['image'], stem='profile')
             profile.save()
         return redirect('/users/profile/')
@@ -339,6 +379,15 @@ class ProfileView(LoginRequiredMixin, View):
 def change_password(request):
     if request.method != 'POST':
         return redirect('profile')
+
+    limited, retry_after = is_rate_limited(
+        'change-password',
+        _rate_limit_identity(request),
+        limit=5,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_json('Too many password change attempts. Please try again later.', retry_after)
 
     form = PasswordChangePopupForm(request.user, request.POST)
     if form.is_valid():
@@ -370,6 +419,20 @@ class RegisterView(View):
         name = request.POST.get('name', '').strip()
         email = request.POST.get('email')
         password = request.POST.get('password')
+        limited, retry_after = is_rate_limited(
+            'register',
+            get_request_ip(request),
+            limit=5,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_template(
+                request,
+                'users/register.html',
+                {'name': name, 'email': email, 'password': password},
+                'Too many registration attempts. Please try again later.',
+                retry_after,
+            )
 
         if User.objects.filter(email=email).exists():
             return render(request, 'users/register.html', {
@@ -574,6 +637,31 @@ class ProfileEditView(LoginRequiredMixin, View):
 
     def post(self, request):
         profile, _ = Profile.objects.get_or_create(user=request.user)
+        limited, retry_after = is_rate_limited(
+            'profile-edit',
+            _rate_limit_identity(request),
+            limit=20,
+            window_seconds=3600,
+        )
+        if limited:
+            user_form = UserUpdateForm(instance=request.user)
+            profile_form = ProfileUpdateForm(instance=profile)
+            return _rate_limit_template(
+                request,
+                'users/profile_edit.html',
+                {
+                    'user_form': user_form,
+                    'profile_form': profile_form,
+                    'profile_image': profile.image.url if profile.image else '/media/default.jpg',
+                    'first_name': request.user.first_name,
+                    'last_name': request.user.last_name,
+                    'username': request.user.username,
+                    'pronouns': request.user.pronouns,
+                    'banner_colour': request.user.banner_colour,
+                },
+                'Too many profile updates. Please try again later.',
+                retry_after,
+            )
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
 
@@ -582,6 +670,29 @@ class ProfileEditView(LoginRequiredMixin, View):
             if request.POST.get("remove_image") == "1":
                 profile.image = "profile_pics/default.jpg"
             elif "image" in request.FILES:
+                image_limited, image_retry_after = is_rate_limited(
+                    'profile-image-upload',
+                    _rate_limit_identity(request),
+                    limit=10,
+                    window_seconds=3600,
+                )
+                if image_limited:
+                    return _rate_limit_template(
+                        request,
+                        'users/profile_edit.html',
+                        {
+                            'user_form': user_form,
+                            'profile_form': profile_form,
+                            'profile_image': profile.image.url if profile.image else '/media/default.jpg',
+                            'first_name': request.user.first_name,
+                            'last_name': request.user.last_name,
+                            'username': request.user.username,
+                            'pronouns': request.user.pronouns,
+                            'banner_colour': request.user.banner_colour,
+                        },
+                        'Too many profile image uploads. Please try again later.',
+                        image_retry_after,
+                    )
                 profile.image = convert_upload_to_webp(request.FILES["image"], stem='profile')
 
             profile.save()
@@ -660,6 +771,15 @@ def friends_page(request):
 @login_required
 @require_POST
 def send_direct_message(request, friendship_id):
+    limited, retry_after = is_rate_limited(
+        'send-direct-message',
+        _rate_limit_identity(request, suffix=str(friendship_id)),
+        limit=30,
+        window_seconds=60,
+    )
+    if limited:
+        return _rate_limit_json('Too many direct messages. Please wait a minute and try again.', retry_after)
+
     friendship = get_object_or_404(
         Friendship.objects.select_related('user_one__profile', 'user_two__profile'),
         pk=friendship_id,
@@ -669,6 +789,15 @@ def send_direct_message(request, friendship_id):
 
     content = request.POST.get('content', '').strip()[:2000]
     image = request.FILES.get('image')
+    if image:
+        image_limited, image_retry_after = is_rate_limited(
+            'direct-message-upload',
+            _rate_limit_identity(request),
+            limit=8,
+            window_seconds=600,
+        )
+        if image_limited:
+            return _rate_limit_json('Too many message image uploads. Please try again later.', image_retry_after)
     if not content and not image:
         recipient = friendship.user_two if friendship.user_one_id == request.user.id else friendship.user_one
         return redirect(f"{reverse('friends')}?dm={recipient.id}")
@@ -701,6 +830,15 @@ def send_direct_message(request, friendship_id):
 def add_friend(request):
     if request.method != 'POST':
         return redirect(f"{reverse('friends')}?section=add")
+
+    limited, retry_after = is_rate_limited(
+        'send-friend-request',
+        _rate_limit_identity(request),
+        limit=10,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_json('Too many friend request attempts. Please try again later.', retry_after)
 
     username = request.POST.get('username', '').strip().lstrip('@')
     redirect_url = f"{reverse('friends')}?section=add"
@@ -763,6 +901,15 @@ def accept_friend_request(request, request_id):
     if request.method != 'POST':
         return redirect(f"{reverse('friends')}?section=requests")
 
+    limited, retry_after = is_rate_limited(
+        'accept-friend-request',
+        _rate_limit_identity(request),
+        limit=30,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_json('Too many friend request actions. Please try again later.', retry_after)
+
     friend_request = get_object_or_404(
         FriendRequest.objects.select_related('sender', 'recipient'),
         id=request_id,
@@ -788,6 +935,15 @@ def decline_friend_request(request, request_id):
     if request.method != 'POST':
         return redirect(f"{reverse('friends')}?section=requests")
 
+    limited, retry_after = is_rate_limited(
+        'decline-friend-request',
+        _rate_limit_identity(request),
+        limit=30,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_json('Too many friend request actions. Please try again later.', retry_after)
+
     friend_request = get_object_or_404(
         FriendRequest,
         id=request_id,
@@ -805,6 +961,15 @@ def decline_friend_request(request, request_id):
 def remove_friend(request, friend_id):
     if request.method != 'POST':
         return redirect(f"{reverse('friends')}?section=all")
+
+    limited, retry_after = is_rate_limited(
+        'remove-friend',
+        _rate_limit_identity(request),
+        limit=20,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_json('Too many friend removal attempts. Please try again later.', retry_after)
 
     target_user = get_object_or_404(User.objects.select_related('profile'), id=friend_id)
     friendship = _friendship_for_users(request.user, target_user)

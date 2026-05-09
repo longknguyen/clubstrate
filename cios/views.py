@@ -17,8 +17,20 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from discussions.models import Post
 from image_utils import convert_upload_to_webp
+from rate_limits import is_rate_limited, get_request_ip
 from .forms import CIOAboutForm, CIOCreateForm
 from .models import CIO, Membership, JoinRequest,  Event, Reminder
+
+
+def _rate_limit_identity(request, *, suffix=""):
+    user_part = f"user:{request.user.id}" if request.user.is_authenticated else f"ip:{get_request_ip(request)}"
+    return f"{user_part}:{suffix}" if suffix else user_part
+
+
+def _rate_limit_response(message, retry_after):
+    response = JsonResponse({'ok': False, 'error': message}, status=429)
+    response['Retry-After'] = str(retry_after)
+    return response
 
 
 def _display_name_for_user(user):
@@ -415,9 +427,26 @@ def create_cio(request):
     default_icon_data_uri = _build_default_cio_icon_data_uri(DEFAULT_CIO_PALETTES[palette_index])
 
     if request.method == 'POST' and form.is_valid():
+        limited, retry_after = is_rate_limited(
+            'create-cio',
+            _rate_limit_identity(request),
+            limit=5,
+            window_seconds=86400,
+        )
+        if limited:
+            return _rate_limit_response('Too many CIO creation attempts. Please try again later.', retry_after)
+
         cio = form.save(commit=False)
         cio.created_by = request.user
         if request.FILES.get('icon'):
+            image_limited, image_retry_after = is_rate_limited(
+                'cio-image-upload',
+                _rate_limit_identity(request),
+                limit=10,
+                window_seconds=3600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many image uploads. Please try again later.', image_retry_after)
             cio.icon = convert_upload_to_webp(request.FILES['icon'], stem='cio-icon')
         _assign_default_cio_branding_with_palette(cio, palette_index)
         cio.save()
@@ -535,6 +564,15 @@ def edit_cio_about(request, cio_id):
     form = CIOAboutForm(request.POST or None, request.FILES or None, instance=cio)
 
     if request.method == 'POST' and form.is_valid():
+        limited, retry_after = is_rate_limited(
+            'edit-cio-about',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=20,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many CIO edits. Please try again later.', retry_after)
+
         cio = form.save(commit=False)
         default_palette_index = _get_cio_default_palette_index(cio)
 
@@ -543,12 +581,28 @@ def edit_cio_about(request, cio_id):
             cio.icon = None
             _assign_default_cio_branding_with_palette(cio, default_palette_index)
         elif request.FILES.get('icon'):
+            image_limited, image_retry_after = is_rate_limited(
+                'cio-image-upload',
+                _rate_limit_identity(request),
+                limit=10,
+                window_seconds=3600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many image uploads. Please try again later.', image_retry_after)
             cio.icon = convert_upload_to_webp(request.FILES['icon'], stem='cio-icon')
 
         if form.cleaned_data.get('remove_banner'):
             cio.banner_image = None
             cio.banner_type = 'default'
         elif request.FILES.get('banner_image'):
+            image_limited, image_retry_after = is_rate_limited(
+                'cio-image-upload',
+                _rate_limit_identity(request),
+                limit=10,
+                window_seconds=3600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many image uploads. Please try again later.', image_retry_after)
             cio.banner_image = convert_upload_to_webp(request.FILES['banner_image'], stem='cio-banner')
             cio.banner_type = 'image'
 
@@ -636,6 +690,15 @@ def request_to_join(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'request-to-join',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=10,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many join requests. Please try again later.', retry_after)
+
         membership = Membership.objects.filter(user=request.user, cio=cio).first()
         join_request = JoinRequest.objects.filter(user=request.user, cio=cio).first()
         pending = False
@@ -672,6 +735,15 @@ def cancel_join_request(request, cio_id):
     cio = get_object_or_404(CIO, pk=cio_id)
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'cancel-join-request',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=10,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many join request changes. Please try again later.', retry_after)
+
         join_request = JoinRequest.objects.filter(
             user=request.user,
             cio=cio,
@@ -697,6 +769,15 @@ def accept_request(request, request_id):
     join_request = get_object_or_404(JoinRequest, pk=request_id)
 
     if request.method == 'POST' and _get_cio_officer_membership(request.user, join_request.cio):
+        limited, retry_after = is_rate_limited(
+            'accept-join-request',
+            _rate_limit_identity(request, suffix=str(join_request.cio_id)),
+            limit=60,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many join request actions. Please try again later.', retry_after)
+
         membership = Membership.objects.filter(
             user=join_request.user,
             cio=join_request.cio
@@ -728,6 +809,15 @@ def deny_request(request, request_id):
     join_request = get_object_or_404(JoinRequest, pk=request_id)
 
     if request.method == 'POST' and _get_cio_officer_membership(request.user, join_request.cio):
+        limited, retry_after = is_rate_limited(
+            'deny-join-request',
+            _rate_limit_identity(request, suffix=str(join_request.cio_id)),
+            limit=60,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many join request actions. Please try again later.', retry_after)
+
         join_request.status = 'denied'
         join_request.save(update_fields=['status'])
         _send_join_request_removed(join_request, approved=False)
@@ -750,6 +840,15 @@ def add_event(request, cio_id):
         return JsonResponse({'error': 'Officers only'}, status=403)
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'add-event',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=20,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many event creations. Please try again later.', retry_after)
+
         data = json.loads(request.body)
         event = Event.objects.create(
             cio=cio,
@@ -778,6 +877,15 @@ def delete_event(request, event_id):
         return JsonResponse({'error': 'Officers only'}, status=403)
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'delete-event',
+            _rate_limit_identity(request, suffix=str(event.cio_id)),
+            limit=20,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many event deletions. Please try again later.', retry_after)
+
         event_id = event.id
         cio_id = event.cio_id
         event.delete()

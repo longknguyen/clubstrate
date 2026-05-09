@@ -12,10 +12,22 @@ from django.utils import timezone
 from cios.models import CIO, JoinRequest, Membership
 from discussions.models import Comment, Post
 from image_utils import convert_upload_to_webp
+from rate_limits import get_request_ip, is_rate_limited
 
 CHAT_GROUP_GAP = timedelta(minutes=5)
 ANNOUNCEMENT_TAG_LIMIT = 3
 ANNOUNCEMENT_TAG_MAX_LENGTH = 24
+
+
+def _rate_limit_identity(request, *, suffix=""):
+    user_part = f"user:{request.user.id}" if request.user.is_authenticated else f"ip:{get_request_ip(request)}"
+    return f"{user_part}:{suffix}" if suffix else user_part
+
+
+def _rate_limit_response(message, retry_after):
+    response = JsonResponse({'ok': False, 'error': message}, status=429)
+    response['Retry-After'] = str(retry_after)
+    return response
 
 
 def _display_name_for_user(user):
@@ -257,9 +269,27 @@ def create_post(request, cio_id):
         return redirect(f'/{cio.id}/?tab=announcements')
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'create-announcement',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=10,
+            window_seconds=3600,
+        )
+        if limited:
+            return _rate_limit_response('Too many announcement posts. Please try again later.', retry_after)
+
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()[:2000]
         image = request.FILES.get('image')
+        if image:
+            image_limited, image_retry_after = is_rate_limited(
+                'announcement-upload',
+                _rate_limit_identity(request),
+                limit=8,
+                window_seconds=600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many announcement image uploads. Please try again later.', image_retry_after)
         tags = _parse_announcement_tags(request.POST.get('tags', ''))
 
         if not title and not content and not image:
@@ -292,6 +322,15 @@ def update_announcement(request, post_id):
     if request.method != 'POST' or not membership or membership.role != Membership.OFFICER:
         return JsonResponse({'ok': False}, status=403)
 
+    limited, retry_after = is_rate_limited(
+        'update-announcement',
+        _rate_limit_identity(request, suffix=str(post.cio_id)),
+        limit=20,
+        window_seconds=3600,
+    )
+    if limited:
+        return _rate_limit_response('Too many announcement edits. Please try again later.', retry_after)
+
     title = request.POST.get('title', '').strip()
     content = request.POST.get('content', '').strip()[:2000]
     tags = _parse_announcement_tags(request.POST.get('tags', ''))
@@ -304,6 +343,14 @@ def update_announcement(request, post_id):
     post.announcement_tags = tags
     image = request.FILES.get('image')
     if image:
+        image_limited, image_retry_after = is_rate_limited(
+            'announcement-upload',
+            _rate_limit_identity(request),
+            limit=8,
+            window_seconds=600,
+        )
+        if image_limited:
+            return _rate_limit_response('Too many announcement image uploads. Please try again later.', image_retry_after)
         post.image = convert_upload_to_webp(image, stem='announcement')
     post.save(update_fields=['title', 'content', 'announcement_tags', 'image'] if image else ['title', 'content', 'announcement_tags'])
 
@@ -319,8 +366,26 @@ def create_message(request, cio_id):
         return redirect(f'/{cio.id}/')
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'create-discussion-message',
+            _rate_limit_identity(request, suffix=str(cio_id)),
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            return _rate_limit_response('Too many discussion messages. Please wait a minute and try again.', retry_after)
+
         content = request.POST.get('content', '').strip()
         image = request.FILES.get('image')
+        if image:
+            image_limited, image_retry_after = is_rate_limited(
+                'discussion-upload',
+                _rate_limit_identity(request),
+                limit=8,
+                window_seconds=600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many discussion image uploads. Please try again later.', image_retry_after)
 
         if not content and not image:
             return redirect(f'/{cio.id}/?tab=discussions')
@@ -358,9 +423,27 @@ def create_comment(request, post_id):
         return redirect(f'/{post.cio.id}/')
 
     if request.method == 'POST':
+        limited, retry_after = is_rate_limited(
+            'create-comment',
+            _rate_limit_identity(request, suffix=str(post.cio_id)),
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            return _rate_limit_response('Too many comments. Please wait a minute and try again.', retry_after)
+
         content = request.POST.get('content', '').strip()
         image = request.FILES.get('image')
         parent_id = request.POST.get('parent_id')
+        if image:
+            image_limited, image_retry_after = is_rate_limited(
+                'comment-upload',
+                _rate_limit_identity(request),
+                limit=8,
+                window_seconds=600,
+            )
+            if image_limited:
+                return _rate_limit_response('Too many comment image uploads. Please try again later.', image_retry_after)
 
         if not content and not image:
             return redirect(_comment_redirect_url(post))
@@ -400,6 +483,15 @@ def toggle_post_like(request, post_id):
     if not Membership.objects.filter(user=request.user, cio=post.cio).exists():
         return redirect(f'/{post.cio.id}/')
 
+    limited, retry_after = is_rate_limited(
+        'toggle-post-like',
+        _rate_limit_identity(request, suffix=str(post.cio_id)),
+        limit=60,
+        window_seconds=60,
+    )
+    if limited:
+        return _rate_limit_response('Too many like actions. Please wait a minute and try again.', retry_after)
+
     if request.user in post.likes.all():
         post.likes.remove(request.user)
     else:
@@ -416,6 +508,15 @@ def toggle_comment_like(request, comment_id):
     comment = get_object_or_404(Comment, pk=comment_id)
     if not Membership.objects.filter(user=request.user, cio=comment.post.cio).exists():
         return redirect(f'/{comment.post.cio.id}/')
+
+    limited, retry_after = is_rate_limited(
+        'toggle-comment-like',
+        _rate_limit_identity(request, suffix=str(comment.post.cio_id)),
+        limit=60,
+        window_seconds=60,
+    )
+    if limited:
+        return _rate_limit_response('Too many like actions. Please wait a minute and try again.', retry_after)
 
     if request.user in comment.likes.all():
         comment.likes.remove(request.user)

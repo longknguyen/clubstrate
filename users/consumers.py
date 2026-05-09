@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import DirectMessage, Friendship
+from rate_limits import get_scope_ip, is_rate_limited_async
 
 DM_GROUP_GAP = timedelta(minutes=5)
 DM_MESSAGE_MAX_LENGTH = 2000
@@ -38,6 +39,15 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.friendship_id = int(self.scope["url_route"]["kwargs"]["friendship_id"])
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-direct-message',
+            f"{get_scope_ip(self.scope)}:{self.friendship_id}",
+            limit=20,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
@@ -57,6 +67,20 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
+            return
+
+        limited, retry_after = await is_rate_limited_async(
+            'ws-direct-message-send',
+            f"user:{self.user.id}:friendship:{self.friendship_id}",
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            await self.send(text_data=json.dumps({
+                "type": "rate_limited",
+                "error": "Too many messages. Please wait a minute and try again.",
+                "retry_after": retry_after,
+            }))
             return
 
         payload = json.loads(text_data)
@@ -145,6 +169,15 @@ class DirectMessageConsumer(AsyncWebsocketConsumer):
 class FriendRequestConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-friend-requests',
+            get_scope_ip(self.scope),
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()

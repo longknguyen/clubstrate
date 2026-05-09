@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from cios.models import CIO, Membership
 from discussions.models import Comment, Post
+from rate_limits import get_scope_ip, is_rate_limited_async
 
 CHAT_GROUP_GAP = timedelta(minutes=5)
 DISCUSSION_MESSAGE_MAX_LENGTH = 2000
@@ -63,6 +64,15 @@ class DiscussionConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.cio_id = int(self.scope["url_route"]["kwargs"]["cio_id"])
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-discussion',
+            f"{get_scope_ip(self.scope)}:{self.cio_id}",
+            limit=20,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
@@ -82,6 +92,20 @@ class DiscussionConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
+            return
+
+        limited, retry_after = await is_rate_limited_async(
+            'ws-discussion-send',
+            f"user:{self.user.id}:cio:{self.cio_id}",
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            await self.send(text_data=json.dumps({
+                "type": "rate_limited",
+                "error": "Too many discussion messages. Please wait a minute and try again.",
+                "retry_after": retry_after,
+            }))
             return
 
         payload = json.loads(text_data)
@@ -159,6 +183,15 @@ class AnnouncementFeedConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.cio_id = int(self.scope["url_route"]["kwargs"]["cio_id"])
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-announcement-feed',
+            f"{get_scope_ip(self.scope)}:{self.cio_id}",
+            limit=20,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
@@ -191,6 +224,15 @@ class AnnouncementThreadConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.post_id = int(self.scope["url_route"]["kwargs"]["post_id"])
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-announcement-thread',
+            f"{get_scope_ip(self.scope)}:{self.post_id}",
+            limit=20,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
@@ -213,6 +255,20 @@ class AnnouncementThreadConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data or self.viewer_role == "viewer":
+            return
+
+        limited, retry_after = await is_rate_limited_async(
+            'ws-announcement-thread-send',
+            f"user:{self.user.id}:post:{self.post_id}",
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            await self.send(text_data=json.dumps({
+                "type": "rate_limited",
+                "error": "Too many comments. Please wait a minute and try again.",
+                "retry_after": retry_after,
+            }))
             return
 
         payload = json.loads(text_data)

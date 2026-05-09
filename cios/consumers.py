@@ -4,11 +4,21 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 from .models import CIO, Membership
+from rate_limits import get_scope_ip, is_rate_limited_async
 
 
 class CioRequestConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-cio-requests',
+            get_scope_ip(self.scope),
+            limit=30,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
@@ -47,6 +57,15 @@ class CioEventConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
         self.cio_id = self.scope["url_route"]["kwargs"].get("cio_id")
+        limited, _ = await is_rate_limited_async(
+            'ws-connect-cio-events',
+            f"{get_scope_ip(self.scope)}:{self.cio_id}",
+            limit=20,
+            window_seconds=60,
+        )
+        if limited:
+            await self.close(code=4408)
+            return
 
         if not self.user.is_authenticated:
             await self.close()
