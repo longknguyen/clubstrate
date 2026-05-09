@@ -13,7 +13,6 @@ from rate_limits import get_scope_ip, is_rate_limited_async
 CHAT_GROUP_GAP = timedelta(minutes=5)
 DISCUSSION_MESSAGE_MAX_LENGTH = 2000
 
-
 def _display_name_for_user(user):
     full_name = f"{user.first_name} {user.last_name}".strip()
     return full_name or user.username
